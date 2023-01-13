@@ -201,7 +201,7 @@ bitvector drive_query_benchmark(const query_arguments &cmd_args, std::fstream &b
         auto hits = query_ibf(bin_count, hash_to_idx, kmer_bitvex, path);
         hit_vector.raw_data() |= hits.raw_data();
     }
-    for(auto && bit: hit_vector) std::cout << bit;
+    // for(auto && bit: hit_vector) std::cout << bit;
     t2 = omp_get_wtime();
     benchmark_table<<t2-t1<<",";
     std::cout<<std::endl;

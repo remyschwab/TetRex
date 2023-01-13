@@ -83,9 +83,9 @@ void run_benchmark(seqan3::argument_parser &parser)
     file.close();
     seqan3::debug_stream << "DONE" << std::endl;
 
-    // bash script
+    // Execute shell wrapper to generate syn genome
     seqan3::debug_stream << "   - start script ";
-    // int occ = system(bashC.c_str());
+    int occ = system(bashC.c_str());
     seqan3::debug_stream << "DONE" << std::endl;
 
     //write parser
@@ -111,7 +111,7 @@ void run_benchmark(seqan3::argument_parser &parser)
 
     seqan3::debug_stream << "=======Genome Done========" << std::endl;
     
-    seqan3::debug_stream << "=======start search========" << std::endl;
+    seqan3::debug_stream << "=======Start Search========" << std::endl;
     //seqan3::argument_parser query_parser = {};
     //indexing ./bin/kbioreg benchmark -k 4 -w 30 -p 10 words.txt "AC.G+.T."
     std::fstream benchmark_table;
@@ -123,7 +123,7 @@ void run_benchmark(seqan3::argument_parser &parser)
     benchmark_table<< t2-t1<<",";   //timeIndex
     seqan3::debug_stream << "[INDEXING TIME]: " << t2-t1 << std::endl;
 
-    //querry
+    // Query
     int hitsNr = 0;
     std::fstream file_kbioreg;
     file_kbioreg.clear();
@@ -142,11 +142,11 @@ void run_benchmark(seqan3::argument_parser &parser)
     t2 = omp_get_wtime();
     benchmark_table<<t2-t1<<",";
 
-    seqan3::debug_stream << "[drive QUERY TIME]: " << t2-t1 << std::endl;
+    seqan3::debug_stream << "[KBIOREG QUERY TIME]: " << t2-t1 << std::endl;
 
     size_t j = 10;
     t3 = omp_get_wtime();
-    for(size_t i = 0; i < bins; i++) // Bin Count hardcoded here
+    for(size_t i = 0; i < bins; i++)
     {
         if(i >= j)
         {
@@ -155,35 +155,16 @@ void run_benchmark(seqan3::argument_parser &parser)
         } 
         if(hits[i])
         {
-            // std::stringstream bin_file_stream;
-            // std::string bin_file;
-            // bin_file_stream << binString <<i<< ".fa";
-            // bin_file = bin_file_stream.str();
-            // if(i < 10)
-            // {
-            //     bin_file_stream << "bin_00"<<i<< ".fa";
-            //     bin_file = bin_file_stream.str();
-            // }
-            // else if(i < 100)
-            // {
-            //     bin_file_stream << "bin_0"<<i<< ".fa";
-            //     bin_file = bin_file_stream.str();
-            // }
-            //  else
-            // {
-            //     bin_file_stream << "bin_"<<i<< ".fa";
-            //     bin_file = bin_file_stream.str();
-            // }
             std::string filepath = cmd_args.b+"/bins/"+binString+std::to_string(i)+".fa";
             hitsNr += matches(stream_as_string(filepath), reg, file_kbioreg);
         }
     }
     
     t4 = omp_get_wtime();
-    seqan3::debug_stream << "[loop TIME]: " << t4-t3 << std::endl;
-    seqan3::debug_stream << "[KBIOREG QUERY TIME]: " << t4-t1 << std::endl;
+    seqan3::debug_stream << "[KBIOREG STDBIN SEARCH TIME]: " << t4-t3 << std::endl;
+    seqan3::debug_stream << "[KBIOREG TOTAL SEARCH TIME]: " << t4-t1 << std::endl;
     file_kbioreg<<"[KBIOREG QUERY TIME]: " << t4-t1<<"\n";
-    file_kbioreg<<"[KBIOREG Genom Size]: " << cmd_args.s<<"\n";
+    file_kbioreg<<"[KBIOREG Genome Size]: " << cmd_args.s<<"\n";
     file_kbioreg<<"[KBIOREG Bins]: " << cmd_args.b<<"\n";
     file_kbioreg<<"[KBIOREG Hits]: " << hitsNr<<"\n";
     benchmark_table<< t4-t3<<",";   //time for loop

@@ -280,14 +280,9 @@ Path* findPath(kState* position)
  * depht first search, generates the matrix with the possible paths
  */
 
-void dfs(
-          kState* input, std::vector<std::vector<std::string>>& matrix,
-          uint32_t &vector_idx, 
-          robin_hood::unordered_map<uint64_t,
-          uint32_t> &hash_to_idx,
-          std::vector<bitvector> &kmer_bitvex,
-          IndexStructure &ibf
-        )
+void dfs(kState* input, std::vector<std::vector<std::string>>& matrix, uint32_t &vector_idx,
+          robin_hood::unordered_map<uint64_t, uint32_t> &hash_to_idx,
+          std::vector<bitvector> &kmer_bitvex, IndexStructure &ibf)
 {
   std::vector<std::string> line{};
   std::stack<Path*> stack{};
@@ -338,7 +333,6 @@ void dfs(
       delete p;
     }
   }
-  // seqan3::debug_stream << hash_to_idx << std::endl;
 }
 
 // int main()
