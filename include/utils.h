@@ -48,7 +48,6 @@ std::vector<seqan3::dna5> convertStringToDNA(std::string const &str);
 //soll alle nötigen qgramme finden
 std::vector<std::string> getQgramAlphabet(const std::vector<std::vector<std::string>>& matrix);
 
-
 //uint shiftValue(const uint& input);
 
 
@@ -58,5 +57,4 @@ std::vector<std::string> getQgramAlphabet(const std::vector<std::vector<std::str
 void matrixTotxt(const std::vector<std::vector<std::string>>& matrix, std::string& filename);
 
 
-void matrixTXT(const std::vector<std::vector<std::string>>& matrix,
-                const std::vector<char>& alphabet);
+void matrixTXT(const std::vector<std::vector<std::string>>& matrix, const std::vector<char>& alphabet);

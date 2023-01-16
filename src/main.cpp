@@ -39,7 +39,7 @@ void run_query(seqan3::argument_parser &parser)
         return;
     }
     cmd_args.query = translate(cmd_args.regex);
-    drive_query(cmd_args);
+    // drive_query(cmd_args);
 }
 
 void run_benchmark(seqan3::argument_parser &parser)
@@ -53,7 +53,7 @@ void run_benchmark(seqan3::argument_parser &parser)
     catch (seqan3::argument_parser_error const & ext) // catch user errors
     {
         seqan3::debug_stream << "[Error] " << ext.what() << "\n"; // customise your error message
-        return ;
+        return;
     }
 
     cmd_args.query = translate(cmd_args.regex);
