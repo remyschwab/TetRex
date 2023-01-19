@@ -50,11 +50,8 @@ std::vector<std::string> getQgramAlphabet(const std::vector<std::vector<std::str
 
 //uint shiftValue(const uint& input);
 
-
 //uint32_t getHash(const std::vector<char>& alphabet, const std::string& input, const uint& sValue);
 
-
 void matrixTotxt(const std::vector<std::vector<std::string>>& matrix, std::string& filename);
-
 
 void matrixTXT(const std::vector<std::vector<std::string>>& matrix, const std::vector<char>& alphabet);

@@ -8,24 +8,14 @@
 
 bitvector query_ibf(uint32_t &bin_count, robin_hood::unordered_map<uint64_t, uint32_t> &hash_to_idx,
   std::vector<bitvector> &kmer_bitvex, std::vector<std::pair<std::string, uint64_t>> &path)
-{
-    // seqan3::debug_stream << path << ":::";
-    
+{   
     seqan3::interleaved_bloom_filter<seqan3::data_layout::uncompressed>::membership_agent::binning_bitvector hit_vector{bin_count};
     std::fill(hit_vector.begin(), hit_vector.end(), true);
-    
-    // auto && ibf_ref = ibf.getIBF();
-    // auto agent = ibf_ref.membership_agent();
-
     for (auto && kmer : path)
     {
-        // auto & result = agent.bulk_contains(kmer.second);
         auto & result = kmer_bitvex[hash_to_idx[kmer.second]];
-        // seqan3::debug_stream << kmer.first << "\t" << result << std::endl;
         hit_vector.raw_data() &= result.raw_data();
     }
-    //for(auto && bit: hit_vector) std::cout << bit;
-    //std::cout<<std::endl;
     return hit_vector;
 }
 
@@ -196,17 +186,17 @@ bitvector drive_query_benchmark(const query_arguments &cmd_args, std::fstream &b
     seqan3::interleaved_bloom_filter<seqan3::data_layout::uncompressed>::membership_agent::binning_bitvector hit_vector{bin_count};
     std::fill(hit_vector.begin(), hit_vector.end(), false);
 
+    #pragma omp parallel for
     for (auto path : paths_vector)
     {
-        //seqan3::debug_stream << collapse_kmers(qlength, path) << ":::";
         auto hits = query_ibf(bin_count, hash_to_idx, kmer_bitvex, path);
         hit_vector.raw_data() |= hits.raw_data();
     }
-    // for(auto && bit: hit_vector) std::cout << bit;
     t2 = omp_get_wtime();
     benchmark_table<<t2-t1<<",";
-    std::cout<<std::endl;
     seqan3::debug_stream << "DONE in "<<t2-t1<<"sec." << std::endl;
+    for(auto && bit: hit_vector) std::cout << bit;
+    std::cout<<std::endl;
     return hit_vector;
 }
 

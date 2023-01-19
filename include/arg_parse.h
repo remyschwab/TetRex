@@ -43,7 +43,7 @@ struct benchmark_arguments
     std::string ofile = "benchmark_idx"; //index
     std::filesystem::path acid_lib= "64/bins/all_bins.fa"; //index
     uint64_t bin_size = 8192; //index
-    uint8_t hash_count = 2; //index
+    uint8_t hash_count = 3; //index
     std::string molecule; //index
     std::filesystem::path graph = "graph";
 };
