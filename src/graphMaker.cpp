@@ -23,6 +23,7 @@ void print(const std::vector<kState *>& input)
 {
   std::stack<kState *> stack;
   std::cout<<"Start: "<<"\n";
+
   for(size_t i = 0; i < input.size(); i++)
   {
     std::cout<<input[i]<<"\n";
@@ -91,6 +92,7 @@ void printGraph(const std::vector<kState *>& input, const std::string& filename)
 
   std::string newline;
   std::stack<kState *> stack;
+
   for(size_t i = 0; i < input.size(); i++)
   {
     stack.push(input[i]);

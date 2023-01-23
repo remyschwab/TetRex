@@ -3,36 +3,32 @@
 //
 
 #include "query.h"
+#include <omp.h>
 
 
-
-void query_ibf(IndexStructure &ibf, std::vector<std::pair<std::string, uint64_t>> &path)
-{
-    // seqan3::debug_stream << path << ":::";
-    // seqan3::debug_stream << path << std::endl;
-    
-    seqan3::interleaved_bloom_filter<seqan3::data_layout::uncompressed>::membership_agent::binning_bitvector hit_vector{ibf.getBinCount()};
+bitvector query_ibf(uint32_t &bin_count, robin_hood::unordered_map<uint64_t, uint32_t> &hash_to_idx,
+  std::vector<bitvector> &kmer_bitvex, std::vector<std::pair<std::string, uint64_t>> &path)
+{   
+    seqan3::interleaved_bloom_filter<seqan3::data_layout::uncompressed>::membership_agent::binning_bitvector hit_vector{bin_count};
     std::fill(hit_vector.begin(), hit_vector.end(), true);
-    
-    auto && ibf_ref = ibf.getIBF();
-    auto agent = ibf_ref.membership_agent();
-
     for (auto && kmer : path)
     {
-        auto & result = agent.bulk_contains(kmer.second);
-        seqan3::debug_stream << kmer.first << "\t" << result << std::endl;
+        auto & result = kmer_bitvex[hash_to_idx[kmer.second]];
         hit_vector.raw_data() &= result.raw_data();
     }
-    seqan3::debug_stream << "FINAL RESULT: " << hit_vector << std::endl;
+    return hit_vector;
 }
 
-void drive_query(const query_arguments &cmd_args)
+bitvector drive_query(const query_arguments &cmd_args)
 {
+    
     // Load index from disk
     seqan3::debug_stream << "Reading Index from Disk... ";
     IndexStructure ibf;
     load_ibf(ibf, cmd_args.idx);
     seqan3::debug_stream << "DONE" << std::endl;
+
+    auto bin_count = ibf.getBinCount();
 
     // Evaluate and search for Regular Expression
     seqan3::debug_stream << "Querying:" << std::endl;
@@ -49,24 +45,30 @@ void drive_query(const query_arguments &cmd_args)
     seqan3::debug_stream << "   - Construction kNFA from Thompson NFA... ";
     std::vector<kState *> knfa = nfa2knfa(nfa, qlength);
     seqan3::debug_stream << "DONE" << std::endl;
-    //deleteGraph(nfa);
+    deleteGraph(nfa);
 
     // Create kmer path matrix from kNFA
     seqan3::debug_stream << "   - Computing kmer path matrix from kNFA... ";
+    
+    // Create auxiliary data structures to avoid redundant kmer lookup
+    auto hash_adaptor = seqan3::views::kmer_hash(seqan3::ungapped{qlength});
+    robin_hood::unordered_map<uint64_t, uint32_t> hash_to_idx{};
+    std::vector<bitvector> kmer_bitvex;
+    uint32_t vector_idx = 0;
+    // Spawn IBF membership agent in this scope because it is expensive
+    auto && ibf_ref = ibf.getIBF();
+    auto agent = ibf_ref.membership_agent();
+    
     std::vector<std::vector<std::string>> matrix{};
     for(auto i : knfa)
     {
-        dfs(i,matrix);
+        dfs(i, matrix, vector_idx, hash_to_idx, kmer_bitvex, agent);
     }
     uMatrix(matrix);
     seqan3::debug_stream << "DONE" << std::endl;
 
     // Search kmer paths in index
     seqan3::debug_stream << "   - Search kmers in index... ";
-    seqan3::debug_stream << std::endl;
-
-    // A vector to store kNFA paths as hashed constituent kmers eg one element would be. <78, 45, 83...> <--> AC, CG, GT
-    auto hash_adaptor = seqan3::views::kmer_hash(seqan3::ungapped{qlength});
     std::vector<std::vector<std::pair<std::string, uint64_t>>> paths_vector;
 
     for(auto i : matrix)
@@ -82,20 +84,27 @@ void drive_query(const query_arguments &cmd_args)
         paths_vector.push_back(hash_vector);
     }
 
+    seqan3::interleaved_bloom_filter<seqan3::data_layout::uncompressed>::membership_agent::binning_bitvector hit_vector{ibf.getBinCount()};
+    std::fill(hit_vector.begin(), hit_vector.end(), false);
+
+    int total,eins;
+    eins = 0;
     for (auto path : paths_vector)
     {
-        //seqan3::debug_stream << collapse_kmers(qlength, path) << ":::";
-        query_ibf(ibf, path);
+        auto hits = query_ibf(bin_count, hash_to_idx, kmer_bitvex, path);
+        hit_vector.raw_data() |= hits.raw_data();
     }
-    
     seqan3::debug_stream << "DONE" << std::endl;
-}
-
-
-std::string collapse_kmers(uint8_t const &k, std::vector<std::pair<std::string, uint64_t>> const &kvec)
-{
-    std::string assembly = kvec[0].first;
-    for (size_t i = 1; i < kvec.size(); i++)
-        assembly += kvec[i].first.substr(k-1, 1);
-    return assembly;
+    for(auto && bit: hit_vector)
+    {
+      std::cout << bit << ',';
+      total++;
+      eins+=bit;  
+    }
+    seqan3::debug_stream << "\nWrite .dot file... ";
+    std::string dotfile = cmd_args.graph;
+    dotfile += ".dot";
+    printGraph(knfa, dotfile);
+    seqan3::debug_stream << "DONE" << std::endl;
+    return hit_vector;
 }

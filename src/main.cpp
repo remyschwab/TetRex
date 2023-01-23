@@ -2,6 +2,10 @@
 #include "arg_parse.h"
 #include "index.h"
 #include "query.h"
+#include <fstream>
+#include <omp.h>
+#include <stdlib.h>
+#include <algorithm>
 
 
 void run_index(seqan3::argument_parser &parser)
@@ -20,7 +24,6 @@ void run_index(seqan3::argument_parser &parser)
     drive_index(cmd_args);
 }
 
-
 void run_query(seqan3::argument_parser &parser)
 {
     // Parse Arguments
@@ -35,9 +38,9 @@ void run_query(seqan3::argument_parser &parser)
         seqan3::debug_stream << "[Error kBioReg Query module " << ext.what() << "\n";
         return;
     }
+    cmd_args.query = translate(cmd_args.regex);
     drive_query(cmd_args);
 }
-
 
 int main(int argc, char *argv[])
 {

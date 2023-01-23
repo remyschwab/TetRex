@@ -16,7 +16,7 @@ struct index_arguments
     std::string ofile;
     std::filesystem::path acid_lib{};
     uint32_t bin_size = 10000;
-    uint8_t hash_count = 3;
+    uint8_t hash_count = 2;
     std::string molecule;
 };
 
@@ -24,9 +24,11 @@ struct query_arguments
 {
     uint8_t t = 1;
     std::filesystem::path idx{};
+    std::string regex;
     std::string query;
+    std::filesystem::path graph = "graph";
 };
-
+    
 inline void initialise_index_parser(seqan3::argument_parser &parser, index_arguments &args)
 {
     parser.info.author = "Remy Schwab";
@@ -48,7 +50,8 @@ inline void initialise_query_parser(seqan3::argument_parser &parser, query_argum
     parser.info.version = "1.0.0";
     parser.add_option(args.t, 't', "threads", "Number of threads");
     parser.add_positional_option(args.idx, "Path to IBF acid index");
-    parser.add_positional_option(args.query, "Input Regex in reverse polish notation");
+    parser.add_positional_option(args.regex, "Input Regex in reverse polish notation");
+    parser.add_positional_option(args.graph, "path for .fot file of the automaton");
 }
 
 #endif //KBIOREG_ARG_PARSE_H

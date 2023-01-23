@@ -13,10 +13,11 @@
 #include "nfa_pointer.h"
 
 
-void query_ibf(IndexStructure &ibf, std::vector<std::pair<std::string, uint64_t>> &path);
+bitvector query_ibf(uint32_t &bin_count, robin_hood::unordered_map<uint64_t, uint32_t> &hash_to_idx,
+  std::vector<bitvector> &kmer_bitvex, std::vector<std::pair<std::string, uint64_t>> &path);
 
-void drive_query(const query_arguments & cmd_args);
+bitvector drive_query(const query_arguments & cmd_args);
 
-std::string collapse_kmers(uint8_t const &k, std::vector<std::pair<std::string, uint64_t>> const &kvec);
+bitvector drive_query_benchmark(const query_arguments & cmd_args, std::fstream &benchmark_table);
 
 #endif //KBIOREG_QUERY_H
