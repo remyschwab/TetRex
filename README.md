@@ -24,7 +24,11 @@ A matrix is generated from the automata, which can be used for pattern matching.
 ## Index
 kbioreg index -k 3 -o dna_idx -m na ../data/ibf_example.fna
 ## Query RegEx
-kbioreg query dna_idx.ibf "AC+G+|.T."
+kbioreg query dna_idx.ibf "AC+G+|.T." "graphPlot"
+## benchmark
+ ./bin/kbioreg benchmark -k 16 -w 30 -m na "TA.T.A.AT|.A.A.AG|.G+C+|.TA.G*.TA.C*.|.T.A.T.A.A." "test"
+## image of the automaton
+dot -Tpng graphPlot.dot > graphPlot.png
 ```
 
 ## Notes

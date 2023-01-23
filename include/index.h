@@ -30,7 +30,7 @@ class IndexStructure
 
 private:
     uint32_t bin_count_;
-    uint32_t bin_size_{};
+    uint64_t bin_size_{};
     uint8_t hash_count_{};
     seqan3::interleaved_bloom_filter<seqan3::data_layout::uncompressed> ibf_;
 
@@ -43,7 +43,7 @@ public:
 
     explicit IndexStructure(uint8_t k,
                             uint32_t bc,
-                            uint32_t bs,
+                            uint64_t bs,
                             uint8_t hc,
                             std::string molecule) :
             bin_count_{bc},
@@ -64,7 +64,7 @@ public:
         return bin_count_;
     }
 
-    uint32_t getBinSize() const
+    uint64_t getBinSize() const
     {
         assert(ibf_.bin_size() == bin_size_);
         return bin_size_;
