@@ -20,6 +20,4 @@ bitvector drive_query(const query_arguments & cmd_args);
 
 bitvector drive_query_benchmark(const query_arguments & cmd_args, std::fstream &benchmark_table);
 
-std::string collapse_kmers(uint8_t const &k, std::vector<std::pair<std::string, uint64_t>> const &kvec);
-
 #endif //KBIOREG_QUERY_H
