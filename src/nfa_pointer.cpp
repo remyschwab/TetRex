@@ -81,6 +81,7 @@ State* post2nfaE(const std::string& postfix)
 	State *matchstate = state(Match, nullptr, nullptr);
 
 	if(postfix.empty()) return nullptr;
+
   for(size_t i = 0; i < postfix.size(); i++)
   {
     char p = postfix[i];
