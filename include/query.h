@@ -18,6 +18,22 @@ bitvector query_ibf(uint32_t &bin_count, robin_hood::unordered_map<uint64_t, uin
 
 bitvector drive_query(const query_arguments & cmd_args);
 
-bitvector drive_query_benchmark(const query_arguments & cmd_args, std::fstream &benchmark_table);
+template <typename MolType>
+void extract_matrix_paths(std::vector<std::vector<std::string>> &matrix,
+ path_vector &paths_vector, auto &hash_adaptor)
+{
+  for(auto i : matrix)
+    {
+        std::vector<std::pair<std::string, uint64_t>> hash_vector;
+        for(auto j : i)
+        {
+            std::vector<MolType> acid_vec = convertStringToAcidVec<MolType>(j);
+            auto digest = acid_vec | hash_adaptor;
+            // Create a vector of kmer hashes that correspond
+            hash_vector.push_back(std::make_pair(j, digest[0]));
+        }
+        paths_vector.push_back(hash_vector);
+    }
+}
 
 #endif //KBIOREG_QUERY_H

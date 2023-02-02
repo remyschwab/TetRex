@@ -23,10 +23,10 @@ struct index_arguments
 struct query_arguments
 {
     uint8_t t = 1;
+    std::filesystem::path graph{};
     std::filesystem::path idx{};
     std::string regex;
     std::string query;
-    std::filesystem::path graph = "graph";
 };
     
 inline void initialise_index_parser(seqan3::argument_parser &parser, index_arguments &args)
@@ -49,9 +49,9 @@ inline void initialise_query_parser(seqan3::argument_parser &parser, query_argum
     parser.info.author = "Remy Schwab";
     parser.info.version = "1.0.0";
     parser.add_option(args.t, 't', "threads", "Number of threads");
+    parser.add_option(args.graph, 'd', "dot", "Path to dot file");
     parser.add_positional_option(args.idx, "Path to IBF acid index");
     parser.add_positional_option(args.regex, "Input Regex in reverse polish notation");
-    parser.add_positional_option(args.graph, "path for .fot file of the automaton");
 }
 
 #endif //KBIOREG_ARG_PARSE_H

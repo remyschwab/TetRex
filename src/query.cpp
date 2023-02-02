@@ -62,28 +62,25 @@ bitvector drive_query(const query_arguments &cmd_args)
     std::vector<std::vector<std::string>> matrix{};
     for(auto i : knfa)
     {
-        dfs(i, matrix, vector_idx, hash_to_idx, kmer_bitvex, agent);
+        if(ibf.molecule_ == "na")
+        {        
+            dfs_na(i, matrix, vector_idx, hash_to_idx, kmer_bitvex, agent);
+        } else {
+            dfs_aa(i, matrix, vector_idx, hash_to_idx, kmer_bitvex, agent);
+        }
     }
     uMatrix(matrix);
     seqan3::debug_stream << "DONE" << std::endl;
 
     // Search kmer paths in index
     seqan3::debug_stream << "   - Search kmers in index... ";
-    std::vector<std::vector<std::pair<std::string, uint64_t>>> paths_vector;
-
-    for(auto i : matrix)
+    path_vector paths_vector;
+    if(ibf.molecule_ == "na")
     {
-        std::vector<std::pair<std::string, uint64_t>> hash_vector;
-        for(auto j : i)
-        {
-            std::vector<seqan3::dna5> acid_vec = convertStringToDNA(j);
-            auto digest = acid_vec | hash_adaptor;
-            // Create a vector of kmer hashes that correspond
-            hash_vector.push_back(std::make_pair(j, digest[0]));
-        }
-        paths_vector.push_back(hash_vector);
+        extract_matrix_paths<seqan3::dna5>(matrix, paths_vector, hash_adaptor);
+    } else {
+        extract_matrix_paths<seqan3::aa27>(matrix, paths_vector, hash_adaptor);
     }
-
     seqan3::interleaved_bloom_filter<seqan3::data_layout::uncompressed>::membership_agent::binning_bitvector hit_vector{ibf.getBinCount()};
     std::fill(hit_vector.begin(), hit_vector.end(), false);
 
