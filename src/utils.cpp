@@ -6,11 +6,12 @@ re2post(char *re)
 	int nalt, natom;
 	static char buf[8000];
 	char *dst;
+	
 	struct {
 		int nalt;
 		int natom;
 	} paren[100], *p;
-	
+		
 	p = paren;
 	dst = buf;
 	nalt = 0;

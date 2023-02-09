@@ -1,5 +1,4 @@
-#ifndef KOROTKOV_NFA_H
-#define KOROTKOV_NFA_H
+#pragma once
 
 #include <string>
 #include <vector>
@@ -68,14 +67,12 @@ void dfs_na(kState* input, std::vector<std::vector<std::string>>& matrix, uint32
   Path* p = findPath(input);
   stack.push(p);
 
-  seqan3::debug_stream << std::endl << "PATH" << std::endl;
   while(!stack.empty())
   {
     p = stack.top();
 
     if(p->position_->marked_ == 0)
     {
-      seqan3::debug_stream << p->position_->qGram_ << std::endl;
       auto acid_vec = convertStringToAcidVec<seqan3::dna5>(p->position_->qGram_);
       auto digest = acid_vec | hash_adaptor;
       hash_to_idx[digest[0]] = vector_idx;
@@ -127,14 +124,12 @@ void dfs_aa(kState* input, std::vector<std::vector<std::string>>& matrix, uint32
   Path* p = findPath(input);
   stack.push(p);
 
-  seqan3::debug_stream << std::endl << "PATH" << std::endl;
   while(!stack.empty())
   {
     p = stack.top();
 
     if(p->position_->marked_ == 0)
     {
-      seqan3::debug_stream << p->position_->qGram_ << std::endl;
       auto acid_vec = convertStringToAcidVec<seqan3::aa27>(p->position_->qGram_);
       auto digest = acid_vec | hash_adaptor;
       hash_to_idx[digest[0]] = vector_idx;
@@ -168,6 +163,3 @@ void dfs_aa(kState* input, std::vector<std::vector<std::string>>& matrix, uint32
     }
   }
 }
-
-
-#endif

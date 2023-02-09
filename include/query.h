@@ -2,8 +2,7 @@
 // Created by Remy Schwab on 20.09.22.
 //
 
-#ifndef KBIOREG_QUERY_H
-#define KBIOREG_QUERY_H
+#pragma once
 
 #include "utils.h"
 #include "index.h"
@@ -35,5 +34,3 @@ void extract_matrix_paths(std::vector<std::vector<std::string>> &matrix,
         paths_vector.push_back(hash_vector);
     }
 }
-
-#endif //KBIOREG_QUERY_H

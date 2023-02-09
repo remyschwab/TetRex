@@ -44,7 +44,7 @@ aa_codon_lut = {
     "Y": "TA(T|C)",               # Tyrosine
     "F": "TT(C|T)",               # Phenylalanine
     "C": "TG(T|C)",               # Cysteine
-    "I": "AT(A|C|T|)",            # Isoleucine
+    "I": "AT(A|C|T)",            # Isoleucine
     "V": "GT(A|C|G|T)",           # Valine
     "T": "AC(A|C|G|T)",           # Threonine
     "P": "CC(A|C|G|T)",           # Proline
