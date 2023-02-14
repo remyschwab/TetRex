@@ -1,5 +1,4 @@
-#ifndef GRAPH_MAKER_H
-#define GRAPH_MAKER_H
+#pragma once
 
 #include <string>
 #include <vector>
@@ -13,5 +12,3 @@ void printGraph(const std::vector<kState *>& input, const std::string& filename)
 void print(const std::vector<kState *>& input);
 
 void uMatrix(std::vector<std::vector<std::string>>& matrix);
-
-#endif

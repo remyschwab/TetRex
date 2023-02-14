@@ -27,11 +27,12 @@
 #include <seqan3/search/dream_index/interleaved_bloom_filter.hpp>
 
 
-// Types
+/////////////// Type Declarations ///////////////
 template <typename MoleculeType> using record_pair = std::pair<std::string, MoleculeType>;
 template <typename MoleculeType> using record_list = std::vector<record_pair<MoleculeType>>;
-
 using bitvector = seqan3::interleaved_bloom_filter<seqan3::data_layout::uncompressed>::membership_agent::binning_bitvector;
+using path_vector = std::vector<std::vector<std::pair<std::string, uint64_t>>>;
+/////////////// ****** END ****** ///////////////
 
 char* re2post(char *re);
 
@@ -43,7 +44,15 @@ std::string translate(const std::string& str);
 
 std::vector<char> getAlphabet(const std::string& regex);
 
-std::vector<seqan3::dna5> convertStringToDNA(std::string const &str);
+template <typename MolType>
+auto convertStringToAcidVec(std::string const &str)
+{
+    std::vector<MolType> kmer_acid_vec;
+    for (auto s : str) {
+        kmer_acid_vec.emplace_back(seqan3::assign_char_to(s, MolType{}));
+    }
+    return kmer_acid_vec;
+}
 
 //soll alle nötigen qgramme finden
 std::vector<std::string> getQgramAlphabet(const std::vector<std::vector<std::string>>& matrix);

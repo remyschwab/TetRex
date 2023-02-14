@@ -15,20 +15,16 @@
 kState* kstate(const std::string& qGram)
 {
   kState* ptr = new kState;
-
   ptr-> qGram_ = qGram;
-
   return ptr;
 }
 
 keyState* key(const std::string& qGramFrag, State *positionNFA, kState * home)
 {
   keyState* ptr = new keyState;
-
   ptr-> qGramFrag_ = qGramFrag;
   ptr-> positionNFA_ = positionNFA;
   ptr-> home_ = home;
-
   return ptr;
 }
 
@@ -36,7 +32,6 @@ keyState* key(const std::string& qGramFrag, State *positionNFA, kState * home)
  * Helpfunction of firstPhase
  * represents one Step in the Automaton 
  */
-
 void oneStep(std::stack<keyState *>& stack, State* itptr, kState* kptr, std::string& qGram)
 {
   keyState *e1, *e2;
@@ -65,7 +60,6 @@ void oneStep(std::stack<keyState *>& stack, State* itptr, kState* kptr, std::str
  * creates the keys that are accessible from the start node 
  * Throws an error, if the q-gram length longer than the shortest possible q-gram
  */
-
 void firstPhase(State* it_ptr, std::vector<keyState *>& output, const size_t& q)
 {
   std::stack<keyState *> stack;
@@ -82,11 +76,9 @@ void firstPhase(State* it_ptr, std::vector<keyState *>& output, const size_t& q)
     {
       delete k;
       throw int();
-      //std::cerr<<"Q-Gram zu lang gewählt"<<"\n";
     }
     if(k-> qGramFrag_.size() == q-1 && k->positionNFA_->c_ != Split)
     {
-      //std::cout<<k->qGramFrag_<<"\n";
       output.push_back(k);
     }
     else
@@ -101,7 +93,6 @@ void firstPhase(State* it_ptr, std::vector<keyState *>& output, const size_t& q)
  * linSearch and linSearchK are simple linear search for kStates and key objects
  * can be optimized in example with an hash table
  */
-
 int linSearchK(const std::vector<kState *>& liste, std::string obj)
 {
   for(size_t i = 0; i<liste.size(); i++)
@@ -113,7 +104,6 @@ int linSearchK(const std::vector<kState *>& liste, std::string obj)
   }
   return -1;
 }
-
 int linSearch(const std::vector<keyState *>& liste, keyState* obj)
 {
   for(size_t i = 0; i<liste.size(); i++)
