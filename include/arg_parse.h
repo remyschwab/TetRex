@@ -23,6 +23,7 @@ struct index_arguments
 struct query_arguments
 {
     uint8_t t = 1;
+    int text_length;
     std::filesystem::path graph{};
     std::filesystem::path idx{};
     std::string regex;
@@ -48,6 +49,7 @@ inline void initialise_query_parser(seqan3::argument_parser &parser, query_argum
 {
     parser.info.author = "Remy Schwab";
     parser.info.version = "1.0.0";
+    parser.add_option(args.text_length, 'l', "length", "Length of text");
     parser.add_option(args.t, 't', "threads", "Number of threads");
     parser.add_option(args.graph, 'd', "dot", "Path to dot file");
     parser.add_positional_option(args.idx, "Path to IBF acid index");

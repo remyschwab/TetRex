@@ -35,7 +35,6 @@ private:
     seqan3::interleaved_bloom_filter<seqan3::data_layout::uncompressed> ibf_;
 
 public:
-
     uint8_t k_;
     std::string molecule_;
 

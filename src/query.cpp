@@ -31,6 +31,11 @@ double compute_knut_model(const size_t &query_length, const uint8_t &k, const in
     double running_probability = km_probability;
     double prefix_probability;
     double multi = static_cast<double>(multiplyer);
+    seqan3::debug_stream << "\nQLENGTH: " << query_length << std::endl;
+    seqan3::debug_stream << "KSIZE: " << k << std::endl;
+    seqan3::debug_stream << "TEXTLENGTH: " << m << std::endl;
+    seqan3::debug_stream << "MULTIPLYER: " << multiplyer << std::endl;
+    seqan3::debug_stream << "KM_Pr: " << km_probability << std::endl;
     for(size_t prefix_length = k+1; prefix_length <= query_length; prefix_length++)
     {
         prefix_probability = compute_k_probability(prefix_length)*m;
@@ -74,8 +79,6 @@ bitvector drive_query(const query_arguments &cmd_args)
     // Create auxiliary data structures to avoid redundant kmer lookup
     auto hash_adaptor = seqan3::views::kmer_hash(seqan3::ungapped{qlength});
     robin_hood::unordered_map<uint64_t, bitvector> hash_to_bitvector{};
-    // std::vector<bitvector> kmer_bitvex;
-    // uint32_t vector_idx = 0;
 
     // Spawn IBF membership agent in this scope because it is expensive
     auto && ibf_ref = ibf.getIBF();
@@ -107,11 +110,13 @@ bitvector drive_query(const query_arguments &cmd_args)
     seqan3::interleaved_bloom_filter<seqan3::data_layout::uncompressed>::membership_agent::binning_bitvector hit_vector{ibf.getBinCount()};
     std::fill(hit_vector.begin(), hit_vector.end(), false);
 
-    // MODELING STEP
-    int text_length = 32;
+    /////////// MODELING STEP ///////////////
+    int text_length = cmd_args.text_length;
     size_t query_length = paths_vector[0].size()+qlength-1;
     size_t multiplyer = paths_vector.size();
-    seqan3::debug_stream << "FINAL PROBABILITY: " << compute_knut_model(query_length, qlength, text_length, multiplyer) << std::endl;
+    double result = compute_knut_model(query_length, qlength, text_length, multiplyer);
+    seqan3::debug_stream << "FINAL PROBABILITY: " << result << std::endl;
+    /////////// MODELING STEP ///////////////
 
     for (auto path : paths_vector)
     {
