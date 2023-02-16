@@ -94,6 +94,7 @@ std::string stream_as_string(const std::string& path)
     return str;
 }
 
+
 int matches(const std::string& bin, std::regex reg, std::fstream& writefile)
 {
     std::string match;
@@ -109,6 +110,7 @@ int matches(const std::string& bin, std::regex reg, std::fstream& writefile)
     }
     return out;
 }
+
 
 std::string translate(const std::string& str)
 {

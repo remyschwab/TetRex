@@ -24,15 +24,17 @@ struct query_arguments
 {
     uint8_t t = 1;
     int text_length;
+    uint8_t k = 3;
     std::filesystem::path graph{};
-    std::filesystem::path idx{};
+    // std::filesystem::path idx{};
+    std::filesystem::path acid_lib{};
     std::string regex;
     std::string query;
 };
     
 inline void initialise_index_parser(seqan3::argument_parser &parser, index_arguments &args)
 {
-    parser.info.author = "Remy Schwab";
+    parser.info.author = "Remy Schwab & Vincent Musch";
     parser.info.version = "1.0.0";
     parser.add_option(args.k, 'k', "ksize", "size of kmers");
     parser.add_option(args.bin_size, 's', "bin_size", "Size of bins");
@@ -47,11 +49,13 @@ inline void initialise_index_parser(seqan3::argument_parser &parser, index_argum
 
 inline void initialise_query_parser(seqan3::argument_parser &parser, query_arguments &args)
 {
-    parser.info.author = "Remy Schwab";
+    parser.info.author = "Remy Schwab & Vincent Musch";
     parser.info.version = "1.0.0";
+    parser.add_option(args.k, 'k', "ksize", "size of kmers");
     parser.add_option(args.text_length, 'l', "length", "Length of text");
+    parser.add_option(args.acid_lib, 'f', "fasta", "Index Fasta File");
     parser.add_option(args.t, 't', "threads", "Number of threads");
     parser.add_option(args.graph, 'd', "dot", "Path to dot file");
-    parser.add_positional_option(args.idx, "Path to IBF acid index");
+    // parser.add_positional_option(args.idx, "Path to IBF acid index");
     parser.add_positional_option(args.regex, "Input Regex in reverse polish notation");
 }

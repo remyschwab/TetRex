@@ -262,3 +262,56 @@ Path* findPath(kState* position)
   p->position_ = position;
   return p;
 }
+
+
+/*
+ * Depth first search, generates the matrix with the possible paths
+ */
+void dfs_na(kState* input, std::vector<std::vector<std::string>>& matrix)
+{
+  std::vector<std::string> line{};
+  std::stack<Path*> stack{};
+  
+  uint8_t qlength = input->qGram_.length();
+  auto hash_adaptor = seqan3::views::kmer_hash(seqan3::ungapped{qlength});
+
+  Path* p = findPath(input);
+  stack.push(p);
+
+  while(!stack.empty())
+  {
+    p = stack.top();
+
+    if(p->position_->marked_ == 0)
+    {
+      auto acid_vec = convertStringToAcidVec<seqan3::dna5>(p->position_->qGram_);
+      auto digest = acid_vec | hash_adaptor;
+      // hash_to_bits[digest[0]] = agent.bulk_contains(digest[0]);
+      line.push_back(p->position_->qGram_);
+      p->position_->marked_ = 1;
+    }
+    if(p->qPath_ < p->position_->outs_.size())
+    {
+      if(p->position_->outs_[p->qPath_]->qGram_ == "$")
+      {
+        matrix.push_back(line);
+        p->qPath_++;
+      }
+      else
+      {
+        if(p->position_->outs_[p->qPath_]->marked_ == 0)
+        {
+          stack.push(findPath(p->position_->outs_[p->qPath_]));
+        }
+        p->qPath_++;
+      }
+    }
+    else
+    {
+      line.pop_back();
+      p->position_->marked_ = 0;
+      stack.pop();
+      delete p;
+    }
+  }
+}
