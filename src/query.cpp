@@ -88,7 +88,7 @@ bitvector drive_query(const query_arguments &cmd_args)
         {        
             dfs_na(i, matrix, hash_to_bitvector, agent);
         } else {
-            dfs_na(i, matrix, hash_to_bitvector, agent);
+            dfs_aa(i, matrix, hash_to_bitvector, agent);
         }
     }
     uMatrix(matrix);
