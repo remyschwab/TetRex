@@ -4,6 +4,8 @@
 
 #pragma once
 
+#include <regex>
+
 #include "utils.h"
 #include "index.h"
 #include "arg_parse.h"
@@ -16,9 +18,7 @@ bitvector query_ibf(uint32_t &bin_count, robin_hood::unordered_map<uint64_t, bit
 
 bitvector drive_query(const query_arguments & cmd_args);
 
-double compute_k_probability(const uint8_t &k);
-
-double compute_knut_model(const size_t &query_length, const uint8_t &k, const int &m, const size_t &multiplyer);
+void disk_search(const bitvector &hits, std::string &query, const uint32_t &bin_count);
 
 template <typename MolType>
 void extract_matrix_paths(std::vector<std::vector<std::string>> &matrix,

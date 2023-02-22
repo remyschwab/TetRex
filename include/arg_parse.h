@@ -14,7 +14,7 @@ struct index_arguments
     uint8_t t = 1;
     std::string ofile;
     std::filesystem::path acid_lib{};
-    uint32_t bin_size = 10000;
+    size_t bin_size = 10000;
     uint8_t hash_count = 2;
     std::string reduction;
     std::string molecule;
@@ -41,7 +41,7 @@ inline void initialise_index_parser(seqan3::argument_parser &parser, index_argum
     parser.add_option(args.reduction, 'r', "reduce", "Use reduced AA alphabet (Murphy or Li)");                               
     parser.add_option(args.ofile, 'o', "ofile", "Name of index on disk");
     parser.add_positional_option(args.acid_lib, "Nucleic or Amino Acid library to indexed",
-                                seqan3::input_file_validator{{"fq","fastq","fa","fasta", "fna"}});
+                                seqan3::input_file_validator{{"lst","fa","fasta", "fna"}});
 }
 
 inline void initialise_query_parser(seqan3::argument_parser &parser, query_arguments &args)

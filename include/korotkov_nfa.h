@@ -73,7 +73,10 @@ void dfs_na(kState* input, std::vector<std::vector<std::string>>& matrix, robin_
     {
       auto acid_vec = convertStringToAcidVec<seqan3::dna5>(p->position_->qGram_);
       auto digest = acid_vec | hash_adaptor;
-      hash_to_bits[digest[0]] = agent.bulk_contains(digest[0]);
+      if(!hash_to_bits.count(digest[0]))
+      {
+        hash_to_bits[digest[0]] = agent.bulk_contains(digest[0]);
+      }
       line.push_back(p->position_->qGram_);
       p->position_->marked_ = 1;
     }
@@ -127,7 +130,10 @@ void dfs_aa(kState* input, std::vector<std::vector<std::string>>& matrix,
     {
       auto acid_vec = convertStringToAcidVec<seqan3::aa27>(p->position_->qGram_);
       auto digest = acid_vec | hash_adaptor;
-      hash_to_bits[digest[0]] = agent.bulk_contains(digest[0]);
+      if(!hash_to_bits.count(digest[0]))
+      {
+        hash_to_bits[digest[0]] = agent.bulk_contains(digest[0]);
+      }
       line.push_back(p->position_->qGram_);
       p->position_->marked_ = 1;
     }

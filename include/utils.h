@@ -38,7 +38,7 @@ char* re2post(char *re);
 
 std::string stream_as_string(const std::string& path);
 
-int matches(const std::string& bin, std::regex reg, std::fstream& writefile);
+int matches(const std::string& bin, std::regex reg);
 
 std::string translate(const std::string& str);
 

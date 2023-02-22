@@ -29,8 +29,8 @@ class IndexStructure
 {
 
 private:
-    uint32_t bin_count_;
-    uint64_t bin_size_{};
+    size_t bin_count_;
+    size_t bin_size_{};
     uint8_t hash_count_{};
     seqan3::interleaved_bloom_filter<seqan3::data_layout::uncompressed> ibf_;
 
@@ -42,8 +42,8 @@ public:
     IndexStructure() = default;
 
     explicit IndexStructure(uint8_t k,
-                            uint32_t bc,
-                            uint64_t bs,
+                            size_t bc,
+                            size_t bs,
                             uint8_t hc,
                             std::string molecule) :
             bin_count_{bc},
@@ -64,7 +64,7 @@ public:
         return bin_count_;
     }
 
-    uint64_t getBinSize() const
+    size_t getBinSize() const
     {
         assert(ibf_.bin_size() == bin_size_);
         return bin_size_;
@@ -87,7 +87,7 @@ public:
         return ibf_;
     }
 
-    void emplace(uint64_t val, uint32_t idx)
+    void emplace(uint64_t val, size_t idx)
     {
         ibf_.emplace(val, seqan3::bin_index{idx});
     }
@@ -98,6 +98,8 @@ public:
         archive(bin_count_, bin_size_, hash_count_, ibf_, k_, molecule_);
     }
 };
+
+void read_input_file_list(std::vector<std::filesystem::path> & sequence_files, std::filesystem::path input_file);
 
 template <class IndexStructure>
 void store_ibf(IndexStructure const & ibf, std::filesystem::path opath)
@@ -159,4 +161,19 @@ IndexStructure create_index(record_list<MolType> &refs, uint32_t &bin_count, ind
     return ibf;
 }
 
-void drive_index(const index_arguments &cmd_args);
+template <typename MolType>
+void populate_bin(IndexStructure &ibf, auto &hash_adaptor, record_list<MolType> &records, const size_t &bin_idx)
+{
+    size_t record_count = records.size();
+    for (size_t rec_idx = 0; rec_idx < record_count; rec_idx++) // Generate all the kmers from that file's records
+    {
+        for (auto && value : records[rec_idx].second | hash_adaptor)
+        {
+            ibf.emplace(value, bin_idx); // Put all the kmers for one file in one bin
+        }
+    }
+}
+
+void create_index_from_filelist(index_arguments &cmd_args);
+
+void drive_index(index_arguments &cmd_args);

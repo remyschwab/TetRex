@@ -89,12 +89,12 @@ std::string stream_as_string(const std::string& path)
     std::istream stm(&fb);
     std::string str;
     char c ;
-    while( stm.get(c) ) str += c ;
+    while( stm.get(c) ) str += c;
     str.erase(std::remove(str.begin(), str.end(), '\n'), str.cend()); 
     return str;
 }
 
-int matches(const std::string& bin, std::regex reg, std::fstream& writefile)
+int matches(const std::string& bin, std::regex reg)
 {
     std::string match;
     std::sregex_iterator currentMatch(bin.begin(), bin.end(), reg);
@@ -103,7 +103,7 @@ int matches(const std::string& bin, std::regex reg, std::fstream& writefile)
     while(currentMatch != last_match)
     {
         std::smatch match = *currentMatch;
-        writefile<<match.str()<<"   "<<match.position()<<"\n";
+        std::cout<<match.str()<<"   "<<match.position()<<std::endl;
         currentMatch++;
 		out++;
     }
