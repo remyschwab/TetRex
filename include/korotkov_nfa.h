@@ -1,5 +1,4 @@
-#ifndef KOROTKOV_NFA_H
-#define KOROTKOV_NFA_H
+#pragma once
 
 #include <string>
 #include <vector>
@@ -55,14 +54,12 @@ std::vector<kState *> nfa2knfa(State* nfa_ptr, const int& q);
  * Depth first search, generates the matrix with the possible paths
  */
 template <typename T>
-void dfs(kState* input, std::vector<std::vector<std::string>>& matrix, uint32_t &vector_idx,
-          robin_hood::unordered_map<uint64_t, uint32_t> &hash_to_idx,
-          std::vector<bitvector> &kmer_bitvex, T agent)
+void dfs_na(kState* input, std::vector<std::vector<std::string>>& matrix, robin_hood::unordered_map<uint64_t, bitvector> &hash_to_bits, T agent)
 {
   std::vector<std::string> line{};
   std::stack<Path*> stack{};
   
-  size_t qlength = input->qGram_.length();
+  uint8_t qlength = input->qGram_.length();
   auto hash_adaptor = seqan3::views::kmer_hash(seqan3::ungapped{qlength});
 
   Path* p = findPath(input);
@@ -74,11 +71,12 @@ void dfs(kState* input, std::vector<std::vector<std::string>>& matrix, uint32_t 
 
     if(p->position_->marked_ == 0)
     {
-      auto acid_vec = convertStringToDNA(p->position_->qGram_);
+      auto acid_vec = convertStringToAcidVec<seqan3::dna5>(p->position_->qGram_);
       auto digest = acid_vec | hash_adaptor;
-      hash_to_idx[digest[0]] = vector_idx;
-      kmer_bitvex.push_back(agent.bulk_contains(digest[0]));
-      vector_idx++;
+      if(!hash_to_bits.count(digest[0]))
+      {
+        hash_to_bits[digest[0]] = agent.bulk_contains(digest[0]);
+      }
       line.push_back(p->position_->qGram_);
       p->position_->marked_ = 1;
     }
@@ -108,4 +106,59 @@ void dfs(kState* input, std::vector<std::vector<std::string>>& matrix, uint32_t 
   }
 }
 
-#endif
+/*
+ * Depth first search, generates the matrix with the possible paths
+ */
+template <typename T>
+void dfs_aa(kState* input, std::vector<std::vector<std::string>>& matrix,
+          robin_hood::unordered_map<uint64_t, bitvector> &hash_to_bits, T agent)
+{
+  std::vector<std::string> line{};
+  std::stack<Path*> stack{};
+  
+  uint8_t qlength = input->qGram_.length();
+  auto hash_adaptor = seqan3::views::kmer_hash(seqan3::ungapped{qlength});
+
+  Path* p = findPath(input);
+  stack.push(p);
+
+  while(!stack.empty())
+  {
+    p = stack.top();
+
+    if(p->position_->marked_ == 0)
+    {
+      auto acid_vec = convertStringToAcidVec<seqan3::aa27>(p->position_->qGram_);
+      auto digest = acid_vec | hash_adaptor;
+      if(!hash_to_bits.count(digest[0]))
+      {
+        hash_to_bits[digest[0]] = agent.bulk_contains(digest[0]);
+      }
+      line.push_back(p->position_->qGram_);
+      p->position_->marked_ = 1;
+    }
+    if(p->qPath_ < p->position_->outs_.size())
+    {
+      if(p->position_->outs_[p->qPath_]->qGram_ == "$")
+      {
+        matrix.push_back(line);
+        p->qPath_++;
+      }
+      else
+      {
+        if(p->position_->outs_[p->qPath_]->marked_ == 0)
+        {
+          stack.push(findPath(p->position_->outs_[p->qPath_]));
+        }
+        p->qPath_++;
+      }
+    }
+    else
+    {
+      line.pop_back();
+      p->position_->marked_ = 0;
+      stack.pop();
+      delete p;
+    }
+  }
+}

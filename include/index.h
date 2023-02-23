@@ -8,6 +8,7 @@
 #include "utils.h"
 #include "arg_parse.h"
 
+#include <cereal/types/vector.hpp>
 #include <seqan3/core/debug_stream.hpp>
 #include <seqan3/search/views/kmer_hash.hpp>
 #include <seqan3/alphabet/nucleotide/all.hpp>
@@ -29,8 +30,8 @@ class IndexStructure
 {
 
 private:
-    uint32_t bin_count_;
-    uint64_t bin_size_{};
+    size_t bin_count_;
+    size_t bin_size_{};
     uint8_t hash_count_{};
     seqan3::interleaved_bloom_filter<seqan3::data_layout::uncompressed> ibf_;
 
@@ -38,14 +39,16 @@ public:
 
     uint8_t k_;
     std::string molecule_;
+    std::vector<std::string> acid_libs_;
 
     IndexStructure() = default;
 
     explicit IndexStructure(uint8_t k,
-                            uint32_t bc,
-                            uint64_t bs,
+                            size_t bc,
+                            size_t bs,
                             uint8_t hc,
-                            std::string molecule) :
+                            std::string molecule,
+                            std::vector<std::string> acid_libs) :
             bin_count_{bc},
             bin_size_{bs},
             hash_count_{hc},
@@ -53,7 +56,8 @@ public:
                  seqan3::bin_size{bin_size_},
                  seqan3::hash_function_count{hash_count_}},
             k_{k},
-            molecule_{molecule}
+            molecule_{molecule},
+            acid_libs_{acid_libs}
     {
         //static_assert(data_layout_mode == seqan3::data_layout::uncompressed);
     }
@@ -64,7 +68,7 @@ public:
         return bin_count_;
     }
 
-    uint64_t getBinSize() const
+    size_t getBinSize() const
     {
         assert(ibf_.bin_size() == bin_size_);
         return bin_size_;
@@ -76,28 +80,32 @@ public:
         return hash_count_;
     }
 
-    // auto makeAgent()
-    // {
-    //     auto agent = ibf_.membership_agent();
-    //     return agent;
-    // }
-
     seqan3::interleaved_bloom_filter<seqan3::data_layout::uncompressed> getIBF()
     {
         return ibf_;
     }
 
-    void emplace(uint64_t val, uint32_t idx)
+    void emplace(uint64_t val, size_t idx)
     {
         ibf_.emplace(val, seqan3::bin_index{idx});
+    }
+
+    void set_lib_paths(std::vector<std::string> path_collection)
+    {
+        for(auto && path: path_collection)
+        {
+            acid_libs_.push_back(path);
+        }
     }
 
     template<class Archive>
     void serialize(Archive & archive)
     {
-        archive(bin_count_, bin_size_, hash_count_, ibf_, k_, molecule_);
+        archive(bin_count_, bin_size_, hash_count_, ibf_, k_, molecule_, acid_libs_);
     }
 };
+
+void read_input_file_list(std::vector<std::filesystem::path> & sequence_files, std::filesystem::path input_file);
 
 template <class IndexStructure>
 void store_ibf(IndexStructure const & ibf, std::filesystem::path opath)
@@ -148,7 +156,8 @@ template <typename MolType>
 IndexStructure create_index(record_list<MolType> &refs, uint32_t &bin_count, index_arguments args)
 {
     uint8_t k = args.k;
-    IndexStructure ibf(k, bin_count, args.bin_size, args.hash_count, args.molecule);
+    std::vector<std::string> filelib = {args.acid_lib};
+    IndexStructure ibf(k, bin_count, args.bin_size, args.hash_count, args.molecule, filelib);
 
     auto hash_adaptor = seqan3::views::kmer_hash(seqan3::ungapped{k});
     for (size_t i = 0; i < bin_count; i++)
@@ -159,4 +168,19 @@ IndexStructure create_index(record_list<MolType> &refs, uint32_t &bin_count, ind
     return ibf;
 }
 
-void drive_index(const index_arguments &cmd_args);
+template <typename MolType>
+void populate_bin(IndexStructure &ibf, auto &hash_adaptor, record_list<MolType> &records, const size_t &bin_idx)
+{
+    size_t record_count = records.size();
+    for (size_t rec_idx = 0; rec_idx < record_count; rec_idx++) // Generate all the kmers from that file's records
+    {
+        for (auto && value : records[rec_idx].second | hash_adaptor)
+        {
+            ibf.emplace(value, bin_idx); // Put all the kmers for one file in one bin
+        }
+    }
+}
+
+void create_index_from_filelist(index_arguments &cmd_args);
+
+void drive_index(index_arguments &cmd_args);

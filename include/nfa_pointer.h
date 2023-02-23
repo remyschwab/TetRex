@@ -1,5 +1,4 @@
-#ifndef NFA_POINTER_H
-#define NFA_POINTER_H
+#pragma once
 
 #include <string>
 #include <vector>
@@ -11,6 +10,14 @@ enum
 	Split = 257
 };
 
+
+/*
+ * Represents an NFA state plus zero or one or two arrows exiting.
+ * if c == Match, no arrows out; matching state.
+ * If c == Split, unlabeled arrows to out and out1 (if != NULL).
+ * If c < 256, labeled arrow with character c to out.
+*/
+
 struct State
 {
   int c_;
@@ -20,25 +27,24 @@ struct State
   ~State() {}
 };
 
-State* state(const int& c, State *out1, State *out2);
 
+/*
+ * A partially built NFA without the matching state filled in.
+ * Frag.start points at the start state.
+ * Frag.out is a list of places that need to be set to the
+ * next state for this fragment.
+*/
 struct Frag
 {
   State *start;
 	std::vector<State *> out;
 };
 
-Frag frag(State *start, std::vector<State *> out);
-
-std::vector<State *> getVec(State *input);
-
-std::vector<State *> appendVec(const	std::vector<State *>& vec1, const std::vector<State *>& vec2);
-
+std::vector<State *> appendVec(const std::vector<State *>& vec1, const std::vector<State *>& vec2);
 void patchVec(std::vector<State *>& in, State *s);
-
-State* post2nfaE(const std::string& postfix);
-
+std::vector<State *> getVec(State *input);
 std::string getRandomWord(State* startptr);
-
+void add(std::vector<State* >& a, State* b);
 void deleteGraph(State* startptr);
-#endif
+State* post2nfaE(const std::string& postfix);
+void deleteGraph(State* startptr);

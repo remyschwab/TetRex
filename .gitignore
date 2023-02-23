@@ -30,3 +30,6 @@
 *.exe
 *.out
 *.app
+
+
+/home/schwab/repos/kBioReg/data/mmseqs_uniprot
