@@ -18,7 +18,7 @@ bitvector query_ibf(uint32_t &bin_count, robin_hood::unordered_map<uint64_t, bit
 
 bitvector drive_query(const query_arguments & cmd_args);
 
-void disk_search(const bitvector &hits, std::string &query, const uint32_t &bin_count);
+void disk_search(const bitvector &hits, std::string &query, IndexStructure &ibf);
 
 template <typename MolType>
 void extract_matrix_paths(std::vector<std::vector<std::string>> &matrix,

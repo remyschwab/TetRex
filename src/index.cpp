@@ -6,7 +6,7 @@
 
 
 
-void read_input_file_list(std::vector<std::filesystem::path> & sequence_files, std::filesystem::path input_file)
+void read_input_file_list(std::vector<std::string> & sequence_files, std::filesystem::path input_file)
 {
     std::ifstream fin{input_file};
 
@@ -22,7 +22,7 @@ void read_input_file_list(std::vector<std::filesystem::path> & sequence_files, s
 
 void create_index_from_filelist(index_arguments &cmd_args)
 {
-    std::vector<std::filesystem::path> input_bin_files{};
+    std::vector<std::string> input_bin_files{};
     std::filesystem::path acid_lib = cmd_args.acid_lib;
     read_input_file_list(input_bin_files, acid_lib);
 
@@ -30,13 +30,15 @@ void create_index_from_filelist(index_arguments &cmd_args)
     size_t seq_count = 0;
     auto hash_adaptor = seqan3::views::kmer_hash(seqan3::ungapped{cmd_args.k});
     size_t bin_count = input_bin_files.size();
-    IndexStructure ibf(cmd_args.k, bin_count, cmd_args.bin_size, cmd_args.hash_count, molecule);
+    IndexStructure ibf(cmd_args.k, bin_count, cmd_args.bin_size, cmd_args.hash_count, molecule, input_bin_files);
+    ibf.set_lib_paths(input_bin_files);
     if(molecule == "na")
     {
         for(size_t bin_idx = 0; bin_idx < bin_count; bin_idx++) // For every file in the list...
         {
             record_list<seqan3::dna5_vector> records;
-            seq_count += parse_reference_na(input_bin_files[bin_idx], records); // Parse the records from that file...
+            std::filesystem::path bin_file{input_bin_files[bin_idx]};
+            seq_count += parse_reference_na(bin_file, records); // Parse the records from that file...
             populate_bin(ibf, hash_adaptor, records, bin_idx);
         }
     } else if(molecule == "aa")
@@ -44,7 +46,8 @@ void create_index_from_filelist(index_arguments &cmd_args)
         for(size_t bin_idx = 0; bin_idx < bin_count; bin_idx++)
         {
             record_list<seqan3::aa27_vector> records;
-            seq_count += parse_reference_aa(input_bin_files[bin_idx], records);
+            std::filesystem::path bin_file{input_bin_files[bin_idx]};
+            seq_count += parse_reference_aa(bin_file, records);
             populate_bin(ibf, hash_adaptor, records, bin_idx);
         }
     }
@@ -52,7 +55,7 @@ void create_index_from_filelist(index_arguments &cmd_args)
     seqan3::debug_stream << "Writing to disk... ";
     std::filesystem::path output_path{cmd_args.ofile+".ibf"};
     store_ibf(ibf, output_path);
-    seqan3::debug_stream << std::endl;
+    seqan3::debug_stream << "DONE" << std::endl;
 }
 
 void drive_index(index_arguments &cmd_args)

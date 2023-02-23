@@ -19,31 +19,22 @@ bitvector query_ibf(size_t &bin_count, robin_hood::unordered_map<uint64_t, bitve
 }
 
 
-void disk_search(const bitvector &hits, std::string &query, const size_t &bin_count)
+void disk_search(const bitvector &hits, std::string &query, IndexStructure &ibf)
 {
-    int hitsNr = 0;
-    std::regex reg(query);
-    size_t bins = bin_count;
-    std::string binString = "bin_";
-    for(size_t i = 1; i < std::to_string(bin_count).size(); i++)
-    {
-        binString = binString + "0";
-    }
-
-    size_t j = 10;
+    std::regex rx(query);
+    size_t bins = hits.size();
+    std::ptrdiff_t number_of_matches;
+    std::string s;
     for(size_t i = 0; i < bins; i++)
     {
-        if(i >= j)
-        {
-            binString.pop_back();
-            j = j * 10;
-        } 
         if(hits[i])
         {
-            std::string filepath = "data/uniprot_bins"+binString+std::to_string(i)+".fa";
-            hitsNr += matches(stream_as_string(filepath), reg);
+            const std::filesystem::path lib_path = ibf.acid_libs_[i];
+            s = stream_as_string(lib_path);
+            number_of_matches = std::distance(std::sregex_iterator(s.begin(), s.end(), rx), std::sregex_iterator());
         }
     }
+    seqan3::debug_stream << "Confirmed " << number_of_matches << " hits ";
 }
 
 
@@ -60,6 +51,7 @@ bitvector drive_query(const query_arguments &cmd_args)
     // Evaluate and search for Regular Expression
     seqan3::debug_stream << "Querying:" << std::endl;
     uint8_t qlength = ibf.k_;
+    std::string rx = cmd_args.regex;
     std::string query = cmd_args.query;
     std::vector<char> a = getAlphabet(query);
 
@@ -118,16 +110,8 @@ bitvector drive_query(const query_arguments &cmd_args)
     }
     seqan3::debug_stream << "DONE" << std::endl;
     
-    for(auto && bit: hit_vector)
-    {
-      std::cout << bit << ',';
-    }
-    seqan3::debug_stream << std::endl;
-
-    // seqan3::debug_stream << "\nWrite dot file... ";
-    // std::string dotfile = cmd_args.graph;
-    // dotfile += ".dot";
-    // printGraph(knfa, dotfile);
-    // seqan3::debug_stream << "DONE" << std::endl;
+    seqan3::debug_stream << "Verifying hits... ";
+    disk_search(hit_vector, rx, ibf);
+    seqan3::debug_stream << "DONE" << std::endl;
     return hit_vector;
 }

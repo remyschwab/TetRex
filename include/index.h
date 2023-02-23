@@ -8,6 +8,7 @@
 #include "utils.h"
 #include "arg_parse.h"
 
+#include <cereal/types/vector.hpp>
 #include <seqan3/core/debug_stream.hpp>
 #include <seqan3/search/views/kmer_hash.hpp>
 #include <seqan3/alphabet/nucleotide/all.hpp>
@@ -38,6 +39,7 @@ public:
 
     uint8_t k_;
     std::string molecule_;
+    std::vector<std::string> acid_libs_;
 
     IndexStructure() = default;
 
@@ -45,7 +47,8 @@ public:
                             size_t bc,
                             size_t bs,
                             uint8_t hc,
-                            std::string molecule) :
+                            std::string molecule,
+                            std::vector<std::string> acid_libs) :
             bin_count_{bc},
             bin_size_{bs},
             hash_count_{hc},
@@ -53,7 +56,8 @@ public:
                  seqan3::bin_size{bin_size_},
                  seqan3::hash_function_count{hash_count_}},
             k_{k},
-            molecule_{molecule}
+            molecule_{molecule},
+            acid_libs_{acid_libs}
     {
         //static_assert(data_layout_mode == seqan3::data_layout::uncompressed);
     }
@@ -76,12 +80,6 @@ public:
         return hash_count_;
     }
 
-    // auto makeAgent()
-    // {
-    //     auto agent = ibf_.membership_agent();
-    //     return agent;
-    // }
-
     seqan3::interleaved_bloom_filter<seqan3::data_layout::uncompressed> getIBF()
     {
         return ibf_;
@@ -92,10 +90,18 @@ public:
         ibf_.emplace(val, seqan3::bin_index{idx});
     }
 
+    void set_lib_paths(std::vector<std::string> path_collection)
+    {
+        for(auto && path: path_collection)
+        {
+            acid_libs_.push_back(path);
+        }
+    }
+
     template<class Archive>
     void serialize(Archive & archive)
     {
-        archive(bin_count_, bin_size_, hash_count_, ibf_, k_, molecule_);
+        archive(bin_count_, bin_size_, hash_count_, ibf_, k_, molecule_, acid_libs_);
     }
 };
 
@@ -150,7 +156,8 @@ template <typename MolType>
 IndexStructure create_index(record_list<MolType> &refs, uint32_t &bin_count, index_arguments args)
 {
     uint8_t k = args.k;
-    IndexStructure ibf(k, bin_count, args.bin_size, args.hash_count, args.molecule);
+    std::vector<std::string> filelib = {args.acid_lib};
+    IndexStructure ibf(k, bin_count, args.bin_size, args.hash_count, args.molecule, filelib);
 
     auto hash_adaptor = seqan3::views::kmer_hash(seqan3::ungapped{k});
     for (size_t i = 0; i < bin_count; i++)
