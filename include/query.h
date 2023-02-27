@@ -6,6 +6,9 @@
 
 #include <regex>
 
+#include <re2/re2.h>
+#include <omp.h>
+
 #include "utils.h"
 #include "index.h"
 #include "arg_parse.h"
