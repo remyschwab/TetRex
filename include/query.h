@@ -23,6 +23,10 @@ bitvector drive_query(const query_arguments & cmd_args);
 
 void disk_search(const bitvector &hits, std::string &query, IndexStructure &ibf);
 
+double compute_k_probability(const uint8_t &k);
+
+double compute_knut_model(const size_t &query_length, const uint8_t &k, const int &m, const size_t &multiplyer);
+
 template <typename MolType>
 void extract_matrix_paths(std::vector<std::vector<std::string>> &matrix,
  path_vector &paths_vector, auto &hash_adaptor)
