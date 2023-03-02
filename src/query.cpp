@@ -32,11 +32,11 @@ double compute_knut_model(const size_t &query_length, const uint8_t &k, const in
     double running_probability = km_probability;
     double prefix_probability;
     double multi = static_cast<double>(multiplyer);
-    seqan3::debug_stream << "\nQLENGTH: " << query_length << std::endl;
-    seqan3::debug_stream << "KSIZE: " << k << std::endl;
-    seqan3::debug_stream << "TEXTLENGTH: " << m << std::endl;
-    seqan3::debug_stream << "MULTIPLYER: " << multiplyer << std::endl;
-    seqan3::debug_stream << "KM_Pr: " << km_probability << std::endl;
+    // seqan3::debug_stream << "\nQLENGTH: " << query_length << std::endl;
+    // seqan3::debug_stream << "KSIZE: " << k << std::endl;
+    // seqan3::debug_stream << "TEXTLENGTH: " << m << std::endl;
+    // seqan3::debug_stream << "MULTIPLYER: " << multiplyer << std::endl;
+    // seqan3::debug_stream << "KM_Pr: " << km_probability << std::endl;
     for(size_t prefix_length = k+1; prefix_length <= query_length; prefix_length++)
     {
         prefix_probability = compute_k_probability(prefix_length)*m;
@@ -68,17 +68,17 @@ bitvector drive_query(const query_arguments &cmd_args)
 {
     double t1, t2;
     // Load index from disk
-    seqan3::debug_stream << "Reading Index from Disk... ";
+    // seqan3::debug_stream << "Reading Index from Disk... ";
     IndexStructure ibf;
     t1 = omp_get_wtime();
     load_ibf(ibf, cmd_args.idx);
     t2 = omp_get_wtime();
-    seqan3::debug_stream << "DONE in " << t2-t1 << "s" << std::endl;
+    // seqan3::debug_stream << "DONE in " << t2-t1 << "s" << std::endl;
 
     auto bin_count = ibf.getBinCount();
 
     // Evaluate and search for Regular Expression
-    seqan3::debug_stream << "Querying:" << std::endl;
+    // seqan3::debug_stream << "Querying:" << std::endl;
     t1 = omp_get_wtime();
     uint8_t qlength = ibf.k_;
     std::string rx = cmd_args.regex;
@@ -86,18 +86,18 @@ bitvector drive_query(const query_arguments &cmd_args)
     std::vector<char> a = getAlphabet(query);
 
     // Postfix to Thompson NFA
-    seqan3::debug_stream << "   - Constructing Thompson NFA from RegEx... ";
+    // seqan3::debug_stream << "   - Constructing Thompson NFA from RegEx... ";
     State* nfa = post2nfaE(query);
-    seqan3::debug_stream << "DONE" << std::endl;
+    // seqan3::debug_stream << "DONE" << std::endl;
 
     // Thompson NFA to Korotkov NFA
-    seqan3::debug_stream << "   - Construction kNFA from Thompson NFA... ";
+    // seqan3::debug_stream << "   - Construction kNFA from Thompson NFA... ";
     std::vector<kState *> knfa = nfa2knfa(nfa, qlength);
-    seqan3::debug_stream << "DONE" << std::endl;
+    // seqan3::debug_stream << "DONE" << std::endl;
     deleteGraph(nfa);
 
     // Create kmer path matrix from kNFA
-    seqan3::debug_stream << "   - Computing kmer path matrix from kNFA... ";
+    // seqan3::debug_stream << "   - Computing kmer path matrix from kNFA... ";
     
     // Create auxiliary data structures to avoid redundant kmer lookup
     auto hash_adaptor = seqan3::views::kmer_hash(seqan3::ungapped{qlength});
@@ -118,10 +118,10 @@ bitvector drive_query(const query_arguments &cmd_args)
         }
     }
     uMatrix(matrix);
-    seqan3::debug_stream << "DONE" << std::endl;
+    // seqan3::debug_stream << "DONE" << std::endl;
 
     // Search kmer paths in index
-    seqan3::debug_stream << "   - Search kmers in index... ";
+    // seqan3::debug_stream << "   - Search kmers in index... ";
     path_vector paths_vector;
     if(ibf.molecule_ == "na")
     {
@@ -138,14 +138,14 @@ bitvector drive_query(const query_arguments &cmd_args)
         auto hits = query_ibf(bin_count, hash_to_bitvector, path);
         hit_vector.raw_data() |= hits.raw_data();
     }
-    seqan3::debug_stream << "DONE" << std::endl;
+    // seqan3::debug_stream << "DONE" << std::endl;
 
     /////////// MODELING STEP ///////////////
     size_t query_length = matrix[0].size()+qlength-1;
     int text_length = cmd_args.text_length;
     size_t multiplyer = matrix.size();
     double result = compute_knut_model(query_length, qlength, text_length, multiplyer);
-    seqan3::debug_stream << "FINAL PROBABILITY: " << result << std::endl;
+    // seqan3::debug_stream << "FINAL PROBABILITY: " << result << std::endl;
     /////////// MODELING STEP ///////////////
     
 //    seqan3::debug_stream << "Verifying hits... ";
@@ -157,7 +157,8 @@ bitvector drive_query(const query_arguments &cmd_args)
     for(auto &&bit: hit_vector)
         hit_count+= bit;
 
-    seqan3::debug_stream << "ACTUAL RATE: " << hit_count/hit_vector.size() << std::endl;
+    // seqan3::debug_stream << "ACTUAL RATE: " << hit_count/hit_vector.size() << std::endl;
+    std::cout << result << "," << hit_count/hit_vector.size() << std::endl;
 
     return hit_vector;
 }
