@@ -3,7 +3,6 @@
 #include "index.h"
 #include "query.h"
 #include <fstream>
-#include <omp.h>
 #include <stdlib.h>
 #include <algorithm>
 
