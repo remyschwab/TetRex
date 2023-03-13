@@ -15,7 +15,7 @@ struct index_arguments
     std::string ofile;
     std::filesystem::path acid_lib{};
     size_t bin_size = 10000;
-    uint8_t hash_count = 2;
+    uint8_t hash_count = 3;
     std::string reduction;
     std::string molecule;
 };
@@ -27,6 +27,11 @@ struct query_arguments
     std::filesystem::path idx{};
     std::string regex;
     std::string query;
+};
+
+struct inspection_arguments
+{
+    std::filesystem::path idx{};
 };
     
 inline void initialise_index_parser(seqan3::argument_parser &parser, index_arguments &args)
@@ -52,4 +57,11 @@ inline void initialise_query_parser(seqan3::argument_parser &parser, query_argum
     parser.add_option(args.graph, 'd', "dot", "Path to dot file");
     parser.add_positional_option(args.idx, "Path to IBF acid index");
     parser.add_positional_option(args.regex, "Input Regex in reverse polish notation");
+}
+
+inline void initialise_inspection_parser(seqan3::argument_parser &parser, inspection_arguments &args)
+{
+    parser.info.author = "Remy Schwab";
+    parser.info.version = "1.0.0";
+    parser.add_positional_option(args.idx, "Path to IBF acid index");
 }

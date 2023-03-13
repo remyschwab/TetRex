@@ -2,6 +2,7 @@
 #include "arg_parse.h"
 #include "index.h"
 #include "query.h"
+#include "inspect_idx.h"
 #include <fstream>
 #include <omp.h>
 #include <stdlib.h>
@@ -42,11 +43,28 @@ void run_query(seqan3::argument_parser &parser)
     drive_query(cmd_args);
 }
 
+void run_inspection(seqan3::argument_parser &parser)
+{
+    // Parse Arguments
+    inspection_arguments cmd_args{};
+    initialise_inspection_parser(parser, cmd_args);
+    try
+    {
+        parser.parse();
+    }
+    catch (seqan3::argument_parser_error const & ext)
+    {
+        seqan3::debug_stream << "[Error kBioReg Index Inspection module " << ext.what() << "\n";
+        return;
+    }
+    drive_inspection(cmd_args);
+}
+
 int main(int argc, char *argv[])
 {
     seqan3::argument_parser top_level_parser{"kbioreg", argc, argv,
                                              seqan3::update_notifications::off,
-                                             {"index", "query"}};
+                                             {"index", "query", "inspect"}};
     top_level_parser.info.description.push_back("Index a NA|AA FASTA library or search a regular expression.");
     try
     {
@@ -63,6 +81,8 @@ int main(int argc, char *argv[])
         run_index(sub_parser);
     else if (sub_parser.info.app_name == std::string_view{"kbioreg-query"})
         run_query(sub_parser);
+    else if (sub_parser.info.app_name == std::string_view{"kbioreg-inspect"})
+        run_inspection(sub_parser);
     else
         std::cout << "Unhandled subparser named " << sub_parser.info.app_name << '\n';
   return 0;
