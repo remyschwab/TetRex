@@ -4,7 +4,6 @@
 
 void drive_inspection(const inspection_arguments &cmd_args)
 {
-
     double t1, t2;
     // Load index from disk
     seqan3::debug_stream << "Reading Index from Disk... ";
@@ -18,7 +17,7 @@ void drive_inspection(const inspection_arguments &cmd_args)
     std::cout << "BIN COUNT (BFs): " << ibf.getBinCount() << std::endl;
     std::cout << "BIN SIZE (bits): " << ibf.getBinSize() << std::endl;
     std::cout << "HASH COUNT (hash functions): " << unsigned(ibf.getHashCount()) << std::endl;
-    std::cout << "KMER LENGTH (bp): " << unsigned(ibf.k_) << std::endl;
+    std::cout << "KMER LENGTH (bases): " << unsigned(ibf.k_) << std::endl;
     std::string acid_type;
     if(ibf.molecule_ == "na")
     {

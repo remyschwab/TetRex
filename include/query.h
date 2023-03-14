@@ -19,7 +19,11 @@
 
 bitvector query_ibf(uint32_t &bin_count, robin_hood::unordered_map<uint64_t, bitvector> &hash_to_bits, std::vector<std::pair<std::string, uint64_t>> &path);
 
-bitvector drive_query(const query_arguments & cmd_args);
+double compute_k_probability(const uint8_t &k);
+
+double compute_knut_model(const size_t &query_length, const uint8_t &k, const int &m, const size_t &multiplyer);
+
+bitvector drive_query(query_arguments &cmd_args, const bool &model);
 
 void disk_search(const bitvector &hits, std::string &query, IndexStructure &ibf);
 

@@ -5,6 +5,34 @@
 #include "query.h"
 
 
+// Helper Function to compute the probability of any kmer for a given k
+double compute_k_probability(const uint8_t &k)
+{
+    return pow(0.25, k);
+}
+
+
+double compute_knut_model(const size_t &query_length, const uint8_t &k, const int &m, const size_t &multiplyer)
+{
+    // TODO: What if k and query_length are the same?
+    double km_probability = compute_k_probability(k)*m;
+    double running_probability = km_probability;
+    double prefix_probability;
+    double multi = static_cast<double>(multiplyer);
+    // seqan3::debug_stream << "\nQLENGTH: " << query_length << std::endl;
+    // seqan3::debug_stream << "KSIZE: " << k << std::endl;
+    // seqan3::debug_stream << "TEXTLENGTH: " << m << std::endl;
+    // seqan3::debug_stream << "MULTIPLYER: " << multiplyer << std::endl;
+    // seqan3::debug_stream << "KM_Pr: " << km_probability << std::endl;
+    for(size_t prefix_length = k+1; prefix_length <= query_length; prefix_length++)
+    {
+        prefix_probability = compute_k_probability(prefix_length)*m;
+        running_probability = running_probability*(multi*km_probability) + (multi*prefix_probability);
+    }
+    return running_probability;
+}
+
+
 bitvector query_ibf(size_t &bin_count, robin_hood::unordered_map<uint64_t, bitvector> &hash_to_bits, std::vector<std::pair<std::string, uint64_t>> &path)
 {   
     seqan3::interleaved_bloom_filter<seqan3::data_layout::uncompressed>::membership_agent::binning_bitvector hit_vector{bin_count};
@@ -36,7 +64,7 @@ void disk_search(const bitvector &hits, std::string &query, IndexStructure &ibf)
 }
 
 
-bitvector drive_query(const query_arguments &cmd_args)
+bitvector drive_query(query_arguments &cmd_args, const bool &model)
 {
     double t1, t2;
     // Load index from disk
@@ -47,6 +75,7 @@ bitvector drive_query(const query_arguments &cmd_args)
     t2 = omp_get_wtime();
     seqan3::debug_stream << "DONE in " << t2-t1 << "s" << std::endl;
 
+    cmd_args.query = translate(cmd_args.regex);
     auto bin_count = ibf.getBinCount();
 
     // Evaluate and search for Regular Expression
@@ -111,6 +140,23 @@ bitvector drive_query(const query_arguments &cmd_args)
         hit_vector.raw_data() |= hits.raw_data();
     }
     seqan3::debug_stream << "DONE" << std::endl;
+
+    // Modeling doesn't require verification step
+    if(model)
+    {
+        /////////// MODELING STEP ///////////////
+        double hit_count = 0;
+        for(auto &&bit: hit_vector)
+            hit_count+= bit;
+        size_t query_length = matrix[0].size()+qlength-1;
+        int text_length = cmd_args.text_length;
+        size_t multiplyer = matrix.size();
+        double result = compute_knut_model(query_length, qlength, text_length, multiplyer);
+        seqan3::debug_stream << "FINAL PROBABILITY: " << result << std::endl;
+        seqan3::debug_stream << "ACTUAL RATE: " << hit_count/hit_vector.size() << std::endl;
+        /////////// MODELING STEP ///////////////
+        return hit_vector;
+    }
     
     seqan3::debug_stream << "Verifying hits... ";
     disk_search(hit_vector, rx, ibf);

@@ -39,8 +39,7 @@ void run_query(seqan3::argument_parser &parser)
         seqan3::debug_stream << "[Error kBioReg Query module " << ext.what() << "\n";
         return;
     }
-    cmd_args.query = translate(cmd_args.regex);
-    drive_query(cmd_args);
+    drive_query(cmd_args, false);
 }
 
 void run_inspection(seqan3::argument_parser &parser)
@@ -60,11 +59,28 @@ void run_inspection(seqan3::argument_parser &parser)
     drive_inspection(cmd_args);
 }
 
+void run_model(seqan3::argument_parser &parser)
+{
+    // Parse Arguments
+    query_arguments cmd_args{};
+    initialise_model_parser(parser, cmd_args);
+    try
+    {
+        parser.parse();
+    }
+    catch (seqan3::argument_parser_error const & ext)
+    {
+        seqan3::debug_stream << "[Error kBioReg Discovery Modeling module " << ext.what() << "\n";
+        return;
+    }
+    drive_query(cmd_args, true);
+}
+
 int main(int argc, char *argv[])
 {
     seqan3::argument_parser top_level_parser{"kbioreg", argc, argv,
                                              seqan3::update_notifications::off,
-                                             {"index", "query", "inspect"}};
+                                             {"index", "query", "inspect", "model"}};
     top_level_parser.info.description.push_back("Index a NA|AA FASTA library or search a regular expression.");
     try
     {
@@ -83,6 +99,8 @@ int main(int argc, char *argv[])
         run_query(sub_parser);
     else if (sub_parser.info.app_name == std::string_view{"kbioreg-inspect"})
         run_inspection(sub_parser);
+    else if (sub_parser.info.app_name == std::string_view{"kbioreg-model"})
+        run_model(sub_parser);
     else
         std::cout << "Unhandled subparser named " << sub_parser.info.app_name << '\n';
   return 0;
