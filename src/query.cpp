@@ -141,7 +141,6 @@ bitvector drive_query(query_arguments &cmd_args, const bool &model)
     }
     seqan3::debug_stream << "DONE" << std::endl;
 
-    // Modeling doesn't require verification step
     if(model)
     {
         /////////// MODELING STEP ///////////////
@@ -155,7 +154,7 @@ bitvector drive_query(query_arguments &cmd_args, const bool &model)
         seqan3::debug_stream << "FINAL PROBABILITY: " << result << std::endl;
         seqan3::debug_stream << "ACTUAL RATE: " << hit_count/hit_vector.size() << std::endl;
         /////////// MODELING STEP ///////////////
-        return hit_vector;
+        return hit_vector; // Modeling doesn't require verification step
     }
     
     seqan3::debug_stream << "Verifying hits... ";

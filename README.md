@@ -20,13 +20,16 @@ A matrix is generated from the automata, which can be used for pattern matching.
 4. Build with make ```make```
 
 ## Usage
+kBioReg offers two main commands [index & query] and two utility commands:
 ```bash
 ## Index
-kbioreg index -k 3 -o dna_idx -m na ../data/ibf_example.fna
+kbioreg index -k 7 -c 3 -s 644830 -m na -o ibf_idx dna_library.fna
 ## Query RegEx
-kbioreg query dna_idx.ibf "AC+G+|.T." "graphPlot"
-## benchmark
- ./bin/kbioreg benchmark -k 16 -w 30 -m na "TA.T.A.AT|.A.A.AG|.G+C+|.TA.G*.TA.C*.|.T.A.T.A.A." "test"
+kbioreg query redo_tmp_idx.ibf "ACGTA(C|G)CC(A|G|T)A"
+## Print meta info for an index
+ kbioreg inspect ibf_idx.ibf
+ ## Compute the probability of finding your RegEx
+ kbioreg model -l 1000 tmp_idx.ibf "ACGTA(C|G)CC(A|G|T)A"
 ## image of the automaton
 dot -Tpng graphPlot.dot > graphPlot.png
 ```
