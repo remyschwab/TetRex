@@ -27,9 +27,9 @@ kbioreg index -k 7 -c 3 -s 644830 -m na -o ibf_idx dna_library.fna
 ## Query RegEx
 kbioreg query redo_tmp_idx.ibf "ACGTA(C|G)CC(A|G|T)A"
 ## Print meta info for an index
- kbioreg inspect ibf_idx.ibf
- ## Compute the probability of finding your RegEx
- kbioreg model -l 1000 tmp_idx.ibf "ACGTA(C|G)CC(A|G|T)A"
+kbioreg inspect ibf_idx.ibf
+## Compute the probability of finding your RegEx
+kbioreg model -l 1000 tmp_idx.ibf "ACGTA(C|G)CC(A|G|T)A"
 ## image of the automaton
 dot -Tpng graphPlot.dot > graphPlot.png
 ```
