@@ -46,16 +46,34 @@ bitvector query_ibf(size_t &bin_count, robin_hood::unordered_map<uint64_t, bitve
 }
 
 
-void disk_search(const bitvector &hits, std::string &query, IndexStructure &ibf)
+void single_disk_search(const bitvector &hits, std::string &query, IndexStructure &ibf)
 {
     size_t bins = hits.size();
-    std::string bin_text;
     int match_count = 0;
+    const std::filesystem::path lib_path = ibf.acid_libs_[0];
+    std::string bin_text = stream_as_string(lib_path);
     for(size_t i = 0; i < bins; i++)
     {
         if(hits[i])
         {
-            const std::filesystem::path lib_path = ibf.acid_libs_[i];
+            match_count += RE2::PartialMatch(bin_text, query);
+        }
+    }
+    seqan3::debug_stream << "Confirmed " << match_count << " hits ";
+}
+
+
+void iter_disk_search(const bitvector &hits, std::string &query, IndexStructure &ibf)
+{
+    size_t bins = hits.size();
+    std::string bin_text;
+    int match_count = 0;
+    std::filesystem::path lib_path;
+    for(size_t i = 0; i < bins; i++)
+    {
+        if(hits[i])
+        {
+            lib_path = ibf.acid_libs_[i];
             bin_text = stream_as_string(lib_path);
             match_count += RE2::PartialMatch(bin_text, query);
         }
@@ -158,7 +176,13 @@ bitvector drive_query(query_arguments &cmd_args, const bool &model)
     }
     
     seqan3::debug_stream << "Verifying hits... ";
-    disk_search(hit_vector, rx, ibf);
+    if(ibf.acid_libs_.size() > 1)
+    {
+        iter_disk_search(hit_vector, rx, ibf);
+    } else
+    {
+        single_disk_search(hit_vector, rx, ibf);
+    }
     t2 = omp_get_wtime();
     seqan3::debug_stream << "DONE in " << t2-t1 << "s" << std::endl;
     return hit_vector;

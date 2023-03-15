@@ -25,7 +25,9 @@ double compute_knut_model(const size_t &query_length, const uint8_t &k, const in
 
 bitvector drive_query(query_arguments &cmd_args, const bool &model);
 
-void disk_search(const bitvector &hits, std::string &query, IndexStructure &ibf);
+void single_disk_search(const bitvector &hits, std::string &query, IndexStructure &ibf);
+
+void iter_disk_search(const bitvector &hits, std::string &query, IndexStructure &ibf);
 
 template <typename MolType>
 void extract_matrix_paths(std::vector<std::vector<std::string>> &matrix,
