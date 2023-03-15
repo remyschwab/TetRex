@@ -66,16 +66,19 @@ void single_disk_search(const bitvector &hits, std::string &query, IndexStructur
 void iter_disk_search(const bitvector &hits, std::string &query, IndexStructure &ibf)
 {
     size_t bins = hits.size();
-    std::string bin_text;
+    re2::StringPiece bin_text;
     int match_count = 0;
     std::filesystem::path lib_path;
+    re2::RE2 compiled_regex(query);
     for(size_t i = 0; i < bins; i++)
     {
         if(hits[i])
         {
             lib_path = ibf.acid_libs_[i];
-            bin_text = stream_as_string(lib_path);
-            match_count += RE2::PartialMatch(bin_text, query);
+            bin_text = re2::StringPiece(stream_as_string(lib_path));
+            while(re2::RE2::FindAndConsume(&bin_text, compiled_regex)) {
+                ++match_count;
+            }
         }
     }
     seqan3::debug_stream << "Confirmed " << match_count << " hits ";
