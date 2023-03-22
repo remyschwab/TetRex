@@ -6,8 +6,8 @@
 
 enum
 {
-	Match = 256,
-	Split = 257
+    Match = 256,
+    Split = 257
 };
 
 
@@ -20,11 +20,10 @@ enum
 
 struct State
 {
-  int c_;
-  State *out1_ = nullptr;
-  State *out2_ = nullptr;
-  int lastlist_ = 0;
-  ~State() {}
+    int c_;
+    State *out1_ = nullptr;
+    State *out2_ = nullptr;
+    int lastlist_ = 0;
 };
 
 
@@ -36,8 +35,8 @@ struct State
 */
 struct Frag
 {
-  State *start;
-	std::vector<State *> out;
+    State *start;
+    std::vector<State *> out;
 };
 
 std::vector<State *> appendVec(const std::vector<State *>& vec1, const std::vector<State *>& vec2);
