@@ -1,6 +1,6 @@
-#include <seqan3/std/ranges>     // range comparisons
-#include <string>                // strings
-#include <vector>                // vectors
+#include <ranges>     // range comparisons
+#include <string>     // strings
+#include <vector>     // vectors
 
 #include <seqan3/alphabet/detail/debug_stream_alphabet.hpp>
 #include <seqan3/alphabet/nucleotide/dna5.hpp>

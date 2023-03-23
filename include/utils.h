@@ -30,7 +30,7 @@
 /////////////// Type Declarations ///////////////
 template <typename MoleculeType> using record_pair = std::pair<std::string, MoleculeType>;
 template <typename MoleculeType> using record_list = std::vector<record_pair<MoleculeType>>;
-using bitvector = seqan3::interleaved_bloom_filter<seqan3::data_layout::uncompressed>::membership_agent::binning_bitvector;
+using bitvector = seqan3::interleaved_bloom_filter<seqan3::data_layout::uncompressed>::membership_agent_type::binning_bitvector;
 using path_vector = std::vector<std::vector<std::pair<std::string, uint64_t>>>;
 /////////////// ****** END ****** ///////////////
 
