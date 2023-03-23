@@ -11,25 +11,23 @@
 
 struct kState
 {
-  std::string qGram_;
-  std::vector<kState *> outs_ = {};
-  int marked_ = 0;
-  bool start_ = 0;
+    std::string qGram_;
+    std::vector<kState *> outs_ = {};
+    int marked_ = 0;
+    bool start_ = 0;
 };
 
 struct keyState
 {
-  std::string qGramFrag_{};
-  State *positionNFA_= nullptr;
-  kState *home_ = nullptr;
-  ~keyState(){}
+    std::string qGramFrag_{};
+    State *positionNFA_= nullptr;
+    kState *home_ = nullptr;
 };
 
 struct Path
 {
-  uint16_t qPath_;
-  kState* position_;
-  ~Path(){};
+    uint16_t qPath_;
+    kState* position_;
 };
 
 kState* kstate(const std::string& qGram);
@@ -56,54 +54,54 @@ std::vector<kState *> nfa2knfa(State* nfa_ptr, const int& q);
 template <typename T>
 void dfs_na(kState* input, std::vector<std::vector<std::string>>& matrix, robin_hood::unordered_map<uint64_t, bitvector> &hash_to_bits, T agent)
 {
-  std::vector<std::string> line{};
-  std::stack<Path*> stack{};
-  
-  uint8_t qlength = input->qGram_.length();
-  auto hash_adaptor = seqan3::views::kmer_hash(seqan3::ungapped{qlength});
+    std::vector<std::string> line{};
+    std::stack<Path*> stack{};
 
-  Path* p = findPath(input);
-  stack.push(p);
+    uint8_t qlength = input->qGram_.length();
+    auto hash_adaptor = seqan3::views::kmer_hash(seqan3::ungapped{qlength});
 
-  while(!stack.empty())
-  {
-    p = stack.top();
+    Path* p = findPath(input);
+    stack.push(p);
 
-    if(p->position_->marked_ == 0)
+    while(!stack.empty())
     {
-      auto acid_vec = convertStringToAcidVec<seqan3::dna5>(p->position_->qGram_);
-      auto digest = acid_vec | hash_adaptor;
-      if(!hash_to_bits.count(digest[0]))
-      {
-        hash_to_bits[digest[0]] = agent.bulk_contains(digest[0]);
-      }
-      line.push_back(p->position_->qGram_);
-      p->position_->marked_ = 1;
-    }
-    if(p->qPath_ < p->position_->outs_.size())
-    {
-      if(p->position_->outs_[p->qPath_]->qGram_ == "$")
-      {
-        matrix.push_back(line);
-        p->qPath_++;
-      }
-      else
-      {
-        if(p->position_->outs_[p->qPath_]->marked_ == 0)
+        p = stack.top();
+
+        if(p->position_->marked_ == 0)
         {
-          stack.push(findPath(p->position_->outs_[p->qPath_]));
+            auto acid_vec = convertStringToAcidVec<seqan3::dna5>(p->position_->qGram_);
+            auto digest = acid_vec | hash_adaptor;
+            if(!hash_to_bits.count(digest[0]))
+            {
+                hash_to_bits[digest[0]] = agent.bulk_contains(digest[0]);
+            }
+            line.push_back(p->position_->qGram_);
+            p->position_->marked_ = 1;
         }
-        p->qPath_++;
-      }
+        if(p->qPath_ < p->position_->outs_.size())
+        {
+            if(p->position_->outs_[p->qPath_]->qGram_ == "$")
+            {
+                matrix.push_back(line);
+                p->qPath_++;
+            }
+            else
+            {
+                if(p->position_->outs_[p->qPath_]->marked_ == 0)
+                {
+                    stack.push(findPath(p->position_->outs_[p->qPath_]));
+                }
+                p->qPath_++;
+            }
+        }
+        else
+        {
+            line.pop_back();
+            p->position_->marked_ = 0;
+            stack.pop();
+            delete p;
+        }
     }
-    else
-    {
-      line.pop_back();
-      p->position_->marked_ = 0;
-      stack.pop();
-      delete p;
-    }
-  }
 }
 
 /*
@@ -113,52 +111,52 @@ template <typename T>
 void dfs_aa(kState* input, std::vector<std::vector<std::string>>& matrix,
           robin_hood::unordered_map<uint64_t, bitvector> &hash_to_bits, T agent)
 {
-  std::vector<std::string> line{};
-  std::stack<Path*> stack{};
-  
-  uint8_t qlength = input->qGram_.length();
-  auto hash_adaptor = seqan3::views::kmer_hash(seqan3::ungapped{qlength});
+    std::vector<std::string> line{};
+    std::stack<Path*> stack{};
 
-  Path* p = findPath(input);
-  stack.push(p);
+    uint8_t qlength = input->qGram_.length();
+    auto hash_adaptor = seqan3::views::kmer_hash(seqan3::ungapped{qlength});
 
-  while(!stack.empty())
-  {
-    p = stack.top();
+    Path* p = findPath(input);
+    stack.push(p);
 
-    if(p->position_->marked_ == 0)
+    while(!stack.empty())
     {
-      auto acid_vec = convertStringToAcidVec<seqan3::aa27>(p->position_->qGram_);
-      auto digest = acid_vec | hash_adaptor;
-      if(!hash_to_bits.count(digest[0]))
-      {
-        hash_to_bits[digest[0]] = agent.bulk_contains(digest[0]);
-      }
-      line.push_back(p->position_->qGram_);
-      p->position_->marked_ = 1;
-    }
-    if(p->qPath_ < p->position_->outs_.size())
-    {
-      if(p->position_->outs_[p->qPath_]->qGram_ == "$")
-      {
-        matrix.push_back(line);
-        p->qPath_++;
-      }
-      else
-      {
-        if(p->position_->outs_[p->qPath_]->marked_ == 0)
+        p = stack.top();
+
+        if(p->position_->marked_ == 0)
         {
-          stack.push(findPath(p->position_->outs_[p->qPath_]));
+            auto acid_vec = convertStringToAcidVec<seqan3::aa27>(p->position_->qGram_);
+            auto digest = acid_vec | hash_adaptor;
+            if(!hash_to_bits.count(digest[0]))
+            {
+                hash_to_bits[digest[0]] = agent.bulk_contains(digest[0]);
+            }
+            line.push_back(p->position_->qGram_);
+            p->position_->marked_ = 1;
         }
-        p->qPath_++;
-      }
+        if(p->qPath_ < p->position_->outs_.size())
+        {
+            if(p->position_->outs_[p->qPath_]->qGram_ == "$")
+            {
+                matrix.push_back(line);
+                p->qPath_++;
+            }
+            else
+            {
+                if(p->position_->outs_[p->qPath_]->marked_ == 0)
+                {
+                    stack.push(findPath(p->position_->outs_[p->qPath_]));
+                }
+                p->qPath_++;
+            }
+        }
+        else
+        {
+            line.pop_back();
+            p->position_->marked_ = 0;
+            stack.pop();
+            delete p;
+        }
     }
-    else
-    {
-      line.pop_back();
-      p->position_->marked_ = 0;
-      stack.pop();
-      delete p;
-    }
-  }
 }

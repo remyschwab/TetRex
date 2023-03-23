@@ -103,5 +103,5 @@ int main(int argc, char *argv[])
         run_model(sub_parser);
     else
         std::cout << "Unhandled subparser named " << sub_parser.info.app_name << '\n';
-  return 0;
+    return 0;
 }

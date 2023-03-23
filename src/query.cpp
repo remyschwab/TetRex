@@ -34,7 +34,7 @@ double compute_knut_model(const size_t &query_length, const uint8_t &k, const in
 
 
 bitvector query_ibf(size_t &bin_count, robin_hood::unordered_map<uint64_t, bitvector> &hash_to_bits, std::vector<std::pair<std::string, uint64_t>> &path)
-{   
+{
     seqan3::interleaved_bloom_filter<seqan3::data_layout::uncompressed>::membership_agent::binning_bitvector hit_vector{bin_count};
     std::fill(hit_vector.begin(), hit_vector.end(), true);
     for (auto && kmer : path)
@@ -129,7 +129,7 @@ bitvector drive_query(query_arguments &cmd_args, const bool &model)
 
     // Create kmer path matrix from kNFA
     seqan3::debug_stream << "   - Computing kmer path matrix from kNFA... ";
-    
+
     // Create auxiliary data structures to avoid redundant kmer lookup
     auto hash_adaptor = seqan3::views::kmer_hash(seqan3::ungapped{qlength});
     robin_hood::unordered_map<uint64_t, bitvector> hash_to_bitvector{};
@@ -137,12 +137,12 @@ bitvector drive_query(query_arguments &cmd_args, const bool &model)
     // Spawn IBF membership agent in this scope because it is expensive
     auto && ibf_ref = ibf.getIBF();
     auto agent = ibf_ref.membership_agent();
-    
+
     std::vector<std::vector<std::string>> matrix{};
     for(auto i : knfa)
     {
         if(ibf.molecule_ == "na")
-        {        
+        {
             dfs_na(i, matrix, hash_to_bitvector, agent);
         } else {
             dfs_aa(i, matrix, hash_to_bitvector, agent);
@@ -186,8 +186,9 @@ bitvector drive_query(query_arguments &cmd_args, const bool &model)
         /////////// MODELING STEP ///////////////
         return hit_vector; // Modeling doesn't require verification step
     }
-    
+
     seqan3::debug_stream << "Verifying hits... " << std::endl;
+
     if(ibf.acid_libs_.size() > 1)
     {
         iter_disk_search(hit_vector, rx, ibf);

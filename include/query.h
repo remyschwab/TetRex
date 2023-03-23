@@ -43,7 +43,7 @@ template <typename MolType>
 void extract_matrix_paths(std::vector<std::vector<std::string>> &matrix,
  path_vector &paths_vector, auto &hash_adaptor)
 {
-  for(auto i : matrix)
+    for(auto i : matrix)
     {
         std::vector<std::pair<std::string, uint64_t>> hash_vector;
         for(auto j : i)
