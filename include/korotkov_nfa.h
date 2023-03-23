@@ -30,19 +30,9 @@ struct Path
     kState* position_;
 };
 
-Path* findPath(kState* position);
-
-void oneStep(std::stack<keyState *>& stack, State* it_ptr, kState* kptr, std::string& qGram);
-
-void firstPhase(State *it_ptr, std::vector<keyState *>& output, const size_t& q);
-
-int linSearch(const std::vector<keyState *>& liste, keyState* obj);
-
-void nextStep(std::stack<keyState *>& stack, keyState* input);
-
-void nextKeys(std::vector<keyState *>& liste, keyState* input, kState* match);
-
 std::vector<kState *> nfa2knfa(State* nfa_ptr, const int& q);
+
+Path* findPath(kState* position);
 
 /*
  * Depth first search, generates the matrix with the possible paths

@@ -12,6 +12,9 @@
 
 
 
+// Anonymous namespace (avoids naming conflicts with other translation units)
+namespace {
+
 /*
  * Helpfunction of firstPhase
  * represents one Step in the Automaton
@@ -100,7 +103,6 @@ int linSearch(const std::vector<keyState *>& liste, keyState* obj)
     return -1;
 }
 
-
 /*
  * Helpfunction for nextKeys and is part of the sec. Phase
  * is similar to oneStep
@@ -177,6 +179,8 @@ void nextKeys(std::vector<keyState *>& liste, keyState* input, kState* match)
             }
         }
     }
+}
+
 }
 
 std::vector<kState *> nfa2knfa(State* nfa_ptr, const int& q)
