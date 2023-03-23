@@ -44,14 +44,15 @@ std::string translate(const std::string& str);
 
 std::vector<char> getAlphabet(const std::string& regex);
 
-template <typename MolType>
-auto convertStringToAcidVec(std::string const &str)
+template <typename Alphabet>
+auto convertStringToAlphabet(std::string const &str)
 {
-    std::vector<MolType> kmer_acid_vec;
+    std::vector<Alphabet> alphabet_str;
+    alphabet_str.reserve(str.size());
     for (auto s : str) {
-        kmer_acid_vec.emplace_back(seqan3::assign_char_to(s, MolType{}));
+        alphabet_str.emplace_back(seqan3::assign_char_to(s, Alphabet{}));
     }
-    return kmer_acid_vec;
+    return alphabet_str;
 }
 
 //soll alle nötigen qgramme finden

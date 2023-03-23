@@ -48,7 +48,7 @@ void extract_matrix_paths(std::vector<std::vector<std::string>> &matrix,
         std::vector<std::pair<std::string, uint64_t>> hash_vector;
         for(auto j : i)
         {
-            std::vector<MolType> acid_vec = convertStringToAcidVec<MolType>(j);
+            std::vector<MolType> acid_vec = convertStringToAlphabet<MolType>(j);
             auto digest = acid_vec | hash_adaptor;
             // Create a vector of kmer hashes that correspond
             hash_vector.push_back(std::make_pair(j, digest[0]));

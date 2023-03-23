@@ -51,8 +51,8 @@ std::vector<kState *> nfa2knfa(State* nfa_ptr, const int& q);
 /*
  * Depth first search, generates the matrix with the possible paths
  */
-template <typename Alphabet, typename T>
-void dfs(kState* input, std::vector<std::vector<std::string>>& matrix, robin_hood::unordered_map<uint64_t, bitvector> &hash_to_bits, T agent)
+template <typename Alphabet>
+void dfs(kState* input, std::vector<std::vector<std::string>>& matrix, robin_hood::unordered_map<uint64_t, bitvector> &hash_to_bits, auto agent)
 {
     std::vector<std::string> line{};
     std::stack<Path*> stack{};
@@ -69,7 +69,7 @@ void dfs(kState* input, std::vector<std::vector<std::string>>& matrix, robin_hoo
 
         if(p->position_->marked_ == 0)
         {
-            auto acid_vec = convertStringToAcidVec<Alphabet>(p->position_->qGram_);
+            auto acid_vec = convertStringToAlphabet<Alphabet>(p->position_->qGram_);
             auto digest = acid_vec | hash_adaptor;
             if(!hash_to_bits.count(digest[0]))
             {
