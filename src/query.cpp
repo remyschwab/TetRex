@@ -104,6 +104,8 @@ bitvector drive_query(query_arguments &cmd_args, const bool &model)
     load_ibf(ibf, cmd_args.idx);
     t2 = omp_get_wtime();
     seqan3::debug_stream << "DONE in " << t2-t1 << "s" << std::endl;
+    double load_time = t2-t1;
+    // std::cout << load_time << ",";
 
     cmd_args.query = translate(cmd_args.regex);
     auto bin_count = ibf.getBinCount();
@@ -197,6 +199,9 @@ bitvector drive_query(query_arguments &cmd_args, const bool &model)
         single_disk_search(hit_vector, rx, ibf);
     }
     t2 = omp_get_wtime();
-    seqan3::debug_stream << "DONE in " << t2-t1 << "s" << std::endl;
+    double search_time = t2-t1;
+    double run_time = search_time + load_time;
+    // std::cout << run_time << std::endl;
+    seqan3::debug_stream << "DONE in " << run_time << "s" << std::endl;
     return hit_vector;
 }
