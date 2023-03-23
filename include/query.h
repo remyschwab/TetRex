@@ -40,19 +40,19 @@ auto to_string(std::vector<Alphabet> const& sequence) -> std::string {
 }
 
 template <typename MolType>
-void extract_matrix_paths(std::vector<std::vector<std::string>> &matrix,
+void extract_matrix_paths(const std::vector<std::vector<std::string>> &matrix,
  path_vector &paths_vector, auto &hash_adaptor)
 {
-    for(auto i : matrix)
+    for(auto const& i : matrix)
     {
         std::vector<std::pair<std::string, uint64_t>> hash_vector;
-        for(auto j : i)
+        for(auto const& j : i)
         {
             std::vector<MolType> acid_vec = convertStringToAlphabet<MolType>(j);
             auto digest = acid_vec | hash_adaptor;
             // Create a vector of kmer hashes that correspond
-            hash_vector.push_back(std::make_pair(j, digest[0]));
+            hash_vector.emplace_back(j, digest[0]);
         }
-        paths_vector.push_back(hash_vector);
+        paths_vector.emplace_back(std::move(hash_vector));
     }
 }
