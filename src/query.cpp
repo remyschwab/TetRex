@@ -46,42 +46,51 @@ bitvector query_ibf(size_t &bin_count, robin_hood::unordered_map<uint64_t, bitve
 }
 
 
+void verify_fasta_hit(const std::filesystem::path &bin_path, re2::RE2 &crx)
+{
+    seqan3::sequence_file_input<seqan3::sequence_file_input_default_traits_aa> fasta_handle{bin_path};
+    std::string match;
+    for(auto &[SEQ, ID, QUAL]: fasta_handle)
+    {
+        re2::StringPiece bin_content(to_string(SEQ));
+        while (RE2::FindAndConsume(&bin_content, crx, &match))
+        {
+            std::cout << ">" << ID << "\t" << match << std::endl;
+        }
+    }
+}
+
+
 void single_disk_search(const bitvector &hits, std::string &query, IndexStructure &ibf)
 {
     size_t bins = hits.size();
-    int match_count = 0;
     const std::filesystem::path lib_path = ibf.acid_libs_[0];
     std::string bin_text = stream_as_string(lib_path);
     for(size_t i = 0; i < bins; i++)
     {
         if(hits[i])
         {
-            match_count += RE2::PartialMatch(bin_text, query);
+            // RE2::PartialMatch(bin_text, query);
         }
     }
-    seqan3::debug_stream << "Confirmed " << match_count << " hits ";
 }
 
 
 void iter_disk_search(const bitvector &hits, std::string &query, IndexStructure &ibf)
 {
     size_t bins = hits.size();
-    re2::StringPiece bin_text;
-    int match_count = 0;
     std::filesystem::path lib_path;
+
     re2::RE2 compiled_regex(query);
+    assert(compiled_regex.ok());
     for(size_t i = 0; i < bins; i++)
     {
         if(hits[i])
         {
             lib_path = ibf.acid_libs_[i];
-            bin_text = re2::StringPiece(stream_as_string(lib_path));
-            while(re2::RE2::FindAndConsume(&bin_text, compiled_regex)) {
-                ++match_count;
-            }
+            verify_fasta_hit(lib_path, compiled_regex);
         }
     }
-    seqan3::debug_stream << "Confirmed " << match_count << " hits ";
 }
 
 
@@ -178,7 +187,7 @@ bitvector drive_query(query_arguments &cmd_args, const bool &model)
         return hit_vector; // Modeling doesn't require verification step
     }
     
-    seqan3::debug_stream << "Verifying hits... ";
+    seqan3::debug_stream << "Verifying hits... " << std::endl;
     if(ibf.acid_libs_.size() > 1)
     {
         iter_disk_search(hit_vector, rx, ibf);
