@@ -12,13 +12,6 @@
 
 
 
-kState* kstate(const std::string& qGram)
-{
-    kState* ptr = new kState;
-    ptr-> qGram_ = qGram;
-    return ptr;
-}
-
 keyState* key(const std::string& qGramFrag, State *positionNFA, kState * home)
 {
     keyState* ptr = new keyState;
@@ -176,7 +169,7 @@ void nextKeys(std::vector<keyState *>& liste, keyState* input, kState* match)
             if(i == -1)
             {
                 qGram += k->positionNFA_->c_;
-                e = kstate(qGram);
+                e = new kState{qGram};
                 input->home_->outs_.push_back(e);
                 k->home_ = e;
                 liste.push_back(k);
@@ -203,7 +196,7 @@ std::vector<kState *> nfa2knfa(State* nfa_ptr, const int& q)
     */
     std::vector<kState *> output{}; //fungiert als start
     std::vector<keyState *> queue{};
-    kState* match = kstate("$");
+    kState* match = new kState{"$"};
 
     kState* e;
 
@@ -234,7 +227,7 @@ std::vector<kState *> nfa2knfa(State* nfa_ptr, const int& q)
         }
         else
         {
-            e = kstate(edge);
+            e = new kState{edge};
             e->start_ = 1;
             queue[i]->home_ = e;
             output.push_back(e);
