@@ -141,11 +141,10 @@ bitvector drive_query(query_arguments &cmd_args, const bool &model)
     std::vector<std::vector<std::string>> matrix{};
     for(auto i : knfa)
     {
-        if(ibf.molecule_ == "na")
-        {
-            dfs_na(i, matrix, hash_to_bitvector, agent);
+        if(ibf.molecule_ == "na") {
+            dfs<seqan3::dna5>(i, matrix, hash_to_bitvector, agent);
         } else {
-            dfs_aa(i, matrix, hash_to_bitvector, agent);
+            dfs<seqan3::aa27>(i, matrix, hash_to_bitvector, agent);
         }
     }
     uMatrix(matrix);
