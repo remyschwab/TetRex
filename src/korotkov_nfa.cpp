@@ -12,15 +12,6 @@
 
 
 
-keyState* key(const std::string& qGramFrag, State *positionNFA, kState * home)
-{
-    keyState* ptr = new keyState;
-    ptr-> qGramFrag_ = qGramFrag;
-    ptr-> positionNFA_ = positionNFA;
-    ptr-> home_ = home;
-    return ptr;
-}
-
 /*
  * Helpfunction of firstPhase
  * represents one Step in the Automaton
@@ -33,12 +24,12 @@ void oneStep(std::stack<keyState *>& stack, State* itptr, kState* kptr, std::str
     {
     default:
             qGram += c;
-            e1 = key(qGram, itptr->out1_, kptr);
+            e1 = new keyState{qGram, itptr->out1_, kptr};
             stack.push(e1);
             break;
     case Split:
-            e1 = key(qGram, itptr->out1_, kptr);
-            e2 = key(qGram, itptr->out2_, kptr);
+            e1 = new keyState{qGram, itptr->out1_, kptr};
+            e2 = new keyState{qGram, itptr->out2_, kptr};
             stack.push(e2);
             stack.push(e1);
             break;
@@ -127,8 +118,8 @@ void nextStep(std::stack<keyState *>& stack, keyState* input)
             stack.push(input);
             break;
     case Split:
-            e1 = key(input->qGramFrag_, itptr->out1_, nullptr);
-            e2 = key(input->qGramFrag_, itptr->out2_, nullptr);
+            e1 = new keyState{input->qGramFrag_, itptr->out1_, nullptr};
+            e2 = new keyState{input->qGramFrag_, itptr->out2_, nullptr};
             stack.push(e2);
             stack.push(e1);
             break;
@@ -148,7 +139,7 @@ void nextKeys(std::vector<keyState *>& liste, keyState* input, kState* match)
     qGramFrag = qGramFrag.substr(1);
     std::string qGram = qGramFrag;
 
-    k = key(qGramFrag, input->positionNFA_->out1_, nullptr);
+    k = new keyState{qGramFrag, input->positionNFA_->out1_, nullptr};
     nextStep(stack, k);
 
     while(!stack.empty())

@@ -30,8 +30,6 @@ struct Path
     kState* position_;
 };
 
-keyState* key(const std::string& qGramFrag, State* positionNFA_, kState* home);
-
 Path* findPath(kState* position);
 
 void oneStep(std::stack<keyState *>& stack, State* it_ptr, kState* kptr, std::string& qGram);
