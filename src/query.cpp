@@ -35,7 +35,7 @@ double compute_knut_model(const size_t &query_length, const uint8_t &k, const in
 
 bitvector query_ibf(size_t &bin_count, robin_hood::unordered_map<uint64_t, bitvector> &hash_to_bits, std::vector<std::pair<std::string, uint64_t>> &path)
 {
-    seqan3::interleaved_bloom_filter<seqan3::data_layout::uncompressed>::membership_agent::binning_bitvector hit_vector{bin_count};
+    seqan3::interleaved_bloom_filter<seqan3::data_layout::uncompressed>::membership_agent_type::binning_bitvector hit_vector{bin_count};
     std::fill(hit_vector.begin(), hit_vector.end(), true);
     for (auto && kmer : path)
     {
@@ -162,7 +162,7 @@ bitvector drive_query(query_arguments &cmd_args, const bool &model)
         extract_matrix_paths<seqan3::aa27>(matrix, paths_vector, hash_adaptor);
     }
 
-    seqan3::interleaved_bloom_filter<seqan3::data_layout::uncompressed>::membership_agent::binning_bitvector hit_vector{ibf.getBinCount()};
+    seqan3::interleaved_bloom_filter<seqan3::data_layout::uncompressed>::membership_agent_type::binning_bitvector hit_vector{ibf.getBinCount()};
     std::fill(hit_vector.begin(), hit_vector.end(), false);
 
     for (auto path : paths_vector)

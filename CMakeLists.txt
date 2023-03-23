@@ -28,6 +28,7 @@ set (FontReset "${Esc}[m")
 find_package (SeqAn3 QUIET REQUIRED HINTS lib/seqan3/build_system)
 
 # Dependecy: re2
+option(RE2_BUILD_TESTING OFF)
 add_subdirectory(lib/re2)
 
 # Allow to include CMake scripts from seqan3.
