@@ -4,7 +4,7 @@
 
 #pragma once
 
-#include <regex>
+#include <seqan3/alphabet/views/all.hpp>
 
 #include <re2/re2.h>
 #include <omp.h>
@@ -25,9 +25,19 @@ double compute_knut_model(const size_t &query_length, const uint8_t &k, const in
 
 bitvector drive_query(query_arguments &cmd_args, const bool &model);
 
+void verify_fasta_hit(const std::filesystem::path &bin_path, re2::RE2 &crx);
+
 void single_disk_search(const bitvector &hits, std::string &query, IndexStructure &ibf);
 
 void iter_disk_search(const bitvector &hits, std::string &query, IndexStructure &ibf);
+
+template <seqan3::alphabet Alphabet>
+auto to_string(std::vector<Alphabet> const& sequence) -> std::string {
+    auto view = sequence | std::views::transform([](Alphabet a) {
+        return a.to_char();
+    });
+    return std::string{view.begin(), view.end()};
+}
 
 template <typename MolType>
 void extract_matrix_paths(std::vector<std::vector<std::string>> &matrix,
