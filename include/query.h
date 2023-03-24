@@ -27,9 +27,7 @@ bitvector drive_query(query_arguments &cmd_args, const bool &model);
 
 void verify_fasta_hit(const std::filesystem::path &bin_path, re2::RE2 &crx);
 
-void single_disk_search(const bitvector &hits, std::string &query, IndexStructure &ibf);
-
-void iter_disk_search(const bitvector &hits, std::string &query, IndexStructure &ibf);
+void iter_disk_search(const bitvector &hits, const std::string &query, IndexStructure &ibf);
 
 template <seqan3::alphabet Alphabet>
 auto to_string(std::vector<Alphabet> const& sequence) -> std::string {

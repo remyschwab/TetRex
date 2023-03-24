@@ -61,23 +61,7 @@ void verify_fasta_hit(const std::filesystem::path &bin_path, re2::RE2 &crx)
     }
 }
 
-
-void single_disk_search(const bitvector &hits, std::string &query, IndexStructure &ibf)
-{
-    size_t bins = hits.size();
-    const std::filesystem::path lib_path = ibf.acid_libs_[0];
-    std::string bin_text = stream_as_string(lib_path);
-    for(size_t i = 0; i < bins; i++)
-    {
-        if(hits[i])
-        {
-            // RE2::PartialMatch(bin_text, query);
-        }
-    }
-}
-
-
-void iter_disk_search(const bitvector &hits, std::string &query, IndexStructure &ibf)
+void iter_disk_search(const bitvector &hits, const std::string &query, IndexStructure &ibf)
 {
     size_t bins = hits.size();
     std::filesystem::path lib_path;
@@ -191,13 +175,7 @@ bitvector drive_query(query_arguments &cmd_args, const bool &model)
 
     seqan3::debug_stream << "Verifying hits... " << std::endl;
 
-    if(ibf.acid_libs_.size() > 1)
-    {
-        iter_disk_search(hit_vector, rx, ibf);
-    } else
-    {
-        single_disk_search(hit_vector, rx, ibf);
-    }
+    iter_disk_search(hit_vector, rx, ibf);
     t2 = omp_get_wtime();
     double search_time = t2-t1;
     double run_time = search_time + load_time;
