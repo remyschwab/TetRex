@@ -181,6 +181,6 @@ void populate_bin(IndexStructure &ibf, auto &hash_adaptor, record_list<MolType> 
     }
 }
 
-void create_index_from_filelist(index_arguments &cmd_args);
+void create_index_from_filelist(const index_arguments &cmd_args, const std::vector<std::string> &input_bin_files);
 
-void drive_index(index_arguments &cmd_args);
+void drive_index(const index_arguments &cmd_args);
