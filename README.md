@@ -25,11 +25,11 @@ kBioReg offers two main commands [index & query] and two utility commands:
 ## Index Nucleic Acid DB, with kmer size = 7, 3 hash functions, & 644830 bits per Bloom Filter
 kbioreg index -k 7 -c 3 -s 644830 -m na -o ibf_idx dna_library.fna
 ## Query RegEx
-kbioreg query redo_tmp_idx.ibf "ACGTA(C|G)CC(A|G|T)A"
+kbioreg query ibf_idx.ibf "ACGTA(C|G)CC(A|G|T)A"
 ## Print meta info for an index
 kbioreg inspect ibf_idx.ibf
 ## Compute the probability of finding your RegEx
-kbioreg model -l 1000 tmp_idx.ibf "ACGTA(C|G)CC(A|G|T)A"
+kbioreg model -l 1000 ibf_idx.ibf "ACGTA(C|G)CC(A|G|T)A"
 ## image of the automaton
 dot -Tpng graphPlot.dot > graphPlot.png
 ```
