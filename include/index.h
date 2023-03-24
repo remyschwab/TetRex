@@ -153,22 +153,6 @@ uint32_t parse_reference_aa(std::filesystem::path &ref_file, record_list<MolType
 }
 
 template <typename MolType>
-IndexStructure create_index(record_list<MolType> &refs, uint32_t &bin_count, index_arguments args)
-{
-    uint8_t k = args.k;
-    std::vector<std::string> filelib = {args.acid_lib};
-    IndexStructure ibf(k, bin_count, args.bin_size, args.hash_count, args.molecule, filelib);
-
-    auto hash_adaptor = seqan3::views::kmer_hash(seqan3::ungapped{k});
-    for (size_t i = 0; i < bin_count; i++)
-        for (auto && value : refs[i].second | hash_adaptor)
-        {
-            ibf.emplace(value, i);
-        }
-    return ibf;
-}
-
-template <typename MolType>
 void populate_bin(IndexStructure &ibf, auto &hash_adaptor, record_list<MolType> &records, const size_t &bin_idx)
 {
     size_t record_count = records.size();

@@ -59,10 +59,14 @@ void create_index_from_filelist(const index_arguments &cmd_args, const std::vect
 void drive_index(const index_arguments &cmd_args)
 {
     std::vector<std::string> input_bin_files;
-    if (cmd_args.acid_lib.extension() == ".lst") {
-        input_bin_files = read_input_file_list(cmd_args.acid_lib);
-    } else {
-        input_bin_files = {cmd_args.acid_lib};
+    for (auto file : cmd_args.acid_libs) {
+        if (file.extension() == ".lst") {
+            for (auto f : read_input_file_list(file)) {
+                input_bin_files.push_back(f);
+            }
+        } else {
+            input_bin_files.push_back(file);
+        }
     }
     create_index_from_filelist(cmd_args, input_bin_files);
 }
