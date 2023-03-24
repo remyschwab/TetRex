@@ -22,8 +22,8 @@ A matrix is generated from the automata, which can be used for pattern matching.
 ## Usage
 kBioReg offers two main commands [index & query] and two utility commands:
 ```bash
-## Index Nucleic Acid DB, with kmer size = 7, 3 hash functions, & 644830 bits per Bloom Filter
-kbioreg index -k 7 -c 3 -s 644830 -m na -o ibf_idx dna_library.fna
+## Index Nucleic Acid DB, with kmer size = 7, 3 hash functions, & 644830 bits per Bloom Filter, each input file represents a bin
+kbioreg index -k 7 -c 3 -s 644830 -m na -o ibf_idx file1.fna file2.fna
 ## Query RegEx
 kbioreg query ibf_idx.ibf "ACGTA(C|G)CC(A|G|T)A"
 ## Print meta info for an index
