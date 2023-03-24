@@ -10,5 +10,5 @@ macro (add_cli_test test_filename)
     add_dependencies (${target} "${PROJECT_NAME}")
 endmacro ()
 
-add_cli_test (fastq_to_fasta_options_test.cpp)
-target_use_datasources (fastq_to_fasta_options_test FILES in.fastq)
+add_cli_test (kbioreg_test.cpp)
+target_use_datasources (kbioreg_test FILES ibf_idx.ibf file1.fa file2.fa)
