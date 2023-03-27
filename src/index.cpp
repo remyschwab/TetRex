@@ -6,8 +6,9 @@
 
 
 
-void read_input_file_list(std::vector<std::string> & sequence_files, std::filesystem::path input_file)
+std::vector<std::string> read_input_file_list(std::filesystem::path input_file)
 {
+    std::vector<std::string> sequence_files;
     std::ifstream fin{input_file};
 
     if (!fin.good() || !fin.is_open())
@@ -16,16 +17,13 @@ void read_input_file_list(std::vector<std::string> & sequence_files, std::filesy
     std::string line;
     while (std::getline(fin, line))
     {
-        sequence_files.push_back(line);
+        sequence_files.emplace_back(line);
     }
+    return sequence_files;
 }
 
-void create_index_from_filelist(index_arguments &cmd_args)
+void create_index_from_filelist(const index_arguments &cmd_args, const std::vector<std::string> &input_bin_files)
 {
-    std::vector<std::string> input_bin_files{};
-    std::filesystem::path acid_lib = cmd_args.acid_lib;
-    read_input_file_list(input_bin_files, acid_lib);
-
     std::string molecule = cmd_args.molecule;
     size_t seq_count = 0;
     auto hash_adaptor = seqan3::views::kmer_hash(seqan3::ungapped{cmd_args.k});
@@ -58,39 +56,17 @@ void create_index_from_filelist(index_arguments &cmd_args)
     seqan3::debug_stream << "DONE" << std::endl;
 }
 
-void drive_index(index_arguments &cmd_args)
+void drive_index(const index_arguments &cmd_args)
 {
-    std::filesystem::path acid_lib = cmd_args.acid_lib;
-    if(acid_lib.extension() == ".lst")
-    {
-        create_index_from_filelist(cmd_args);
-        return;
+    std::vector<std::string> input_bin_files;
+    for (auto file : cmd_args.acid_libs) {
+        if (file.extension() == ".lst") {
+            for (auto f : read_input_file_list(file)) {
+                input_bin_files.push_back(f);
+            }
+        } else {
+            input_bin_files.push_back(file);
+        }
     }
-    if(cmd_args.molecule == "na")
-    {
-        record_list<seqan3::dna5_vector> records;
-        uint32_t bin_count = parse_reference_na(acid_lib, records);
-        
-        seqan3::debug_stream << "Indexing " << bin_count << " genomes... ";
-        IndexStructure ibf = create_index(records, bin_count, cmd_args);
-        seqan3::debug_stream << "DONE" << std::endl;
-
-        seqan3::debug_stream << "Writing to disk... ";
-        std::filesystem::path output_path{cmd_args.ofile+".ibf"};
-        store_ibf(ibf, output_path);
-        seqan3::debug_stream << "DONE" << std::endl;
-    } else
-    {
-        record_list<seqan3::aa27_vector> records;
-        uint32_t bin_count = parse_reference_aa(acid_lib, records);
-        
-        seqan3::debug_stream << "Indexing " << bin_count << " genomes... ";
-        IndexStructure ibf = create_index(records, bin_count, cmd_args);
-        seqan3::debug_stream << "DONE" << std::endl;
-
-        seqan3::debug_stream << "Writing to disk... ";
-        std::filesystem::path output_path{cmd_args.ofile+".ibf"};
-        store_ibf(ibf, output_path);
-        seqan3::debug_stream << "DONE" << std::endl;
-    }
+    create_index_from_filelist(cmd_args, input_bin_files);
 }
