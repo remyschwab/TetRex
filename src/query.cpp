@@ -49,14 +49,13 @@ bitvector query_ibf(size_t &bin_count, robin_hood::unordered_map<uint64_t, bitve
 void verify_fasta_hit(const std::filesystem::path &bin_path, re2::RE2 &crx)
 {
     seqan3::sequence_file_input<seqan3::sequence_file_input_default_traits_aa> fasta_handle{bin_path};
-    std::string match;
     for(auto &[SEQ, ID, QUAL]: fasta_handle)
     {
         auto seq_as_str = to_string(SEQ);
         re2::StringPiece bin_content(seq_as_str);
-        while (RE2::FindAndConsume(&bin_content, crx, &match))
+        while (RE2::FindAndConsume(&bin_content, crx))
         {
-            std::cout << ">" << ID << "\t" << match << std::endl;
+            std::cout << ">" << ID << "\t" << std::endl;
         }
     }
 }
