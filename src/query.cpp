@@ -61,6 +61,7 @@ void verify_fasta_hit(const std::filesystem::path &bin_path, re2::RE2 &crx)
     }
 }
 
+
 void iter_disk_search(const bitvector &hits, const std::string &query, IndexStructure &ibf)
 {
     size_t bins = hits.size();
@@ -101,7 +102,7 @@ bitvector drive_query(query_arguments &cmd_args, const bool &model)
     uint8_t qlength = ibf.k_;
     std::string rx = cmd_args.regex;
     std::string query = cmd_args.query;
-    std::vector<char> a = getAlphabet(query);
+    // std::vector<char> a = getAlphabet(query);
 
     // Postfix to Thompson NFA
     seqan3::debug_stream << "   - Constructing Thompson NFA from RegEx... ";
@@ -134,6 +135,7 @@ bitvector drive_query(query_arguments &cmd_args, const bool &model)
             dfs<seqan3::aa27>(i, matrix, hash_to_bitvector, agent);
         }
     }
+
     uMatrix(matrix);
     seqan3::debug_stream << "DONE" << std::endl;
 

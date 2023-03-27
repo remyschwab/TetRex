@@ -91,6 +91,7 @@ int linSearchK(const std::vector<kState *>& liste, std::string obj)
     }
     return -1;
 }
+
 int linSearch(const std::vector<keyState *>& liste, keyState* obj)
 {
     for(size_t i = 0; i<liste.size(); i++)

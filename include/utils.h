@@ -36,10 +36,6 @@ using path_vector = std::vector<std::vector<std::pair<std::string, uint64_t>>>;
 
 char* re2post(char *re);
 
-std::string stream_as_string(const std::string& path);
-
-int matches(const std::string& bin, std::regex reg);
-
 std::string translate(const std::string& str);
 
 std::vector<char> getAlphabet(const std::string& regex);

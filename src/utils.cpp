@@ -1,7 +1,6 @@
 #include "utils.h"
 
-char*
-re2post(char *re)
+char* re2post(char *re)
 {
     int nalt, natom;
     static char buf[8000];
@@ -82,34 +81,6 @@ re2post(char *re)
 }
 
 
-std::string stream_as_string(const std::string& path)
-{
-    std::filebuf fb;
-    fb.open (path,std::ios::in);
-    std::istream stm(&fb);
-    std::string str;
-    char c ;
-    while( stm.get(c) ) str += c;
-    str.erase(std::remove(str.begin(), str.end(), '\n'), str.cend());
-    return str;
-}
-
-int matches(const std::string& bin, std::regex reg)
-{
-    std::string match;
-    std::sregex_iterator currentMatch(bin.begin(), bin.end(), reg);
-    std::sregex_iterator last_match;
-    int out = 0;
-    while(currentMatch != last_match)
-    {
-        std::smatch match = *currentMatch;
-        std::cout<<match.str()<<"   "<<match.position()<<std::endl;
-        currentMatch++;
-        out++;
-    }
-    return out;
-}
-
 std::string translate(const std::string& str)
 {
   char * cstr = new char [str.length()+1];
@@ -118,6 +89,7 @@ std::string translate(const std::string& str)
   delete [] cstr;
   return out;
 }
+
 
 std::vector<char> getAlphabet(const std::string& regex)
 {
