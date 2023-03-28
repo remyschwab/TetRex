@@ -47,11 +47,11 @@ TEST_F(kbioreg, query)
 {
     std::system("ln -s ../.. test"); // !HACK !TODO how to link to the original path?
     cli_test_result result = execute_app("kbioreg", "query", data("ibf_idx.ibf"),
-                                         "\"(AC+G)\"");
+                                         "\"AC+G\"");
     std::string expected
     {
-        ">Snippet1.1\n"
-        ">Snippet1.2\n"
+        ">Snippet1.1\tACCG\n"
+        ">Snippet1.2\tACG\n"
     };
     EXPECT_EQ(result.exit_code, 0);
     EXPECT_EQ(result.out, expected);
