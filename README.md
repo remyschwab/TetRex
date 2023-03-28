@@ -3,11 +3,10 @@ This app constructs a Korotkov Automata from an input Regular Expression. A Koro
 
 A matrix is generated from the automata, which can be used for pattern matching. The regex need to be written in reverse polish notation and supports the following operations:
 
-1. "|" - or
-2. "*" - kleene star
-3. "+" - min. 1
-4. "?" - 0 or 1
-5. "." - concatination
+1. **|** - Or
+2. __*__ - Zero or more repetitions
+3. **+** - One or More repetitions
+4. **?** - Optional Character
 
 
 ## Installation

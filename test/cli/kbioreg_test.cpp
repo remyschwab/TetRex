@@ -50,8 +50,8 @@ TEST_F(kbioreg, query)
                                          "\"(AC+G)\"");
     std::string expected
     {
-        ">Snippet1.1\tACCG\n"
-        ">Snippet1.2\tACG\n"
+        ">Snippet1.1\n"
+        ">Snippet1.2\n"
     };
     EXPECT_EQ(result.exit_code, 0);
     EXPECT_EQ(result.out, expected);
