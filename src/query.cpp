@@ -55,7 +55,7 @@ void verify_fasta_hit(const std::filesystem::path &bin_path, re2::RE2 &crx)
         re2::StringPiece bin_content(seq_as_str);
         while (RE2::FindAndConsume(&bin_content, crx))
         {
-            std::cout << ">" << ID << "\t" << std::endl;
+            std::cout << ">" << ID << std::endl;
         }
     }
 }
