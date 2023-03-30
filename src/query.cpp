@@ -100,7 +100,7 @@ bitvector drive_query(query_arguments &cmd_args, const bool &model)
     seqan3::debug_stream << "Querying:" << std::endl;
     t1 = omp_get_wtime();
     uint8_t qlength = ibf.k_;
-    std::string rx = "("+cmd_args.regex+")";
+    std::string rx = "("+cmd_args.regex+")"; // Capture entire RegEx
     std::string query = cmd_args.query;
     // std::vector<char> a = getAlphabet(query);
 
