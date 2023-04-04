@@ -25,6 +25,8 @@ double compute_knut_model(const size_t &query_length, const uint8_t &k, const in
 
 bitvector drive_query(query_arguments &cmd_args, const bool &model);
 
+void preprocess_query(std::string &rx_query, std::string &postfix_query);
+
 void verify_fasta_hit(const std::filesystem::path &bin_path, re2::RE2 &crx);
 
 void iter_disk_search(const bitvector &hits, const std::string &query, IndexStructure &ibf);

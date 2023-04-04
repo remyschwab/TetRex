@@ -6,6 +6,7 @@ codon regular expressions
 """
 
 import sys
+import re
 
 fourWobble = "AC|GT||."
 
@@ -80,6 +81,7 @@ codon_count_table = {
 
 
 AA_SET = set(codon_count_table.keys())
+AA_UNION = "(" + "|".join([_ for _ in AA_SET]) + ")"
 
 
 def computeCombos(aa_seq):
@@ -93,46 +95,37 @@ def computeRegEx(aa_sequence):
     return "".join([aa_codon_lut[aa] for aa in aa_sequence])
 
 
-def make_sub_union(filo):
-    out = ["("]
-    for c in filo:
-        out.append(c)
-        out.append("|")
-    out.pop()
-    out.append(")")
-    return ''.join(out)
+def make_union_iter(sub_disjunction):
+    return "(" + "|".join([_ for _ in sub_disjunction if _ not in '[]']) + ")"
 
 
 def convert_prosite_pattern(pattern):
     """
-    Prosite infix regular expressions are denoted slighly differently.
-    This subroutine will convert a prosite regex to one accepted by kbioreg
+    Scanning prosite patterns one character at a time is limited
+    Break the pattern into tokens at the pattern delimiter '-'
     """
-    if 'x' in pattern: # Will have to deal with this later...
-        return
-    stack, tokens = [], []
-    unionize, disjoint = False, False
-    for c in pattern:
-        match c:
-            case '[':
-                unionize = True
-            case ']':
-                tokens.append(make_sub_union(stack))
-                stack = []
-                unionize = False
-            case '{':
-                disjoint = True
-            case '}':
-                accept_residues = AA_SET-set(stack)
-                tokens.append(make_sub_union(accept_residues))
-                stack = []
-                disjoint = False
-            case _:
-                if unionize or disjoint:
-                    stack.append(c)
-                    continue
-                tokens.append(c)
-    return ''.join(tokens)
+    posix_pattern = []
+    tkn_lst = pattern.split("-")
+    for tkn in tkn_lst:
+        match tkn:
+            case '<': ## N terminus anchor
+                posix_pattern.append('^')
+            case 'x': ## Wildcard
+                posix_pattern.append(AA_UNION)
+            case dis if dis.startswith('['):
+                posix_pattern.append(make_union_iter(dis))
+            case dis if dis.startswith('{'):
+                posix_pattern.append(make_union_iter(AA_SET-set(tkn)))
+            case 'x(0,1)':
+                posix_pattern.append(AA_UNION+"?")
+            case '>': ## C terminus anchor
+                posix_pattern.append('$')
+            case _: ## Just a plain old AA
+                posix_pattern.append(tkn)
+    output_query = "".join(posix_pattern)
+    output_query = output_query.replace(">","$")
+    output_query = output_query.replace("<", "^")
+    return output_query
 
 
 def main():

@@ -46,6 +46,22 @@ bitvector query_ibf(size_t &bin_count, robin_hood::unordered_map<uint64_t, bitve
 }
 
 
+// void preprocess_query(std::string &rx_query, std::string &postfix_query)
+// {
+//     // We don't want to generate kmers from something with anchors
+
+//     // We want the entire query to be in one capture group
+//     // But we need to account for the case where the user tried that themselves
+//     size_t query_length = rx_query.length();
+//     if(rx_query[0] != "(" && rx_query[query_length-1] != ")") // Default case where there is just a query
+//     {
+//         postfix_query = translate(rx_query);
+//         rx_query = "(" + rx_query + ")";
+//     }
+//     seqan3::debug_stream << rx_query << std::endl;
+// }
+
+
 void verify_fasta_hit(const std::filesystem::path &bin_path, re2::RE2 &crx)
 {
     seqan3::sequence_file_input<seqan3::sequence_file_input_default_traits_aa> fasta_handle{bin_path};
@@ -69,6 +85,7 @@ void iter_disk_search(const bitvector &hits, const std::string &query, IndexStru
 
     re2::RE2 compiled_regex(query);
     assert(compiled_regex.ok());
+    #pragma omp parallel for
     for(size_t i = 0; i < bins; i++)
     {
         if(hits[i])
@@ -93,16 +110,21 @@ bitvector drive_query(query_arguments &cmd_args, const bool &model)
     double load_time = t2-t1;
     // std::cout << load_time << ",";
 
-    cmd_args.query = translate(cmd_args.regex);
-    auto bin_count = ibf.getBinCount();
+    // The RegEx is given in InFix notation and is translated to postfix notation for internal use
+ 
+    omp_set_num_threads(cmd_args.t);
 
     // Evaluate and search for Regular Expression
     seqan3::debug_stream << "Querying:" << std::endl;
     t1 = omp_get_wtime();
+    cmd_args.query = translate(cmd_args.regex);
+    auto bin_count = ibf.getBinCount();
     uint8_t qlength = ibf.k_;
+    // std::string rx = process_input_boundaries(cmd_args.regex);
+    // std::string query = cmd_args.query;
+    // std::vector<char> a = getAlphabet(query);
     std::string rx = "("+cmd_args.regex+")"; // Capture entire RegEx
     std::string query = cmd_args.query;
-    // std::vector<char> a = getAlphabet(query);
 
     // Postfix to Thompson NFA
     seqan3::debug_stream << "   - Constructing Thompson NFA from RegEx... ";
