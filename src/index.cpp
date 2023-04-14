@@ -3,7 +3,7 @@
 //
 
 #include "index.h"
-
+KSEQ_INIT(gzFile, gzread)
 
 
 std::vector<std::string> read_input_file_list(std::filesystem::path input_file)
@@ -21,6 +21,49 @@ std::vector<std::string> read_input_file_list(std::filesystem::path input_file)
     }
     return sequence_files;
 }
+
+
+void read_with_kseq(const index_arguments &cmd_args, const std::vector<std::string> &input_bin_files)
+{
+    gzFile handle;
+    kseq_t *record;
+    int status;
+    uint8_t k = cmd_args.k;
+
+    size_t canon_encoded_kmer;
+    std::string molecule = cmd_args.molecule;
+    size_t seq_count = 0;
+    auto hash_adaptor = seqan3::views::kmer_hash(seqan3::ungapped{cmd_args.k});
+    size_t bin_count = input_bin_files.size();
+    IndexStructure ibf(cmd_args.k, bin_count, cmd_args.bin_size, cmd_args.hash_count, molecule, input_bin_files);
+    ibf.set_lib_paths(input_bin_files);
+
+    for(size_t i = 0; i < input_bin_files.size(); ++i)
+    {
+        handle = gzopen(input_bin_files[i].c_str(), "r");
+        record = kseq_init(handle);
+        while ((status = kseq_read(record)) >= 0) {
+            seq_count++;
+            std::string_view record_view = record->seq.s;
+            for(size_t i{0}; i < record_view.size()-k+1; ++i)
+            {
+                if(molecule == "na")
+                {
+                    canon_encoded_kmer = encode_dna(record_view.substr(i, i+k));
+                }
+                ibf.emplace(canon_encoded_kmer, i);
+            }
+        }
+        kseq_destroy(record);
+        gzclose(handle);
+    }
+    seqan3::debug_stream << "Indexed " << seq_count << " sequences across " << bin_count << " bins." << std::endl;
+    seqan3::debug_stream << "Writing to disk... ";
+    std::filesystem::path output_path{cmd_args.ofile+".ibf"};
+    store_ibf(ibf, output_path);
+    seqan3::debug_stream << "DONE" << std::endl;
+}
+
 
 void create_index_from_filelist(const index_arguments &cmd_args, const std::vector<std::string> &input_bin_files)
 {
@@ -56,6 +99,7 @@ void create_index_from_filelist(const index_arguments &cmd_args, const std::vect
     seqan3::debug_stream << "DONE" << std::endl;
 }
 
+
 void drive_index(const index_arguments &cmd_args)
 {
     std::vector<std::string> input_bin_files;
@@ -68,5 +112,6 @@ void drive_index(const index_arguments &cmd_args)
             input_bin_files.push_back(file);
         }
     }
-    create_index_from_filelist(cmd_args, input_bin_files);
+    // create_index_from_filelist(cmd_args, input_bin_files);
+    read_with_kseq(cmd_args, input_bin_files);
 }

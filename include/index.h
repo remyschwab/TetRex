@@ -7,6 +7,10 @@
 
 #include "utils.h"
 #include "arg_parse.h"
+#include "kseq.h"
+#include "molecule_encodings.h"
+
+#include <zlib.h>
 
 #include <cereal/types/vector.hpp>
 #include <seqan3/core/debug_stream.hpp>

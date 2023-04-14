@@ -32,7 +32,7 @@ inline void initialise_index_parser(seqan3::argument_parser &parser, index_argum
     parser.add_option(args.reduction, 'r', "reduce", "Use reduced AA alphabet (Murphy or Li)");                               
     parser.add_option(args.ofile, 'o', "ofile", "Name of index on disk");
     parser.add_positional_option(args.acid_libs, "Nucleic or Amino Acid library to indexed",
-                                seqan3::input_file_validator{{"lst","fa","fasta", "fna"}});
+                                seqan3::input_file_validator{{"lst","fa", "fa.gz","fasta", "fasta.gz", "fna", "fna.gz"}});
 }
 
 struct query_arguments
