@@ -7,13 +7,9 @@ uint64_t encode_dna(std::string_view kmer)
     for(auto && base: kmer)
     {
         codemer = codemer << 2;
-        // codemer += std::popcount(-33 & (int)base - 65);
         codemer += (base>>1)&3;
-        
     }
-    // uint64_t revcomp = revComplement(codemer, kmer.length());
     return codemer;
-    // return codemer <= revcomp ? codemer : revcomp;
 }
 
 uint64_t revComplement(const uint64_t kmer, const int k)

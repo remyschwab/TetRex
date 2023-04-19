@@ -39,8 +39,6 @@ private:
     uint8_t hash_count_{};
     seqan3::interleaved_bloom_filter<seqan3::data_layout::uncompressed> ibf_;
     uint64_t selection_mask_;
-    uint64_t forward_store_;
-    uint64_t reverse_store_;
     uint8_t left_shift_;
     
 
@@ -48,6 +46,8 @@ public:
     uint8_t k_;
     std::string molecule_;
     std::vector<std::string> acid_libs_;
+    uint64_t forward_store_;
+    uint64_t reverse_store_;
 
     IndexStructure() = default;
 
@@ -75,7 +75,9 @@ public:
     void create_selection_bitmask()
     {
         /*
-        Example with k=4 creates a bitmask like 0b11111111 for the rolling hash
+        Example with k=4 creates a bitmask like 
+        0b00000000-00000000-00000000-00000000-00000000-00000000-00000000-11111111
+        for the rolling hash
         */
         size_t countdown = this->k_;
         while(countdown > 0)
@@ -132,7 +134,6 @@ public:
         this->forward_store_ = ((this->forward_store_<<2)&this->selection_mask_) | fb; // Update forward store 
         this->reverse_store_ = ((this->reverse_store_>>2)&this->selection_mask_) | cb; // Update reverse store
         this->emplace(( this->forward_store_ <= this->reverse_store_ ? this->forward_store_ : this->reverse_store_ ), bin_id);
-        seqan3::debug_stream << this->forward_store_ << " " << this->reverse_store_ << std::endl;
     }
 
     void emplace(uint64_t val, size_t idx)
@@ -157,6 +158,12 @@ public:
 
 void read_input_file_list(std::vector<std::filesystem::path> & sequence_files, std::filesystem::path input_file);
 
+void decompose_record(std::string_view record_seq, IndexStructure ibf, const size_t &bin_id);
+
+void create_index(const index_arguments &cmd_args, const std::vector<std::string> &input_bin_files);
+
+void drive_index(const index_arguments &cmd_args);
+
 template <class IndexStructure>
 void store_ibf(IndexStructure const & ibf, std::filesystem::path opath)
 {
@@ -172,51 +179,3 @@ void load_ibf(IndexStructure & ibf, std::filesystem::path ipath)
     cereal::BinaryInputArchive iarchive{is};
     iarchive(ibf);
 }
-
-template <typename MolType>
-uint32_t parse_reference_na(std::filesystem::path &ref_file, record_list<MolType> &refs)
-{
-    uint32_t bin_count = 0;
-    seqan3::sequence_file_input fin{ref_file};
-    record_pair<MolType> record_desc;
-    for(auto & record: fin) {
-        bin_count++;
-        record_desc = std::make_pair(record.id(), record.sequence());
-        refs.push_back(record_desc);
-    }
-    return bin_count;
-}
-
-template <typename MolType>
-uint32_t parse_reference_aa(std::filesystem::path &ref_file, record_list<MolType> &refs)
-{
-    uint32_t bin_count = 0;
-    using traits_type = seqan3::sequence_file_input_default_traits_aa;
-    seqan3::sequence_file_input<traits_type> fin{ref_file};
-    record_pair<MolType> record_desc;
-    for(auto & record: fin) {
-        bin_count++;
-        record_desc = std::make_pair(record.id(), record.sequence());
-        refs.push_back(record_desc);
-    }
-    return bin_count;
-}
-
-template <typename MolType>
-void populate_bin(IndexStructure &ibf, auto &hash_adaptor, record_list<MolType> &records, const size_t &bin_idx)
-{
-    size_t record_count = records.size();
-    for (size_t rec_idx = 0; rec_idx < record_count; rec_idx++) // Generate all the kmers from that file's records
-    {
-        for (auto && value : records[rec_idx].second | hash_adaptor)
-        {
-            ibf.emplace(value, bin_idx); // Put all the kmers for one file in one bin
-        }
-    }
-}
-
-void decompose_record(std::string_view record_seq, IndexStructure ibf, const size_t &bin_id);
-
-// void create_index_from_filelist(const index_arguments &cmd_args, const std::vector<std::string> &input_bin_files);
-
-void drive_index(const index_arguments &cmd_args);
