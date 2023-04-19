@@ -3,6 +3,7 @@
 #include <string>
 #include <cstddef>
 #include <cstdint>
+#include <bit>
 
 #include <robin_hood.h>
 #include <simde/x86/ssse3.h>
@@ -12,11 +13,12 @@
 /*
     ASCII TABLE
     
-    NUCLEOTIDES: (base>>1)&3
+    NUCLEOTIDES: (base>>1)&3 also try std::popcount(-33 & base-65)
         - A	065	01000-00-1
         - C	067	01000-01-1
         - G	071	01000-11-1
         - T	084	01010-10-0
+        - U	085	01010-10-1
     
     AMINO ACIDS:
         - A	065	01000001 Alanine
@@ -47,6 +49,6 @@
         - Z	090	01011010 Glutamic Acid or Glutamine
 */
 
-uint64_t encode_dna(const std::string_view &kmer);
+uint64_t encode_dna(std::string_view kmer);
 
 uint64_t revComplement(const uint64_t kmer, const int k);

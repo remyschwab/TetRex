@@ -1,16 +1,19 @@
 #include "molecule_encodings.h"
 
 
-uint64_t encode_dna(const std::string_view &kmer)
+uint64_t encode_dna(std::string_view kmer)
 {
     uint64_t codemer = 0;
     for(auto && base: kmer)
     {
         codemer = codemer << 2;
+        // codemer += std::popcount(-33 & (int)base - 65);
         codemer += (base>>1)&3;
+        
     }
-    uint64_t revcomp = revComplement(codemer, kmer.length());
-    return codemer <= revcomp ? codemer : revcomp;
+    // uint64_t revcomp = revComplement(codemer, kmer.length());
+    return codemer;
+    // return codemer <= revcomp ? codemer : revcomp;
 }
 
 uint64_t revComplement(const uint64_t kmer, const int k)

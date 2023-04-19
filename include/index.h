@@ -38,9 +38,13 @@ private:
     size_t bin_size_{};
     uint8_t hash_count_{};
     seqan3::interleaved_bloom_filter<seqan3::data_layout::uncompressed> ibf_;
+    uint64_t selection_mask_;
+    uint64_t forward_store_;
+    uint64_t reverse_store_;
+    uint8_t left_shift_;
+    
 
 public:
-
     uint8_t k_;
     std::string molecule_;
     std::vector<std::string> acid_libs_;
@@ -64,6 +68,38 @@ public:
             acid_libs_{acid_libs}
     {
         //static_assert(data_layout_mode == seqan3::data_layout::uncompressed);
+        create_selection_bitmask();
+        set_left_shift();
+    }
+
+    void create_selection_bitmask()
+    {
+        /*
+        Example with k=4 creates a bitmask like 0b11111111 for the rolling hash
+        */
+        size_t countdown = this->k_;
+        while(countdown > 0)
+        {
+            this->selection_mask_ = this->selection_mask_<<2;
+            this->selection_mask_ += 0b11;
+            countdown--;
+        }
+    }
+
+    void set_stores(uint64_t forward, uint64_t reverse)
+    {
+        this->forward_store_ = forward;
+        this->reverse_store_ = reverse;
+    }
+
+    std::tuple<uint64_t, uint64_t> get_stores()
+    {
+        return {forward_store_, reverse_store_};
+    }
+
+    void set_left_shift()
+    {
+        this->left_shift_ = ((uint8_t)2 * k_)-2;
     }
 
     auto getBinCount() const
@@ -87,6 +123,16 @@ public:
     seqan3::interleaved_bloom_filter<seqan3::data_layout::uncompressed> getIBF()
     {
         return ibf_;
+    }
+
+    void rollover_hash(const char base , const size_t &bin_id)
+    {
+        auto fb = (base>>1)&3; // Encode the new base
+        auto cb = (fb^0b10)<<left_shift_; // Get its complement and shift it to the big end of the uint64
+        this->forward_store_ = ((this->forward_store_<<2)&this->selection_mask_) | fb; // Update forward store 
+        this->reverse_store_ = ((this->reverse_store_>>2)&this->selection_mask_) | cb; // Update reverse store
+        this->emplace(( this->forward_store_ <= this->reverse_store_ ? this->forward_store_ : this->reverse_store_ ), bin_id);
+        seqan3::debug_stream << this->forward_store_ << " " << this->reverse_store_ << std::endl;
     }
 
     void emplace(uint64_t val, size_t idx)
@@ -169,6 +215,8 @@ void populate_bin(IndexStructure &ibf, auto &hash_adaptor, record_list<MolType> 
     }
 }
 
-void create_index_from_filelist(const index_arguments &cmd_args, const std::vector<std::string> &input_bin_files);
+void decompose_record(std::string_view record_seq, IndexStructure ibf, const size_t &bin_id);
+
+// void create_index_from_filelist(const index_arguments &cmd_args, const std::vector<std::string> &input_bin_files);
 
 void drive_index(const index_arguments &cmd_args);
