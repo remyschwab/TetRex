@@ -49,3 +49,92 @@ uint64_t revComplement(const uint64_t kmer, const int k)
     // broadcast 128 bit to 64 bit
     return (((uint64_t)simde_mm_cvtsi128_si64(x)) >> (uint64_t)(64-2*k));
 }
+
+void create_residue_maps(uint8_t &alphabet, std::vector<uint8_t> &aamap)
+{
+    aamap.resize(UCHAR_MAX+1, UCHAR_MAX);
+    switch(alphabet)
+    {
+        case 1: // Murphy
+            aamap['A'] = 0;
+            aamap['B'] = 1;
+            aamap['C'] = 2;
+            aamap['F'] = 3;
+            aamap['G'] = 4;
+            aamap['H'] = 5;
+            aamap['I'] = 6;
+            aamap['K'] = 7;
+            aamap['P'] = 8;
+            aamap['S'] = 9;
+            aamap['D'] = aamap['B'];
+            aamap['E'] = aamap['B'];
+            aamap['L'] = aamap['I'];
+            aamap['M'] = aamap['I'];
+            aamap['N'] = aamap['B'];
+            aamap['Q'] = aamap['B'];
+            aamap['R'] = aamap['K'];
+            aamap['T'] = aamap['S'];
+            aamap['V'] = aamap['I'];
+            aamap['W'] = aamap['F'];
+            aamap['Y'] = aamap['F'];
+            aamap['J'] = aamap['I'];
+            aamap['O'] = aamap['K'];
+            aamap['U'] = aamap['C'];
+            aamap['X'] = aamap['S'];
+            aamap['Z'] = aamap['B'];
+        case 2: // Li
+            aamap['A'] = 0;
+            aamap['B'] = 1;
+            aamap['C'] = 2;
+            aamap['F'] = 3;
+            aamap['G'] = 4;
+            aamap['H'] = 5;
+            aamap['I'] = 6;
+            aamap['J'] = 7;
+            aamap['K'] = 8;
+            aamap['P'] = 9;
+            aamap['D'] = aamap['B'];
+            aamap['E'] = aamap['B'];
+            aamap['L'] = aamap['J'];
+            aamap['M'] = aamap['J'];
+            aamap['N'] = aamap['H'];
+            aamap['Q'] = aamap['B'];
+            aamap['R'] = aamap['K'];
+            aamap['T'] = aamap['A'];
+            aamap['V'] = aamap['I'];
+            aamap['W'] = aamap['F'];
+            aamap['Y'] = aamap['F'];
+            aamap['S'] = aamap['A'];
+            aamap['O'] = aamap['K'];
+            aamap['U'] = aamap['C'];
+            aamap['X'] = aamap['A'];
+            aamap['Z'] = aamap['B'];
+        default: // Base
+            aamap['A'] = 0;
+            aamap['C'] = 1;
+            aamap['D'] = 2;
+            aamap['E'] = 3;
+            aamap['F'] = 4;
+            aamap['G'] = 5;
+            aamap['H'] = 6;
+            aamap['I'] = 7;
+            aamap['K'] = 8;
+            aamap['L'] = 9;
+            aamap['M'] = 10;
+            aamap['N'] = 11;
+            aamap['P'] = 12;
+            aamap['Q'] = 13;
+            aamap['R'] = 14;
+            aamap['S'] = 15;
+            aamap['T'] = 16;
+            aamap['V'] = 17;
+            aamap['W'] = 18;
+            aamap['Y'] = 19;
+            aamap['X'] = 20;
+            aamap['B'] = aamap['D'];
+            aamap['J'] = aamap['L'];
+            aamap['O'] = aamap['X'];
+            aamap['U'] = aamap['X'];
+            aamap['Z'] = aamap['E'];
+    }
+}

@@ -28,15 +28,12 @@ void decompose_nucleotide_record(std::string_view record_seq, IndexStructure &ib
     uint64_t initial_encoding = encode_dna(record_seq.substr(0,ibf.k_)); // Encode forward
     uint64_t reverse_complement = revComplement(initial_encoding, ibf.k_); // Compute the reverse compelement
     ibf.set_stores(initial_encoding, reverse_complement); // Remember both strands
-    ibf.emplace(( initial_encoding <= reverse_complement ? initial_encoding : reverse_complement ), bin_id); // MinHash
-    
+    ibf.emplace((initial_encoding <= reverse_complement ? initial_encoding : reverse_complement), bin_id); // MinHash
     for(size_t i = ibf.k_; i < record_seq.length(); ++i)
     {
-        // seqan3::debug_stream << ibf.forward_store_ << " " << ibf.reverse_store_ << std::endl;
         auto symbol = record_seq[i];
         ibf.rollover_nuc_hash(symbol, bin_id);
     }
-    // seqan3::debug_stream << ibf.forward_store_ << " " << ibf.reverse_store_ << std::endl;
 }
 
 
@@ -116,7 +113,7 @@ void create_index(const index_arguments &cmd_args, const std::vector<std::string
     std::string molecule = cmd_args.molecule;
     size_t seq_count = 0;
     size_t bin_count = input_bin_files.size();
-    IndexStructure ibf(cmd_args.k, bin_count, cmd_args.bin_size, cmd_args.hash_count, molecule, input_bin_files);
+    IndexStructure ibf(cmd_args.k, bin_count, cmd_args.bin_size, cmd_args.hash_count, molecule, input_bin_files, cmd_args.reduction);
     ibf.set_lib_paths(input_bin_files);
 
     for(size_t i = 0; i < input_bin_files.size(); ++i)
@@ -125,13 +122,13 @@ void create_index(const index_arguments &cmd_args, const std::vector<std::string
         record = kseq_init(handle);
         while ((status = kseq_read(record)) >= 0)
         {
-            seq_count++;
             std::string_view record_view = record->seq.s;
             if(record_view.length() < ibf.k_)
             {
                 seqan3::debug_stream << "RECORD TOO SHORT " << record->comment.s << std::endl;
                 continue;
             }
+            seq_count++;
             if(ibf.molecule_ == "na")
             {
                 decompose_nucleotide_record(record_view, ibf, i);
@@ -164,12 +161,17 @@ void create_index(const index_arguments &cmd_args, const std::vector<std::string
 void drive_index(const index_arguments &cmd_args)
 {
     std::vector<std::string> input_bin_files;
-    for (auto file : cmd_args.acid_libs) {
-        if (file.extension() == ".lst") {
-            for (auto f : read_input_file_list(file)) {
+    for (auto file : cmd_args.acid_libs)
+    {
+        if (file.extension() == ".lst")
+        {
+            for (auto f : read_input_file_list(file))
+            {
                 input_bin_files.push_back(f);
             }
-        } else {
+        } 
+        else
+        {
             input_bin_files.push_back(file);
         }
     }

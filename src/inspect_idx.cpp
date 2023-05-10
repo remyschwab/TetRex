@@ -26,7 +26,7 @@ void drive_inspection(const inspection_arguments &cmd_args)
     {
         acid_type = "Amino Acid";
     }
-    std::cout << "MOLECULE TYPE (alphabet): " << acid_type << std::endl;
+    std::cout << "MOLECULE TYPE (alphabet): " << acid_type << " [REDUCTION=" << ibf.reduction_ << "]" << std::endl;
     std::cout << "ACID LIBRARY (filepaths): " << std::endl;
     for(auto && path: ibf.acid_libs_)
         std::cout << "\t- " << path << std::endl;

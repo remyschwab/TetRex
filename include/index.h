@@ -40,17 +40,18 @@ private:
     uint8_t hash_count_{};
     seqan3::interleaved_bloom_filter<seqan3::data_layout::uncompressed> ibf_;
 
-    
 
 public:
     uint8_t k_;
     std::string molecule_;
     std::vector<std::string> acid_libs_;
-    uint64_t selection_mask_;
+    std::string reduction_;
+    // Not serialized
+    uint64_t selection_mask_; // DNA Encoding
     uint8_t left_shift_;
-    uint8_t alphabet_size_;
     uint64_t forward_store_;
     uint64_t reverse_store_;
+    uint8_t alphabet_size_; // Amino Acid Encoding
     size_t * powers_;
     std::vector<uint8_t> aamap_;
 
@@ -61,7 +62,8 @@ public:
                             size_t bs,
                             uint8_t hc,
                             std::string molecule,
-                            std::vector<std::string> acid_libs) :
+                            std::vector<std::string> acid_libs,
+                            std::string reduction) :
             bin_count_{bc},
             bin_size_{bs},
             hash_count_{hc},
@@ -70,14 +72,20 @@ public:
                  seqan3::hash_function_count{hash_count_}},
             k_{k},
             molecule_{molecule},
-            acid_libs_{acid_libs}
+            acid_libs_{acid_libs},
+            reduction_{reduction}
     {
         //static_assert(data_layout_mode == seqan3::data_layout::uncompressed);
-        create_selection_bitmask();
-        set_left_shift();
-        this->alphabet_size_ = 20;
-        compute_powers();
-        create_aa_mappings();
+        if(molecule_ == "na")
+        {
+            create_selection_bitmask();
+            set_left_shift();
+        }
+        else
+        {
+            set_alphabet_maps();
+            compute_powers();
+        }
     }
 
     void create_selection_bitmask()
@@ -87,18 +95,18 @@ public:
         0b00000000-00000000-00000000-00000000-00000000-00000000-00000000-11111111
         for the rolling hash
         */
-        size_t countdown = this->k_;
+        size_t countdown = k_;
         while(countdown > 0)
         {
-            this->selection_mask_ = (this->selection_mask_<<2) | 0b11;
+            selection_mask_ = (selection_mask_<<2) | 0b11;
             countdown--;
         }
     }
 
     void set_stores(uint64_t forward, uint64_t reverse)
     {
-        this->forward_store_ = forward;
-        this->reverse_store_ = reverse;
+        forward_store_ = forward;
+        reverse_store_ = reverse;
     }
 
     std::tuple<uint64_t, uint64_t> get_stores()
@@ -108,17 +116,40 @@ public:
 
     void set_left_shift()
     {
-        this->left_shift_ = ((uint8_t)2 * k_)-2;
+        left_shift_ = ((uint8_t)2 * k_)-2;
     }
 
     void compute_powers()
     {
-        this->powers_ = new size_t[this->k_];
+        powers_ = new size_t[k_];
         size_t pow = 1;
-        for(size_t i = 0; i < this->k_; ++i)
+        for(size_t i = 0; i < k_; ++i)
         {
-            this->powers_[i] = pow;
-            pow *= this->alphabet_size_;
+            powers_[i] = pow;
+            pow *= alphabet_size_;
+        }
+    }
+
+    void set_alphabet_maps()
+    {
+        uint8_t fall;
+        if(reduction_ == "None")
+        {
+            alphabet_size_ = 20;
+            fall = 0;
+            create_residue_maps(fall, aamap_);
+        }
+        else if(reduction_ == "murphy")
+        {
+            alphabet_size_ = 10;
+            fall = 1;
+            create_residue_maps(fall, aamap_);
+        }
+        else if(reduction_ == "li")
+        {
+            alphabet_size_ = 10;
+            fall = 2;
+            create_residue_maps(fall, aamap_);
         }
     }
 
@@ -149,9 +180,9 @@ public:
     {
         auto fb = (base>>1)&3; // Encode the new base
         auto cb = (fb^0b10)<<left_shift_; // Get its complement and shift it to the big end of the uint64
-        this->forward_store_ = ((this->forward_store_<<2)&this->selection_mask_) | fb; // Update forward store 
-        this->reverse_store_ = ((this->reverse_store_>>2)&this->selection_mask_) | cb; // Update reverse store
-        this->emplace(( this->forward_store_ <= this->reverse_store_ ? this->forward_store_ : this->reverse_store_ ), bin_id);
+        forward_store_ = ((forward_store_<<2)&selection_mask_) | fb; // Update forward store 
+        reverse_store_ = ((reverse_store_>>2)&selection_mask_) | cb; // Update reverse store
+        emplace(( forward_store_ <= reverse_store_ ? forward_store_ : reverse_store_ ), bin_id);
     }
 
     void emplace(uint64_t val, size_t idx)
@@ -170,43 +201,12 @@ public:
     template<class Archive>
     void serialize(Archive & archive)
     {
-        archive(bin_count_, bin_size_, hash_count_, ibf_, k_, molecule_, acid_libs_);
+        archive(bin_count_, bin_size_, hash_count_, ibf_, k_, molecule_, acid_libs_, reduction_);
     }
 
     uint8_t map_aa(unsigned char &residue)
     {
-        return this->aamap_[residue];
-    }
-
-    void create_aa_mappings()
-    {
-        this->aamap_.resize(UCHAR_MAX+1, UCHAR_MAX);
-        this->aamap_['A'] = 0;
-        this->aamap_['C'] = 1;
-        this->aamap_['D'] = 2;
-        this->aamap_['E'] = 3;
-        this->aamap_['F'] = 4;
-        this->aamap_['G'] = 5;
-        this->aamap_['H'] = 6;
-        this->aamap_['I'] = 7;
-        this->aamap_['K'] = 8;
-        this->aamap_['L'] = 9;
-        this->aamap_['M'] = 10;
-        this->aamap_['N'] = 11;
-        this->aamap_['P'] = 12;
-        this->aamap_['Q'] = 13;
-        this->aamap_['R'] = 14;
-        this->aamap_['S'] = 15;
-        this->aamap_['T'] = 16;
-        this->aamap_['V'] = 17;
-        this->aamap_['W'] = 18;
-        this->aamap_['Y'] = 19;
-        this->aamap_['X'] = 20;
-        this->aamap_['B'] = this->aamap_['D'];
-        this->aamap_['J'] = this->aamap_['L'];
-        this->aamap_['O'] = this->aamap_['X'];
-        this->aamap_['U'] = this->aamap_['X'];
-        this->aamap_['Z'] = this->aamap_['E'];
+        return aamap_[residue];
     }
 };
 

@@ -53,4 +53,4 @@ uint64_t encode_dna(std::string_view kmer);
 
 uint64_t revComplement(const uint64_t kmer, const int k);
 
-void create_aa_mappings();
+void create_residue_maps(uint8_t &alphabet_size, std::vector<uint8_t> &aamap);
