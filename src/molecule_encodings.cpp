@@ -1,6 +1,7 @@
 #include "molecule_encodings.h"
 
 
+
 uint64_t encode_dna(std::string_view kmer)
 {
     uint64_t codemer = 0;

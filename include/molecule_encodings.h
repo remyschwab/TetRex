@@ -3,7 +3,6 @@
 #include <string>
 #include <cstddef>
 #include <cstdint>
-#include <bit>
 
 #include <robin_hood.h>
 #include <simde/x86/ssse3.h>
@@ -49,6 +48,9 @@
         - Z	090	01011010 Glutamic Acid or Glutamine
 */
 
+
 uint64_t encode_dna(std::string_view kmer);
 
 uint64_t revComplement(const uint64_t kmer, const int k);
+
+void create_aa_mappings();

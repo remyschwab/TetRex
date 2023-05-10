@@ -23,7 +23,7 @@ std::vector<std::string> read_input_file_list(std::filesystem::path input_file)
 }
 
 
-void decompose_record(std::string_view record_seq, IndexStructure ibf, const size_t &bin_id)
+void decompose_nucleotide_record(std::string_view record_seq, IndexStructure &ibf, const size_t &bin_id)
 {
     uint64_t initial_encoding = encode_dna(record_seq.substr(0,ibf.k_)); // Encode forward
     uint64_t reverse_complement = revComplement(initial_encoding, ibf.k_); // Compute the reverse compelement
@@ -34,9 +34,76 @@ void decompose_record(std::string_view record_seq, IndexStructure ibf, const siz
     {
         // seqan3::debug_stream << ibf.forward_store_ << " " << ibf.reverse_store_ << std::endl;
         auto symbol = record_seq[i];
-        ibf.rollover_hash(symbol, bin_id);
+        ibf.rollover_nuc_hash(symbol, bin_id);
     }
     // seqan3::debug_stream << ibf.forward_store_ << " " << ibf.reverse_store_ << std::endl;
+}
+
+
+void decompose_peptide_record(const std::vector<unsigned char> &int_seq, const size_t &begin, IndexStructure &ibf, const size_t &bin_id)
+{
+    size_t res1, res2, res3, res4;
+    size_t numbElements = ibf.k_;
+    size_t end = begin+ibf.k_;
+    switch(numbElements)
+    {
+        case 6:
+            res1 = int_seq[begin+0]*ibf.powers_[0];
+            res2 = int_seq[begin+1]*ibf.powers_[1];
+            res3 = int_seq[begin+2]*ibf.powers_[2];
+            res4 = int_seq[begin+3]*ibf.powers_[3];
+            res1 += int_seq[begin+4]*ibf.powers_[4];
+            res2 += int_seq[begin+5]*ibf.powers_[5];
+            ibf.forward_store_ = res1 + res2 + res3 + res4;
+            break;
+        case 7:
+            res1 = int_seq[begin+0]*ibf.powers_[0];
+            res2 = int_seq[begin+1]*ibf.powers_[1];
+            res3 = int_seq[begin+2]*ibf.powers_[2];
+            res4 = int_seq[begin+3]*ibf.powers_[3];
+            res1 += int_seq[begin+4]*ibf.powers_[4];
+            res2 += int_seq[begin+5]*ibf.powers_[5];
+            res3 += int_seq[begin+6]*ibf.powers_[6];
+            ibf.forward_store_ = res1 + res2 + res3 + res4;
+            break;
+        case 10:
+            res1 = int_seq[begin+0]*ibf.powers_[0];
+            res2 = int_seq[begin+1]*ibf.powers_[1];
+            res3 = int_seq[begin+2]*ibf.powers_[2];
+            res4 = int_seq[begin+3]*ibf.powers_[3];
+            res1 += int_seq[begin+4]*ibf.powers_[4];
+            res2 += int_seq[begin+5]*ibf.powers_[5];
+            res3 += int_seq[begin+6]*ibf.powers_[6];
+            res4 += int_seq[begin+7]*ibf.powers_[7];
+            res1 += int_seq[begin+8]*ibf.powers_[8];
+            res2 += int_seq[begin+9]*ibf.powers_[9];
+            ibf.forward_store_ = res1 + res2 + res3 + res4;
+            break;
+        case 14:
+            res1 = int_seq[begin+0]*ibf.powers_[0];
+            res2 = int_seq[begin+1]*ibf.powers_[1];
+            res3 = int_seq[begin+2]*ibf.powers_[2];
+            res4 = int_seq[begin+3]*ibf.powers_[3];
+            res1 += int_seq[begin+4]*ibf.powers_[4];
+            res2 += int_seq[begin+5]*ibf.powers_[5];
+            res3 += int_seq[begin+6]*ibf.powers_[6];
+            res4 += int_seq[begin+7]*ibf.powers_[7];
+            res1 += int_seq[begin+8]*ibf.powers_[8];
+            res2 += int_seq[begin+9]*ibf.powers_[9];
+            res3 += int_seq[begin+10]*ibf.powers_[10];
+            res4 += int_seq[begin+11]*ibf.powers_[11];
+            res1 += int_seq[begin+12]*ibf.powers_[12];
+            res2 += int_seq[begin+13]*ibf.powers_[13];
+            ibf.forward_store_ = res1 + res2 + res3 + res4;
+            break;
+        default:
+            for(int i = begin; i < end; i++)
+            {
+                ibf.forward_store_ += int_seq[i]*ibf.powers_[i-begin];
+            }
+            break;
+    }
+    ibf.emplace(ibf.forward_store_, bin_id);
 }
 
 
@@ -56,14 +123,36 @@ void create_index(const index_arguments &cmd_args, const std::vector<std::string
     {
         handle = gzopen(input_bin_files[i].c_str(), "r");
         record = kseq_init(handle);
-        while ((status = kseq_read(record)) >= 0) {
+        while ((status = kseq_read(record)) >= 0)
+        {
             seq_count++;
             std::string_view record_view = record->seq.s;
-            decompose_record(record_view, ibf, i);
+            if(record_view.length() < ibf.k_)
+            {
+                seqan3::debug_stream << "RECORD TOO SHORT " << record->comment.s << std::endl;
+                continue;
+            }
+            if(ibf.molecule_ == "na")
+            {
+                decompose_nucleotide_record(record_view, ibf, i);
+            }
+            else
+            {
+                std::vector<uint8_t> peptide_nums(record_view.length());
+                for(size_t o = 0; o < record_view.length(); ++o)
+                {
+                    peptide_nums[o] = ibf.aamap_[record_view[o]];
+                }
+                for(size_t o = 0; o < peptide_nums.size()-ibf.k_+1; ++o)
+                {
+                    decompose_peptide_record(peptide_nums, o, ibf, i);
+                }
+            }
         }
         kseq_destroy(record);
         gzclose(handle);
     }
+
     seqan3::debug_stream << "Indexed " << seq_count << " sequences across " << bin_count << " bins." << std::endl;
     seqan3::debug_stream << "Writing to disk... ";
     std::filesystem::path output_path{cmd_args.ofile+".ibf"};
