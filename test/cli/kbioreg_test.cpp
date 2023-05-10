@@ -43,6 +43,27 @@ TEST_F(kbioreg, build_index)
     EXPECT_EQ(result.err, expected);
 }
 
+TEST_F(kbioreg, inspect)
+{
+    cli_test_result result = execute_app("kbioreg", "inspect", data("ibf_idx.ibf"));
+    std::string expected
+    {
+        "BIN COUNT (BFs): 2\n"
+        "BIN SIZE (bits): 64\n"
+        "HASH COUNT (hash functions): 3\n"
+        "KMER LENGTH (bases): 3\n"
+        "MOLECULE TYPE (alphabet): Nucleic Acid [REDUCTION=None]\n"
+        "ACID LIBRARY (filepaths): \n"
+        "\t- file1.fa\n"
+        "\t- file2.f\n"
+        "\t- file1.fa\n"
+        "\t- file2.fa\n"
+    };
+    EXPECT_EQ(result.exit_code, 0);
+    EXPECT_EQ(result.out, std::string{});
+    EXPECT_EQ(result.err, expected);
+}
+
 TEST_F(kbioreg, query)
 {
     std::system("ln -s ../.. test"); // !HACK !TODO how to link to the original path?
