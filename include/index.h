@@ -12,7 +12,6 @@
 #include "robin_hood.h"
 
 #include <zlib.h>
-#include <algorithm>
 
 #include <cereal/types/vector.hpp>
 #include <seqan3/core/debug_stream.hpp>
@@ -194,10 +193,11 @@ public:
 
     void set_lib_paths(std::vector<std::string> path_collection)
     {
-        for(auto && path: path_collection)
-        {
-            acid_libs_.push_back(path);
-        }
+        acid_libs_ = path_collection;
+        // for(auto && path: path_collection)
+        // {
+        //     acid_libs_.push_back(path);
+        // }
     }
 
     template<class Archive>

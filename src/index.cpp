@@ -171,13 +171,11 @@ void drive_index(const index_arguments &cmd_args)
         if (file.extension() == ".lst")
         {
             for (auto f : read_input_file_list(file))
-            {
                 input_bin_files.push_back(f);
-            }
         } 
         else
         {
-            input_bin_files.push_back(file);
+            input_bin_files.push_back(std::filesystem::absolute(file));
         }
     }
     create_index(cmd_args, input_bin_files);
