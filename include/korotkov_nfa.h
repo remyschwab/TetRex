@@ -37,7 +37,6 @@ Path* findPath(kState* position);
 /*
  * Depth first search, generates the matrix with the possible paths
  */
-template <typename Alphabet>
 void dfs(kState* input, std::vector<std::vector<uint64_t>>& matrix, 
             robin_hood::unordered_map<uint64_t, bitvector> &hash_to_bits,
             auto &agent, IndexStructure &ibf)
@@ -48,6 +47,7 @@ void dfs(kState* input, std::vector<std::vector<uint64_t>>& matrix,
     uint8_t qlength = input->qGram_.length();
     std::vector<unsigned char> digit_vec(qlength);
     uint64_t digest;
+    uint64_t rev_digest; // Only used for nucleotides
     Path* p = findPath(input);
     stack.push(p);
 
@@ -56,9 +56,18 @@ void dfs(kState* input, std::vector<std::vector<uint64_t>>& matrix,
         p = stack.top();
         if(p->position_->marked_ == 0)
         {
-            convertStringToVec(p->position_->qGram_, ibf, digit_vec);
-            decompose_peptide_record(digit_vec, 0, ibf);
-            digest = ibf.forward_store_;
+            if(ibf.molecule_ == "aa")
+            {
+                convertStringToVec(p->position_->qGram_, ibf, digit_vec);
+                decompose_peptide_record(digit_vec, 0, ibf);
+                digest = ibf.forward_store_;
+            }
+            else
+            {
+                digest = encode_dna(p->position_->qGram_);
+                rev_digest = revComplement(digest, ibf.k_);
+                digest = digest <= rev_digest ? digest : rev_digest;
+            }
             if(!hash_to_bits.count(digest)) hash_to_bits[digest] = agent.bulk_contains(digest);
             line.push_back(digest);
             p->position_->marked_ = 1;

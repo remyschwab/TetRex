@@ -73,7 +73,7 @@ void verify_fasta_hit(const gzFile &fasta_handle, kseq_t *record, re2::RE2 &crx)
         re2::StringPiece bin_content(record->seq.s);
         while (RE2::FindAndConsume(&bin_content, crx, &match))
         {
-            std::cout << ">" << record->comment.s << "\t" << match << std::endl;
+            std::cout << ">" << record->name.s << "\t" << match << std::endl;
         }
     }
 }
@@ -166,9 +166,9 @@ bitvector drive_query(query_arguments &cmd_args, const bool &model)
     for(auto i : knfa)
     {
         if(ibf.molecule_ == "na") {
-            dfs<seqan3::dna5>(i, matrix, hash_to_bitvector, agent, ibf);
+            dfs(i, matrix, hash_to_bitvector, agent, ibf);
         } else {
-            dfs<seqan3::aa27>(i, matrix, hash_to_bitvector, agent, ibf);
+            dfs(i, matrix, hash_to_bitvector, agent, ibf);
         }
     }
 
