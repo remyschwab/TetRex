@@ -12,6 +12,7 @@
 #include "robin_hood.h"
 
 #include <zlib.h>
+#include <algorithm>
 
 #include <cereal/types/vector.hpp>
 #include <seqan3/core/debug_stream.hpp>
@@ -46,14 +47,15 @@ public:
     std::string molecule_;
     std::vector<std::string> acid_libs_;
     std::string reduction_;
+    uint8_t alphabet_size_; // Amino Acid Encoding
+    size_t * powers_;
+    std::vector<uint8_t> aamap_;
     // Not serialized
     uint64_t selection_mask_; // DNA Encoding
     uint8_t left_shift_;
     uint64_t forward_store_;
     uint64_t reverse_store_;
-    uint8_t alphabet_size_; // Amino Acid Encoding
-    size_t * powers_;
-    std::vector<uint8_t> aamap_;
+
 
     IndexStructure() = default;
 
@@ -201,7 +203,7 @@ public:
     template<class Archive>
     void serialize(Archive & archive)
     {
-        archive(bin_count_, bin_size_, hash_count_, ibf_, k_, molecule_, acid_libs_, reduction_);
+        archive(bin_count_, bin_size_, hash_count_, ibf_, k_, molecule_, acid_libs_, reduction_, alphabet_size_);
     }
 
     uint8_t map_aa(unsigned char &residue)
@@ -210,11 +212,13 @@ public:
     }
 };
 
+void convertStringToVec(const std::string &kmer, const IndexStructure &ibf, std::vector<unsigned char> &digit_vec);
+
 void read_input_file_list(std::vector<std::filesystem::path> & sequence_files, std::filesystem::path input_file);
 
-void decompose_nucleotide_record(std::string_view record_seq, IndexStructure &ibf, const size_t &bin_id);
+void decompose_nucleotide_record(std::string_view record_seq, IndexStructure &ibf, const size_t, const size_t &bin_id);
 
-void decompose_peptide_record(const std::vector<unsigned char> &record_nums, const size_t &begin, IndexStructure &ibf, const size_t &bin_id);
+void decompose_peptide_record(const std::vector<unsigned char> &record_nums, const size_t &begin, IndexStructure &ibf);
 
 void create_index(const index_arguments &cmd_args, const std::vector<std::string> &input_bin_files);
 

@@ -27,11 +27,10 @@
 #include <seqan3/search/dream_index/interleaved_bloom_filter.hpp>
 
 
+
+
 /////////////// Type Declarations ///////////////
-template <typename MoleculeType> using record_pair = std::pair<std::string, MoleculeType>;
-template <typename MoleculeType> using record_list = std::vector<record_pair<MoleculeType>>;
 using bitvector = seqan3::interleaved_bloom_filter<seqan3::data_layout::uncompressed>::membership_agent_type::binning_bitvector;
-using path_vector = std::vector<std::vector<std::pair<std::string, uint64_t>>>;
 /////////////// ****** END ****** ///////////////
 
 char* re2post(char *re);
@@ -40,19 +39,8 @@ std::string translate(const std::string& str);
 
 std::vector<char> getAlphabet(const std::string& regex);
 
-template <typename Alphabet>
-auto convertStringToAlphabet(std::string const &str)
-{
-    std::vector<Alphabet> alphabet_str;
-    alphabet_str.reserve(str.size());
-    for (auto s : str) {
-        alphabet_str.emplace_back(seqan3::assign_char_to(s, Alphabet{}));
-    }
-    return alphabet_str;
-}
-
 //soll alle nötigen qgramme finden
-std::vector<std::string> getQgramAlphabet(const std::vector<std::vector<std::string>>& matrix);
+// std::vector<std::string> getQgramAlphabet(const std::vector<std::vector<std::string>>& matrix);
 
 void matrixTotxt(const std::vector<std::vector<std::string>>& matrix, std::string& filename);
 

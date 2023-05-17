@@ -26,19 +26,19 @@ void oneStep(std::stack<keyState *>& stack, State* itptr, kState* kptr, std::str
     switch(c)
     {
     default:
-            qGram += c;
-            e1 = new keyState{qGram, itptr->out1_, kptr};
-            stack.push(e1);
-            break;
+        qGram += c;
+        e1 = new keyState{qGram, itptr->out1_, kptr};
+        stack.push(e1);
+        break;
     case Split:
-            e1 = new keyState{qGram, itptr->out1_, kptr};
-            e2 = new keyState{qGram, itptr->out2_, kptr};
-            stack.push(e2);
-            stack.push(e1);
-            break;
+        e1 = new keyState{qGram, itptr->out1_, kptr};
+        e2 = new keyState{qGram, itptr->out2_, kptr};
+        stack.push(e2);
+        stack.push(e1);
+        break;
     case Match:
-            throw int();
-            break;
+        throw int();
+        break;
     }
 }
 

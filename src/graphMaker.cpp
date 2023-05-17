@@ -117,7 +117,7 @@ void printGraph(const std::vector<kState *>& input, const std::string& filename)
     f.close();
 }
 
-void uMatrix(std::vector<std::vector<std::string>>& matrix)
+void uMatrix(std::vector<std::vector<uint64_t>>& matrix)
 {
     for(size_t i = 0; i < matrix.size(); ++i)
     {

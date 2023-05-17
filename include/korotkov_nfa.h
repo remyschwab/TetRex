@@ -38,30 +38,29 @@ Path* findPath(kState* position);
  * Depth first search, generates the matrix with the possible paths
  */
 template <typename Alphabet>
-void dfs(kState* input, std::vector<std::vector<std::string>>& matrix, robin_hood::unordered_map<uint64_t, bitvector> &hash_to_bits, auto agent)
+void dfs(kState* input, std::vector<std::vector<uint64_t>>& matrix, 
+            robin_hood::unordered_map<uint64_t, bitvector> &hash_to_bits,
+            auto &agent, IndexStructure &ibf)
 {
-    std::vector<std::string> line{};
+    std::vector<uint64_t> line{};
     std::stack<Path*> stack{};
 
     uint8_t qlength = input->qGram_.length();
-    auto hash_adaptor = seqan3::views::kmer_hash(seqan3::ungapped{qlength});
-
+    std::vector<unsigned char> digit_vec(qlength);
+    uint64_t digest;
     Path* p = findPath(input);
     stack.push(p);
 
     while(!stack.empty())
     {
         p = stack.top();
-
         if(p->position_->marked_ == 0)
         {
-            auto acid_vec = convertStringToAlphabet<Alphabet>(p->position_->qGram_);
-            auto digest = acid_vec | hash_adaptor;
-            if(!hash_to_bits.count(digest[0]))
-            {
-                hash_to_bits[digest[0]] = agent.bulk_contains(digest[0]);
-            }
-            line.push_back(p->position_->qGram_);
+            convertStringToVec(p->position_->qGram_, ibf, digit_vec);
+            decompose_peptide_record(digit_vec, 0, ibf);
+            digest = ibf.forward_store_;
+            if(!hash_to_bits.count(digest)) hash_to_bits[digest] = agent.bulk_contains(digest);
+            line.push_back(digest);
             p->position_->marked_ = 1;
         }
         if(p->qPath_ < p->position_->outs_.size())

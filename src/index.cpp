@@ -6,6 +6,13 @@
 KSEQ_INIT(gzFile, gzread)
 
 
+void convertStringToVec(const std::string &kmer, const IndexStructure &ibf, std::vector<unsigned char> &digit_vec)
+{
+    for(size_t i = 0; i < kmer.length(); ++i)
+        digit_vec[i] = ibf.aamap_[kmer[i]];
+}
+
+
 std::vector<std::string> read_input_file_list(std::filesystem::path input_file)
 {
     std::vector<std::string> sequence_files;
@@ -37,7 +44,7 @@ void decompose_nucleotide_record(std::string_view record_seq, IndexStructure &ib
 }
 
 
-void decompose_peptide_record(const std::vector<unsigned char> &int_seq, const size_t &begin, IndexStructure &ibf, const size_t &bin_id)
+void decompose_peptide_record(const std::vector<unsigned char> &int_seq, const size_t &begin, IndexStructure &ibf)
 {
     size_t res1, res2, res3, res4;
     size_t numbElements = ibf.k_;
@@ -94,13 +101,10 @@ void decompose_peptide_record(const std::vector<unsigned char> &int_seq, const s
             ibf.forward_store_ = res1 + res2 + res3 + res4;
             break;
         default:
-            for(int i = begin; i < end; i++)
-            {
+            for(size_t i = begin; i < end; i++)
                 ibf.forward_store_ += int_seq[i]*ibf.powers_[i-begin];
-            }
             break;
     }
-    ibf.emplace(ibf.forward_store_, bin_id);
 }
 
 
@@ -142,7 +146,8 @@ void create_index(const index_arguments &cmd_args, const std::vector<std::string
                 }
                 for(size_t o = 0; o < peptide_nums.size()-ibf.k_+1; ++o)
                 {
-                    decompose_peptide_record(peptide_nums, o, ibf, i);
+                    decompose_peptide_record(peptide_nums, o, ibf);
+                    ibf.emplace(ibf.forward_store_, i);
                 }
             }
         }

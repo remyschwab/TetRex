@@ -3,6 +3,7 @@
 //
 
 #include "query.h"
+KSEQ_INIT(gzFile, gzread)
 
 
 // Helper Function to compute the probability of any kmer for a given k
@@ -33,13 +34,13 @@ double compute_knut_model(const size_t &query_length, const uint8_t &k, const in
 }
 
 
-bitvector query_ibf(size_t &bin_count, robin_hood::unordered_map<uint64_t, bitvector> &hash_to_bits, std::vector<std::pair<std::string, uint64_t>> &path)
+bitvector query_ibf(size_t &bin_count, robin_hood::unordered_map<uint64_t, bitvector> &hash_to_bits, std::vector<uint64_t> &path)
 {
     seqan3::interleaved_bloom_filter<seqan3::data_layout::uncompressed>::membership_agent_type::binning_bitvector hit_vector{bin_count};
     std::fill(hit_vector.begin(), hit_vector.end(), true);
     for (auto && kmer : path)
     {
-        auto & result = hash_to_bits[kmer.second];
+        auto & result = hash_to_bits[kmer];
         hit_vector.raw_data() &= result.raw_data();
     }
     return hit_vector;
@@ -62,17 +63,17 @@ bitvector query_ibf(size_t &bin_count, robin_hood::unordered_map<uint64_t, bitve
 // }
 
 
-void verify_fasta_hit(const std::filesystem::path &bin_path, re2::RE2 &crx)
+void verify_fasta_hit(const gzFile &fasta_handle, kseq_t *record, re2::RE2 &crx)
 {
-    seqan3::sequence_file_input<seqan3::sequence_file_input_default_traits_aa> fasta_handle{bin_path};
+    int status;
     std::string match;
-    for(auto &[SEQ, ID, QUAL]: fasta_handle)
+    record = kseq_init(fasta_handle);
+    while((status = kseq_read(record)) >= 0)
     {
-        auto seq_as_str = to_string(SEQ);
-        re2::StringPiece bin_content(seq_as_str);
+        re2::StringPiece bin_content(record->seq.s);
         while (RE2::FindAndConsume(&bin_content, crx, &match))
         {
-            std::cout << ">" << ID << "\t" << match << std::endl;
+            std::cout << ">" << record->comment.s << "\t" << match << std::endl;
         }
     }
 }
@@ -81,7 +82,8 @@ void verify_fasta_hit(const std::filesystem::path &bin_path, re2::RE2 &crx)
 void iter_disk_search(const bitvector &hits, const std::string &query, IndexStructure &ibf)
 {
     size_t bins = hits.size();
-    std::filesystem::path lib_path;
+    gzFile lib_path;
+    kseq_t *record;
 
     re2::RE2 compiled_regex(query);
     assert(compiled_regex.ok());
@@ -90,10 +92,12 @@ void iter_disk_search(const bitvector &hits, const std::string &query, IndexStru
     {
         if(hits[i])
         {
-            lib_path = ibf.acid_libs_[i];
-            verify_fasta_hit(lib_path, compiled_regex);
+            lib_path = gzopen(ibf.acid_libs_[i].c_str(), "r");
+            verify_fasta_hit(lib_path, record, compiled_regex);
         }
     }
+    kseq_destroy(record);
+    gzclose(lib_path);
 }
 
 
@@ -109,6 +113,17 @@ bitvector drive_query(query_arguments &cmd_args, const bool &model)
     seqan3::debug_stream << "DONE in " << t2-t1 << "s" << std::endl;
     double load_time = t2-t1;
     // std::cout << load_time << ",";
+
+    if(ibf.molecule_ == "na") //TODO: Update the serializing logic
+    {
+        ibf.create_selection_bitmask();
+        ibf.set_left_shift();
+    }
+    else
+    {
+        ibf.set_alphabet_maps();
+        ibf.compute_powers();
+    }
 
     // The RegEx is given in InFix notation and is translated to postfix notation for internal use
  
@@ -141,40 +156,33 @@ bitvector drive_query(query_arguments &cmd_args, const bool &model)
     seqan3::debug_stream << "   - Computing kmer path matrix from kNFA... ";
 
     // Create auxiliary data structures to avoid redundant kmer lookup
-    auto hash_adaptor = seqan3::views::kmer_hash(seqan3::ungapped{qlength});
     robin_hood::unordered_map<uint64_t, bitvector> hash_to_bitvector{};
 
     // Spawn IBF membership agent in this scope because it is expensive
     auto && ibf_ref = ibf.getIBF();
     auto agent = ibf_ref.membership_agent();
 
-    std::vector<std::vector<std::string>> matrix{};
+    std::vector<std::vector<uint64_t>> matrix{};
     for(auto i : knfa)
     {
         if(ibf.molecule_ == "na") {
-            dfs<seqan3::dna5>(i, matrix, hash_to_bitvector, agent);
+            dfs<seqan3::dna5>(i, matrix, hash_to_bitvector, agent, ibf);
         } else {
-            dfs<seqan3::aa27>(i, matrix, hash_to_bitvector, agent);
+            dfs<seqan3::aa27>(i, matrix, hash_to_bitvector, agent, ibf);
         }
     }
 
     uMatrix(matrix);
     seqan3::debug_stream << "DONE" << std::endl;
 
+
     // Search kmer paths in index
     seqan3::debug_stream << "   - Search kmers in index... ";
-    path_vector paths_vector;
-    if(ibf.molecule_ == "na")
-    {
-        extract_matrix_paths<seqan3::dna5>(matrix, paths_vector, hash_adaptor);
-    } else {
-        extract_matrix_paths<seqan3::aa27>(matrix, paths_vector, hash_adaptor);
-    }
 
     seqan3::interleaved_bloom_filter<seqan3::data_layout::uncompressed>::membership_agent_type::binning_bitvector hit_vector{ibf.getBinCount()};
     std::fill(hit_vector.begin(), hit_vector.end(), false);
 
-    for (auto path : paths_vector)
+    for (auto path : matrix)
     {
         auto hits = query_ibf(bin_count, hash_to_bitvector, path);
         hit_vector.raw_data() |= hits.raw_data();

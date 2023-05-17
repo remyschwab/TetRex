@@ -9,6 +9,7 @@
 #include <re2/re2.h>
 #include <omp.h>
 
+#include "kseq.h"
 #include "utils.h"
 #include "index.h"
 #include "arg_parse.h"
@@ -30,29 +31,3 @@ void preprocess_query(std::string &rx_query, std::string &postfix_query);
 void verify_fasta_hit(const std::filesystem::path &bin_path, re2::RE2 &crx);
 
 void iter_disk_search(const bitvector &hits, const std::string &query, IndexStructure &ibf);
-
-template <seqan3::alphabet Alphabet>
-auto to_string(std::vector<Alphabet> const& sequence) -> std::string {
-    auto view = sequence | std::views::transform([](Alphabet a) {
-        return a.to_char();
-    });
-    return std::string{view.begin(), view.end()};
-}
-
-template <typename MolType>
-void extract_matrix_paths(const std::vector<std::vector<std::string>> &matrix,
- path_vector &paths_vector, auto &hash_adaptor)
-{
-    for(auto const& i : matrix)
-    {
-        std::vector<std::pair<std::string, uint64_t>> hash_vector;
-        for(auto const& j : i)
-        {
-            std::vector<MolType> acid_vec = convertStringToAlphabet<MolType>(j);
-            auto digest = acid_vec | hash_adaptor;
-            // Create a vector of kmer hashes that correspond
-            hash_vector.emplace_back(j, digest[0]);
-        }
-        paths_vector.emplace_back(std::move(hash_vector));
-    }
-}

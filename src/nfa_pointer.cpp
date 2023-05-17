@@ -8,19 +8,9 @@
 
 
 
-/*Allocate and initialize State*/
-State* generate_state(const int& c, State *out1, State *out2)
-{
-    State *s = new State;
-    s->c_ = c;
-    s->out1_ = out1;
-    s->out2_ = out2;
-    s->lastlist_ = 0;
-    return s;
-}
-
-
-/*Allocate and initialize NFA Fragment*/
+/*
+ * Allocate and initialize NFA Fragment
+*/
 Frag frag(State *start, std::vector<State *> out)
 {
     Frag n = { start, out };
@@ -38,16 +28,16 @@ State* post2nfaE(const std::string& postfix)
     Frag e,e1,e2;
     State *s;
 
-    State *matchstate = generate_state(Match, nullptr, nullptr);
+    State *matchstate = new State{Match};
     if(postfix.empty()) return nullptr;
 
     for(size_t i = 0; i < postfix.size(); i++)
     {
-        char p = postfix[i];
+        unsigned char p = postfix[i];
         switch(p)
         {
             default: // char
-            s = generate_state(p, nullptr, nullptr);
+            s = new State{p};
             stack.push(frag(s, getVec(s)));
             break;
         case '.': // concat
@@ -63,26 +53,26 @@ State* post2nfaE(const std::string& postfix)
             stack.pop();
             e1 = stack.top();
             stack.pop();
-            s = generate_state(Split, e1.start, e2.start);
+            s = new State{Split, e1.start, e2.start};
             stack.push(frag(s, appendVec(e1.out, e2.out)));
             break;
         case '?': // 0 or 1
             e = stack.top();
             stack.pop();
-            s = generate_state(Split, nullptr, e.start);
+            s = new State{Split, nullptr, e.start};
             stack.push(frag(s, appendVec(e.out, getVec(s))));
             break;
         case '*': //kleenestar
             e = stack.top();
             stack.pop();
-            s = generate_state(Split, nullptr, e.start);
+            s = new State{Split, nullptr, e.start};
             patchVec(e.out, s);
             stack.push(frag(s, getVec(s)));
             break;
         case '+': // one or more
             e = stack.top();
             stack.pop();
-            s = generate_state(Split, nullptr, e.start);
+            s = new State{Split, nullptr, e.start};
             patchVec(e.out, s);
             stack.push(frag(e.start, getVec(s)));
             break;
@@ -95,7 +85,7 @@ State* post2nfaE(const std::string& postfix)
         std::cerr<<"Somthing went wrong, regex not in postfix?"<<"\n";
         return nullptr;
     }
-    patchVec(e.out,    matchstate);
+    patchVec(e.out, matchstate);
     return e.start;
 }
 
