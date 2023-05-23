@@ -47,25 +47,28 @@ bitvector query_ibf(size_t &bin_count, robin_hood::unordered_map<uint64_t, bitve
 }
 
 
-// void preprocess_query(std::string &rx_query, std::string &postfix_query)
-// {
-//     // We don't want to generate kmers from something with anchors
+void preprocess_query(std::string &rx_query, std::string &postfix_query)
+{
+    // We don't want to generate kmers from something with anchors
 
-//     // We want the entire query to be in one capture group
-//     // But we need to account for the case where the user tried that themselves
-//     size_t query_length = rx_query.length();
-//     if(rx_query[0] != "(" && rx_query[query_length-1] != ")") // Default case where there is just a query
-//     {
-//         postfix_query = translate(rx_query);
-//         rx_query = "(" + rx_query + ")";
-//     }
-//     seqan3::debug_stream << rx_query << std::endl;
-// }
+    // We want the entire query to be in one capture group
+    // But we need to account for the case where the user tried that themselves
+    // size_t query_length = rx_query.length();
+    // if(rx_query[0] != "(" && rx_query[query_length-1] != ")") // Default case where there is just a query
+    // {
+    //     postfix_query = translate(rx_query);
+    //     rx_query = "(" + rx_query + ")";
+    // }
+    // seqan3::debug_stream << rx_query << std::endl;
+    postfix_query = translate(rx_query);
+    rx_query = "(" + rx_query + ")"; // Capture entire RegEx
+}
 
 
 void verify_fasta_hit(const gzFile &fasta_handle, kseq_t *record, re2::RE2 &crx)
 {
     int status;
+    int start = 0;
     std::string match;
     record = kseq_init(fasta_handle);
     while((status = kseq_read(record)) >= 0)
@@ -73,7 +76,8 @@ void verify_fasta_hit(const gzFile &fasta_handle, kseq_t *record, re2::RE2 &crx)
         re2::StringPiece bin_content(record->seq.s);
         while (RE2::FindAndConsume(&bin_content, crx, &match))
         {
-            std::cout << ">" << record->name.s << "\t" << match << std::endl;
+            std::cout << ">" << record->name.s << "\t" << match << "\t" << start << "-" << start+match.length() << std::endl;
+            start++;
         }
     }
 }
@@ -103,16 +107,13 @@ void iter_disk_search(const bitvector &hits, const std::string &query, IndexStru
 
 bitvector drive_query(query_arguments &cmd_args, const bool &model)
 {
-    double t1, t2;
+    double t1, t2, t3;
+    omp_set_num_threads(cmd_args.t);
     // Load index from disk
     seqan3::debug_stream << "Reading Index from Disk... ";
     IndexStructure ibf;
     t1 = omp_get_wtime();
     load_ibf(ibf, cmd_args.idx);
-    t2 = omp_get_wtime();
-    seqan3::debug_stream << "DONE in " << t2-t1 << "s" << std::endl;
-    double load_time = t2-t1;
-    // std::cout << load_time << ",";
 
     if(ibf.molecule_ == "na") //TODO: Update the serializing logic
     {
@@ -125,21 +126,20 @@ bitvector drive_query(query_arguments &cmd_args, const bool &model)
         ibf.compute_powers();
     }
 
+    t2 = omp_get_wtime();
+    double load_time = t2-t1;
+    seqan3::debug_stream << "DONE in " << load_time << "s" << std::endl;
+    // std::cout << load_time << ",";
+
     // The RegEx is given in InFix notation and is translated to postfix notation for internal use
- 
-    omp_set_num_threads(cmd_args.t);
 
     // Evaluate and search for Regular Expression
     seqan3::debug_stream << "Querying:" << std::endl;
-    t1 = omp_get_wtime();
-    cmd_args.query = translate(cmd_args.regex);
-    auto bin_count = ibf.getBinCount();
-    uint8_t qlength = ibf.k_;
-    // std::string rx = process_input_boundaries(cmd_args.regex);
-    // std::string query = cmd_args.query;
-    // std::vector<char> a = getAlphabet(query);
-    std::string rx = "("+cmd_args.regex+")"; // Capture entire RegEx
-    std::string query = cmd_args.query;
+    auto && bin_count = ibf.getBinCount();
+    uint8_t &qlength = ibf.k_;
+    std::string &rx = cmd_args.regex;
+    std::string &query = cmd_args.query;
+    preprocess_query(rx, query);
 
     // Postfix to Thompson NFA
     seqan3::debug_stream << "   - Constructing Thompson NFA from RegEx... ";
@@ -165,9 +165,12 @@ bitvector drive_query(query_arguments &cmd_args, const bool &model)
     std::vector<std::vector<uint64_t>> matrix{};
     for(auto i : knfa)
     {
-        if(ibf.molecule_ == "na") {
+        if(ibf.molecule_ == "na")
+        {
             dfs(i, matrix, hash_to_bitvector, agent, ibf);
-        } else {
+        }
+        else
+        {
             dfs(i, matrix, hash_to_bitvector, agent, ibf);
         }
     }
@@ -182,9 +185,10 @@ bitvector drive_query(query_arguments &cmd_args, const bool &model)
     seqan3::interleaved_bloom_filter<seqan3::data_layout::uncompressed>::membership_agent_type::binning_bitvector hit_vector{ibf.getBinCount()};
     std::fill(hit_vector.begin(), hit_vector.end(), false);
 
-    for (auto path : matrix)
+    // #pragma omp parallel for
+    for(size_t i = 0; i < matrix.size(); ++i)
     {
-        auto hits = query_ibf(bin_count, hash_to_bitvector, path);
+        auto hits = query_ibf(bin_count, hash_to_bitvector, matrix[i]);
         hit_vector.raw_data() |= hits.raw_data();
     }
     seqan3::debug_stream << "DONE" << std::endl;
@@ -208,9 +212,8 @@ bitvector drive_query(query_arguments &cmd_args, const bool &model)
     seqan3::debug_stream << "Verifying hits... " << std::endl;
 
     iter_disk_search(hit_vector, rx, ibf);
-    t2 = omp_get_wtime();
-    double search_time = t2-t1;
-    double run_time = search_time + load_time;
+    t3 = omp_get_wtime();
+    double run_time = t3-t2;
     // std::cout << run_time << std::endl;
     seqan3::debug_stream << "DONE in " << run_time << "s" << std::endl;
     return hit_vector;

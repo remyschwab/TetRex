@@ -1,4 +1,5 @@
-#! /usr/bin/python3
+#! /opt/homebrew/bin/python3.10
+
 """
 A small python program for reverse translating an amino sequence into nuclelic acid
 codon regular expressions
@@ -6,7 +7,6 @@ codon regular expressions
 """
 
 import sys
-import re
 
 fourWobble = "AC|GT||."
 
@@ -108,8 +108,6 @@ def convert_prosite_pattern(pattern):
     tkn_lst = pattern.split("-")
     for tkn in tkn_lst:
         match tkn:
-            case '<': ## N terminus anchor
-                posix_pattern.append('^')
             case 'x': ## Wildcard
                 posix_pattern.append(AA_UNION)
             case dis if dis.startswith('['):
@@ -118,8 +116,6 @@ def convert_prosite_pattern(pattern):
                 posix_pattern.append(make_union_iter(AA_SET-set(tkn)))
             case 'x(0,1)':
                 posix_pattern.append(AA_UNION+"?")
-            case '>': ## C terminus anchor
-                posix_pattern.append('$')
             case _: ## Just a plain old AA
                 posix_pattern.append(tkn)
     output_query = "".join(posix_pattern)
