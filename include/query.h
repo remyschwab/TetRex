@@ -24,7 +24,7 @@ double compute_k_probability(const uint8_t &k);
 
 double compute_knut_model(const size_t &query_length, const uint8_t &k, const int &m, const size_t &multiplyer);
 
-bitvector drive_query(query_arguments &cmd_args, const bool &model);
+void drive_query(query_arguments &cmd_args, const bool &model);
 
 void preprocess_query(std::string &rx_query, std::string &postfix_query);
 

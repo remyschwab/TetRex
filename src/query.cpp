@@ -61,6 +61,7 @@ void preprocess_query(std::string &rx_query, std::string &postfix_query)
     // }
     // seqan3::debug_stream << rx_query << std::endl;
     postfix_query = translate(rx_query);
+    seqan3::debug_stream << postfix_query << std::endl;
     rx_query = "(" + rx_query + ")"; // Capture entire RegEx
 }
 
@@ -105,12 +106,12 @@ void iter_disk_search(const bitvector &hits, const std::string &query, IndexStru
 }
 
 
-bitvector drive_query(query_arguments &cmd_args, const bool &model)
+void drive_query(query_arguments &cmd_args, const bool &model)
 {
     double t1, t2, t3;
     omp_set_num_threads(cmd_args.t);
     // Load index from disk
-    seqan3::debug_stream << "Reading Index from Disk... ";
+    seqan3::debug_stream << "Reading Index from Disk ";
     IndexStructure ibf;
     t1 = omp_get_wtime();
     load_ibf(ibf, cmd_args.idx);
@@ -128,32 +129,33 @@ bitvector drive_query(query_arguments &cmd_args, const bool &model)
 
     t2 = omp_get_wtime();
     double load_time = t2-t1;
-    seqan3::debug_stream << "DONE in " << load_time << "s" << std::endl;
-    // std::cout << load_time << ",";
+    seqan3::debug_stream << "[DONE] " << load_time << "s" << std::endl;
+    std::cout << load_time << ",";
 
     // The RegEx is given in InFix notation and is translated to postfix notation for internal use
 
     // Evaluate and search for Regular Expression
-    seqan3::debug_stream << "Querying:" << std::endl;
+    seqan3::debug_stream << "Querying " << std::endl;
     auto && bin_count = ibf.getBinCount();
     uint8_t &qlength = ibf.k_;
     std::string &rx = cmd_args.regex;
     std::string &query = cmd_args.query;
     preprocess_query(rx, query);
+    return;
 
     // Postfix to Thompson NFA
-    seqan3::debug_stream << "   - Constructing Thompson NFA from RegEx... ";
+    seqan3::debug_stream << "\tConstructing Thompson NFA from RegEx ";
     State* nfa = post2nfaE(query);
-    seqan3::debug_stream << "DONE" << std::endl;
+    seqan3::debug_stream << "[DONE]" << std::endl;
 
     // Thompson NFA to Korotkov NFA
-    seqan3::debug_stream << "   - Construction kNFA from Thompson NFA... ";
+    seqan3::debug_stream << "\tConstruction kNFA from Thompson NFA ";
     std::vector<kState *> knfa = nfa2knfa(nfa, qlength);
-    seqan3::debug_stream << "DONE" << std::endl;
+    seqan3::debug_stream << "[DONE]" << std::endl;
     deleteGraph(nfa);
 
     // Create kmer path matrix from kNFA
-    seqan3::debug_stream << "   - Computing kmer path matrix from kNFA... ";
+    seqan3::debug_stream << "\tComputing kmer path matrix from kNFA ";
 
     // Create auxiliary data structures to avoid redundant kmer lookup
     robin_hood::unordered_map<uint64_t, bitvector> hash_to_bitvector{};
@@ -176,22 +178,22 @@ bitvector drive_query(query_arguments &cmd_args, const bool &model)
     }
 
     uMatrix(matrix);
-    seqan3::debug_stream << "DONE" << std::endl;
+    seqan3::debug_stream << "[DONE]" << std::endl;
 
 
     // Search kmer paths in index
-    seqan3::debug_stream << "   - Search kmers in index... ";
+    seqan3::debug_stream << "\tSearch kmers in index ";
 
     seqan3::interleaved_bloom_filter<seqan3::data_layout::uncompressed>::membership_agent_type::binning_bitvector hit_vector{ibf.getBinCount()};
     std::fill(hit_vector.begin(), hit_vector.end(), false);
 
-    // #pragma omp parallel for
+    #pragma omp parallel for
     for(size_t i = 0; i < matrix.size(); ++i)
     {
         auto hits = query_ibf(bin_count, hash_to_bitvector, matrix[i]);
         hit_vector.raw_data() |= hits.raw_data();
     }
-    seqan3::debug_stream << "DONE" << std::endl;
+    seqan3::debug_stream << "[DONE]" << std::endl;
 
     if(model)
     {
@@ -206,15 +208,15 @@ bitvector drive_query(query_arguments &cmd_args, const bool &model)
         seqan3::debug_stream << "FINAL PROBABILITY: " << result << std::endl;
         seqan3::debug_stream << "ACTUAL RATE: " << hit_count/hit_vector.size() << std::endl;
         /////////// MODELING STEP ///////////////
-        return hit_vector; // Modeling doesn't require verification step
+        return; // Modeling doesn't require verification step
     }
 
-    seqan3::debug_stream << "Verifying hits... " << std::endl;
+    seqan3::debug_stream << "Verifying hits..." << std::endl;
 
     iter_disk_search(hit_vector, rx, ibf);
     t3 = omp_get_wtime();
-    double run_time = t3-t2;
-    // std::cout << run_time << std::endl;
+    double run_time = t3-t1;
+    std::cout << run_time << std::endl;
     seqan3::debug_stream << "DONE in " << run_time << "s" << std::endl;
-    return hit_vector;
+    return;
 }
