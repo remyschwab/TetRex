@@ -161,7 +161,7 @@ void create_index(const index_arguments &cmd_args, const std::vector<std::string
         // agent.bulk_contains();
 
     }
-
+    ibf.set_dibf(dibf);
     seqan3::debug_stream << "Indexed " << seq_count << " sequences across " << bin_count << " bins." << std::endl;
     seqan3::debug_stream << "Writing to disk... ";
     std::filesystem::path output_path{cmd_args.ofile+".ibf"};
