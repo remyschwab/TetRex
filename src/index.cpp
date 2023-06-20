@@ -121,11 +121,12 @@ void create_index(const index_arguments &cmd_args, const std::vector<std::string
     DGramIndex dibf(bin_count, cmd_args.dbin_size, cmd_args.hash_count);
     ibf.set_lib_paths(input_bin_files);
 
-    for(size_t i = 0; i < input_bin_files.size(); ++i)
+    for(size_t i = 0; i < input_bin_files.size(); ++i) // Iterate over bins
     {
         handle = gzopen(input_bin_files[i].c_str(), "r");
         record = kseq_init(handle);
-        while ((status = kseq_read(record)) >= 0)
+        dibf.init_bin_cache();
+        while ((status = kseq_read(record)) >= 0) // Iterate over bin records
         {
             std::string_view record_view = record->seq.s;
             if(record_view.length() < ibf.k_)
@@ -134,7 +135,6 @@ void create_index(const index_arguments &cmd_args, const std::vector<std::string
                 continue;
             }
             seq_count++;
-            dibf.init_tracker();
             if(ibf.molecule_ == "na")
             {
                 decompose_nucleotide_record(record_view, ibf, i);
@@ -153,13 +153,10 @@ void create_index(const index_arguments &cmd_args, const std::vector<std::string
                     ibf.emplace(ibf.forward_store_, i);
                 }
             }
+            dibf.reset_tracker();
         }
         kseq_destroy(record);
         gzclose(handle);
-        // auto && dibf_ref = dibf.getDIBF();
-        // auto agent = dibf_ref.membership_agent();
-        // agent.bulk_contains();
-
     }
     ibf.set_dibf(dibf);
     seqan3::debug_stream << "Indexed " << seq_count << " sequences across " << bin_count << " bins." << std::endl;
