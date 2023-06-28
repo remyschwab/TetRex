@@ -143,15 +143,15 @@ void drive_query(query_arguments &cmd_args, const bool &model)
 
     auto && dibf_ref = ibf.dibf_.getDIBF();
     auto dagent = dibf_ref.membership_agent();
-    // 012345678901234567890123456789012345678901234567890123456789
-    // VPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPK
+    // 01234567890123456789012345678901234567890123456789
+    // MPKDSLARDSLPKDSLARDFLSDKTSPTDGTQSSDRYLLKIVTAVDYVHL
     uint32_t value_encoding = 0;
-    unsigned char residue = 'K';
-    unsigned char alpha = 'V';
-    uint16_t dist = 59;
+    unsigned char residue = 'L';
+    unsigned char alpha = 'M';
+    uint16_t dist = 50;
     value_encoding = (value_encoding | residue)<<8;
     value_encoding = (value_encoding | alpha)<<8;
-    value_encoding = (value_encoding<<16) | dist;
+    value_encoding = (value_encoding<<8) | dist;
     seqan3::debug_stream << dagent.bulk_contains(value_encoding) << std::endl;
     return;
 

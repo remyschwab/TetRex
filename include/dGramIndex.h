@@ -90,22 +90,22 @@ class DGramIndex
 
     void track_record(const size_t &record_idx, const unsigned char &residue, const size_t &bin_idx)
     {
-        uint32_t dgram_encoding = 0;
+        uint32_t dgram_encoding;
         uint16_t distance;
         for(unsigned char &alpha: alphabet_) // Only iterate over alphabetical indices
         {
             if(tracker_[alpha] >= 0) // If this residue/base has been seen before
             {
-                dgram_encoding = (dgram_encoding | residue)<<8;
-                dgram_encoding = (dgram_encoding | alpha)<<8;
+                dgram_encoding = 0;
+                dgram_encoding = (dgram_encoding | residue)<<8; // Logical OR against all zeroes then shift by 8 making last 8 bits 0s
+                dgram_encoding = (dgram_encoding | alpha)<<8; // Logical OR against 8 least significant bits then shift by 8
                 distance = record_idx-tracker_[alpha];
-                dgram_encoding = (dgram_encoding<<16) | distance;
-                seqan3::debug_stream << static_cast<char>(residue) << " " << static_cast<char>(alpha) << " " << distance << " " << dgram_encoding << std::endl;
+                dgram_encoding = (dgram_encoding<<8) | distance; // Shift by 8 to get 16 zeroes and previously encoding 16 bits at the front, then OR
                 if(bin_cache_[dgram_encoding] == 0) // Avoid computing hashes for dgrams seen in a bin
                 {
                     emplace(dgram_encoding, bin_idx);
                     bin_cache_[dgram_encoding] = 1;
-                    // seqan3::debug_stream << static_cast<char>(residue) << " " << static_cast<char>(alpha) << " " << distance << std::endl;
+                    //seqan3::debug_stream << static_cast<char>(residue) << " " << static_cast<char>(alpha) << " " << distance << " " << dgram_encoding << std::endl;
                 }
             }
         }
