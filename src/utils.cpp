@@ -22,7 +22,7 @@ char* re2post(char *re)
         case '(':
             if(natom > 1){
                 --natom;
-                *dst++ = '-';
+                *dst++ = '.';
             }
             if(p >= paren+100)
                 return NULL;
@@ -36,7 +36,7 @@ char* re2post(char *re)
             if(natom == 0)
                 return NULL;
             while(--natom > 0)
-                *dst++ = '-';
+                *dst++ = '.';
             nalt++;
             break;
         case ')':
@@ -45,7 +45,7 @@ char* re2post(char *re)
             if(natom == 0)
                 return NULL;
             while(--natom > 0)
-                *dst++ = '-';
+                *dst++ = '.';
             for(; nalt > 0; nalt--)
                 *dst++ = '|';
             --p;
@@ -63,7 +63,7 @@ char* re2post(char *re)
         default:
             if(natom > 1){
                 --natom;
-                *dst++ = '-';
+                *dst++ = '.';
             }
             *dst++ = *re;
             natom++;
@@ -73,7 +73,7 @@ char* re2post(char *re)
     if(p != paren)
         return NULL;
     while(--natom > 0)
-        *dst++ = '-';
+        *dst++ = '.';
     for(; nalt > 0; nalt--)
         *dst++ = '|';
     *dst = 0;
@@ -96,7 +96,7 @@ std::vector<char> getAlphabet(const std::string& regex)
     std::vector<char> alphabet{};
     for(auto e : regex)
     {
-        if(e != '-' && e != '|' && e != '?' && e != '+' && e != '*')
+        if(e != '.' && e != '|' && e != '?' && e != '+' && e != '*')
         {
             alphabet.push_back(e);
         }

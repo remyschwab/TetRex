@@ -141,20 +141,6 @@ void drive_query(query_arguments &cmd_args, const bool &model)
     std::string &query = cmd_args.query;
     preprocess_query(rx, query);
 
-    auto && dibf_ref = ibf.dibf_.getDIBF();
-    auto dagent = dibf_ref.membership_agent();
-    // 012345678901234567890123456789012345678901234567890123456789
-    // VPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPK
-    uint32_t value_encoding = 0;
-    unsigned char residue = 'K';
-    unsigned char alpha = 'V';
-    uint16_t dist = 59;
-    value_encoding = (value_encoding | residue)<<8;
-    value_encoding = (value_encoding | alpha)<<8;
-    value_encoding = (value_encoding<<16) | dist;
-    seqan3::debug_stream << dagent.bulk_contains(value_encoding) << std::endl;
-    return;
-
     // Postfix to Thompson NFA
     seqan3::debug_stream << "\tConstructing Thompson NFA from RegEx ";
     State* nfa = post2nfaE(query);

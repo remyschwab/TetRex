@@ -50,7 +50,7 @@ public:
     uint8_t alphabet_size_; // Amino Acid Encoding
     size_t * powers_;
     std::vector<uint8_t> aamap_;
-    DGramIndex dibf_;
+    // DGramIndex dibf_;
     // Not serialized
     uint64_t selection_mask_; // DNA Encoding
     uint8_t left_shift_;
@@ -198,15 +198,15 @@ public:
         acid_libs_ = path_collection;
     }
 
-    void set_dibf(DGramIndex &dibf)
-    {
-        dibf_ = dibf;
-    }
+    // void set_dibf(DGramIndex &dibf)
+    // {
+    //     dibf_ = dibf;
+    // }
 
     template<class Archive>
     void serialize(Archive &archive)
     {
-        archive(bin_count_, bin_size_, hash_count_, ibf_, k_, molecule_, acid_libs_, reduction_, alphabet_size_, dibf_);
+        archive(bin_count_, bin_size_, hash_count_, ibf_, k_, molecule_, acid_libs_, reduction_, alphabet_size_);
     }
 
     uint8_t map_aa(unsigned char &residue)
