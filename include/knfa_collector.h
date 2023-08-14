@@ -15,4 +15,8 @@ struct CollectionItem
     path_t path_;
 };
 
+kmer_t update_kmer(kmer_t kmer, uint64_t &threshold, int &symbol);
+
+void update_path(kmer_t &kmer, path_t &path_ref, uint64_t &threshold, int &symbol);
+
 void collect_kNFA(State *NFA, uint8_t &k);

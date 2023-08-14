@@ -2,9 +2,6 @@
 
 
 
-// seqan3::debug_stream << NFA->c_ << std::endl; // 65
-// bool selfref = NFA->out1_->out1_->out1_->out2_ == NFA->out1_->out1_;
-
 kmer_t update_kmer(kmer_t kmer, uint64_t &threshold, int &symbol)
 {
     kmer_t new_kmer;
@@ -22,6 +19,7 @@ kmer_t update_kmer(kmer_t kmer, uint64_t &threshold, int &symbol)
     }
     return new_kmer;
 }
+
 
 void update_path(kmer_t &kmer, path_t &path_ref, uint64_t &threshold, int &symbol)
 {
@@ -51,6 +49,9 @@ void collect_kNFA(State *NFA, uint8_t &k)
 
     uint64_t threshold = k;
 
+    bool kmer_repeat;
+    bool split_ptr;
+
     CollectionItem item1;
     CollectionItem item2;
     while(!search_stack.empty())
@@ -74,10 +75,12 @@ void collect_kNFA(State *NFA, uint8_t &k)
                 item2.nfa_state_ = current_state->out2_;
                 item2.kmer_ = kmer;
                 item2.path_ = current_path;
-                search_stack.push(item2); 
+                search_stack.push(item2);
                 break;
             default:
-                if(current_path.find(update_kmer(kmer, threshold, symbol)) != current_path.end() && current_state->out1_->c_ == Split)
+                kmer_repeat = current_path.find(update_kmer(kmer, threshold, symbol)) != current_path.end();
+                split_ptr = current_state->out1_->c_ == Split;
+                if(kmer_repeat && split_ptr)
                 {
                     break;
                 }
