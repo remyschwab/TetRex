@@ -10,7 +10,6 @@
 #include "kseq.h"
 #include "molecule_encodings.h"
 #include "robin_hood.h"
-#include "dGramIndex.h"
 
 #include <zlib.h>
 

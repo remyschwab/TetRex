@@ -123,6 +123,7 @@ void create_index(const index_arguments &cmd_args, const std::vector<std::string
 
     for(size_t i = 0; i < input_bin_files.size(); ++i) // Iterate over bins
     {
+        seqan3::debug_stream << i << std::endl;
         handle = gzopen(input_bin_files[i].c_str(), "r");
         record = kseq_init(handle);
         // dibf.init_bin_cache();

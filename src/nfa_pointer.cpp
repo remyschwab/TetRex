@@ -26,9 +26,10 @@ State* post2nfaE(const std::string& postfix)
 {
     std::stack<Frag> stack;
     Frag e,e1,e2;
-    State *s;
 
+    State *s;
     State *matchstate = new State{Match};
+
     if(postfix.empty()) return nullptr;
 
     for(size_t i = 0; i < postfix.size(); i++)
@@ -38,9 +39,9 @@ State* post2nfaE(const std::string& postfix)
         {
             default: // char
             s = new State{p};
-            stack.push(frag(s, getVec(s)));
+            stack.push(frag(s, getVec(s))); // I think this should be just a null pointer not to itself
             break;
-        case '.': // concat
+        case '-': // concat
             e2 = stack.top();
             stack.pop();
             e1 = stack.top();
@@ -89,7 +90,7 @@ State* post2nfaE(const std::string& postfix)
     return e.start;
 }
 
-// concats vec1 & vec2
+// Append concatenates two pointer lists
 std::vector<State *> appendVec(const std::vector<State *>& vec1, const std::vector<State *>& vec2)
 {
     std::vector<State *> out = vec1;
@@ -100,7 +101,7 @@ std::vector<State *> appendVec(const std::vector<State *>& vec1, const std::vect
     return out;
 }
 
-// every state in "in" points with one pointer on "s"
+// Connects the dangling arrows in the pointer list l to the state s: it sets *outp = s for each pointer outp in l
 void patchVec(std::vector<State *>& in, State *s)
 {
     for(auto e : in)
@@ -109,7 +110,7 @@ void patchVec(std::vector<State *>& in, State *s)
     }
 }
 
-//makes one vektor only contains the pointer of the last state
+// List1 creates a new pointer list containing the single pointer outp
 std::vector<State *> getVec(State *input)
 {
     std::vector<State *> out{input};

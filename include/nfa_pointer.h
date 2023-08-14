@@ -24,7 +24,7 @@ struct State
     int c_;
     State *out1_ = nullptr;
     State *out2_ = nullptr;
-    int lastlist_ = 0;
+    int visited = 0;
 };
 
 

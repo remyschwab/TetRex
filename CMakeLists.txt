@@ -27,9 +27,12 @@ set (FontReset "${Esc}[m")
 # Dependency: SeqAn3.
 find_package (SeqAn3 QUIET REQUIRED HINTS lib/seqan3/build_system)
 
-# Dependecy: re2
+# Dependency: re2
 option(RE2_BUILD_TESTING OFF)
 add_subdirectory(lib/re2)
+
+# Dependency: libfsm
+# add_subdirectory(lib/libfsm)
 
 # Allow to include CMake scripts from seqan3.
 list (APPEND CMAKE_MODULE_PATH "${SEQAN3_CLONE_DIR}/test/cmake/")

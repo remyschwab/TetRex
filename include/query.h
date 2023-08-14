@@ -16,6 +16,7 @@
 #include "korotkov_nfa.h"
 #include "graphMaker.h"
 #include "nfa_pointer.h"
+#include "knfa_collector.h"
 
 
 bitvector query_ibf(uint32_t &bin_count, robin_hood::unordered_map<uint64_t, bitvector> &hash_to_bits, std::vector<std::pair<std::string, uint64_t>> &path);
