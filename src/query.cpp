@@ -108,7 +108,7 @@ void iter_disk_search(const bitvector &hits, const std::string &query, IndexStru
 void drive_query(query_arguments &cmd_args, const bool &model)
 {
     double t1, t2, t3;
-    omp_set_num_threads(cmd_args.t);
+    // omp_set_num_threads(cmd_args.t);
     // Load index from disk
     // seqan3::debug_stream << "Reading Index from Disk ";
     // IndexStructure ibf;
@@ -147,20 +147,25 @@ void drive_query(query_arguments &cmd_args, const bool &model)
     // seqan3::debug_stream << "\tConstructing Thompson NFA from RegEx ";
     State* nfa = post2nfaE(query);
     // seqan3::debug_stream << "[DONE]" << std::endl;
-    // std::vector<std::vector<std::string>> matrix;
+    std::vector<std::vector<std::string>> matrix;
     // Thompson NFA to Korotkov NFA
     // seqan3::debug_stream << "\tConstruction kNFA from Thompson NFA ";
-    uint8_t qlength = 3;
+    uint8_t qlength = cmd_args.t;
     // std::vector<kState *> knfa = nfa2knfa(nfa, qlength);
+    t1 = omp_get_wtime();
     collect_kNFA(nfa, qlength);
-    // seqan3::debug_stream << "[DONE]" << std::endl;
-    deleteGraph(nfa);
-
-    // std::string filenameg = "graph";
-    // printGraph(knfa, filenameg);
-
+    t2 = omp_get_wtime();
+    seqan3::debug_stream << "Collection time: " << (t2-t1) << std::endl;
+    // t1 = omp_get_wtime();
+    // std::vector<kState *> knfa = nfa2knfa(nfa, qlength);
+    // // seqan3::debug_stream << "[DONE]" << std::endl;
     // for(auto i: knfa)
     //     dfs_old(i, matrix);
+    // uMatrix(matrix);
+    // t2 = omp_get_wtime();
+    // seqan3::debug_stream << matrix << std::endl;
+    // seqan3::debug_stream << "kNFA Construction & DFS time: " << (t2-t1) << std::endl;
+    // deleteGraph(nfa);
     
     // for(auto &line: matrix)
     //     seqan3::debug_stream << line << std::endl;

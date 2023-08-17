@@ -54,26 +54,26 @@ State* post2nfaE(const std::string& postfix)
             stack.pop();
             e1 = stack.top();
             stack.pop();
-            s = new State{Split, e1.start, e2.start};
+            s = new State{SplitU, e1.start, e2.start};
             stack.push(frag(s, appendVec(e1.out, e2.out)));
             break;
         case '?': // 0 or 1
             e = stack.top();
             stack.pop();
-            s = new State{Split, nullptr, e.start};
+            s = new State{SplitU, nullptr, e.start};
             stack.push(frag(s, appendVec(e.out, getVec(s))));
             break;
         case '*': //kleenestar
             e = stack.top();
             stack.pop();
-            s = new State{Split, nullptr, e.start};
+            s = new State{SplitK, nullptr, e.start};
             patchVec(e.out, s);
             stack.push(frag(s, getVec(s)));
             break;
         case '+': // one or more
             e = stack.top();
             stack.pop();
-            s = new State{Split, nullptr, e.start};
+            s = new State{SplitP, nullptr, e.start};
             patchVec(e.out, s);
             stack.push(frag(e.start, getVec(s)));
             break;
@@ -120,26 +120,26 @@ std::vector<State *> getVec(State *input)
 /*
  * Generates a randomized word from the language that the automaton represents
  */
-std::string getRandomWord(State* startptr)
-{
-    std::string out{};
-    State* itptr = startptr;
-    int way = rand() % 2+1; // rand nr between 1-2;
-    while(itptr->c_ != Match)
-    {
-        if(itptr->c_ != Split)
-        {
-            out.push_back(itptr->c_);
-            itptr = itptr->out1_;
-        }
-        else
-        {
-            way == 1 ? itptr = itptr->out1_ : itptr = itptr->out2_;
-            way = rand() % 2+1;
-        }
-    }
-    return out;
-}
+// std::string getRandomWord(State* startptr)
+// {
+//     std::string out{};
+//     State* itptr = startptr;
+//     int way = rand() % 2+1; // rand nr between 1-2;
+//     while(itptr->c_ != Match)
+//     {
+//         if(itptr->c_ != Split)
+//         {
+//             out.push_back(itptr->c_);
+//             itptr = itptr->out1_;
+//         }
+//         else
+//         {
+//             way == 1 ? itptr = itptr->out1_ : itptr = itptr->out2_;
+//             way = rand() % 2+1;
+//         }
+//     }
+//     return out;
+// }
 
 /*
  * Helpfunction from deleteGraph

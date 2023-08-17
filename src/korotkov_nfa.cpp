@@ -30,7 +30,13 @@ void oneStep(std::stack<keyState *>& stack, State* itptr, kState* kptr, std::str
         e1 = new keyState{qGram, itptr->out1_, kptr};
         stack.push(e1);
         break;
-    case Split:
+    case SplitA:
+        e1 = new keyState{qGram, itptr->out1_, kptr};
+        e2 = new keyState{qGram, itptr->out2_, kptr};
+        stack.push(e2);
+        stack.push(e1);
+        break;
+    case SplitB:
         e1 = new keyState{qGram, itptr->out1_, kptr};
         e2 = new keyState{qGram, itptr->out2_, kptr};
         stack.push(e2);
@@ -63,7 +69,7 @@ void firstPhase(State* it_ptr, std::vector<keyState *>& output, const size_t& q)
             delete k;
             throw int();
         }
-        if(k-> qGramFrag_.size() == q-1 && k->positionNFA_->c_ != Split) // Phase1 only collects k-1mers
+        if(k-> qGramFrag_.size() == q-1 && k->positionNFA_->c_ != SplitA && k->positionNFA_->c_ != SplitB) // Phase1 only collects k-1mers
         {
             output.push_back(k);
         }
@@ -118,7 +124,13 @@ void nextStep(std::stack<keyState *>& stack, keyState* input)
     default:
             stack.push(input);
             break;
-    case Split:
+    case SplitA:
+            e1 = new keyState{input->qGramFrag_, itptr->out1_, nullptr};
+            e2 = new keyState{input->qGramFrag_, itptr->out2_, nullptr};
+            stack.push(e2);
+            stack.push(e1);
+            break;
+    case SplitB:
             e1 = new keyState{input->qGramFrag_, itptr->out1_, nullptr};
             e2 = new keyState{input->qGramFrag_, itptr->out2_, nullptr};
             stack.push(e2);
@@ -151,7 +163,7 @@ void nextKeys(std::vector<keyState *>& liste, keyState* input, kState* match)
         {
             input->home_->outs_.push_back(match); // Completed a path through kNFA
         }
-        else if(k->positionNFA_->c_ == Split)
+        else if(k->positionNFA_->c_ == SplitA || k->positionNFA_->c_ == SplitB)
         {
             nextStep(stack, k); // Unpack a split
         }

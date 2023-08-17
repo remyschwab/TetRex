@@ -13,7 +13,7 @@ target_compile_options ("${PROJECT_NAME}_interface" INTERFACE "-pedantic" "-Wall
 
 
 # An object library (without main) to be used in multiple targets.
-add_library ("${PROJECT_NAME}_lib" STATIC nfa_pointer.cpp graphMaker.cpp korotkov_nfa.cpp utils.cpp index.cpp query.cpp inspect_idx.cpp molecule_encodings.cpp knfa_collector.cpp)
+add_library ("${PROJECT_NAME}_lib" STATIC nfa_pointer.cpp graphMaker.cpp utils.cpp index.cpp query.cpp inspect_idx.cpp molecule_encodings.cpp knfa_collector.cpp)
 target_link_libraries ("${PROJECT_NAME}_lib" PUBLIC "${PROJECT_NAME}_interface" re2::re2)
 
 add_executable ("${PROJECT_NAME}" main.cpp)
