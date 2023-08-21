@@ -1,40 +1,58 @@
 #include "knfa_collector.h"
 
 
-void update_path(kmer_t &kmer, path_t &path_ref, uint64_t &threshold, int &symbol)
+void update_kmer(const int &symbol, kmer_t &kmer, const uint64_t &selector_mask)
 {
-    if(kmer.length() < (threshold-1))
+    uint64_t fb = (symbol>>1)&3;
+    kmer = ((kmer<<2)&selector_mask) | fb;
+}
+
+
+void update_path(kmer_t &kmer, uint8_t &shift_count, uint64_t &threshold, int &symbol, auto &agent, bitvector &path, const uint64_t &bitmask)
+{
+    bitvector hits;
+    if(shift_count < (threshold-1)) // Corresponds to a new kmer < threshold size
     {
-        kmer += (char)symbol;
+        update_kmer(symbol, kmer, bitmask);
+        shift_count++;
     }
-    else if(kmer.length() == (threshold-1))
+    else if(shift_count == (threshold-1))
     {
-        kmer += (char)symbol;
-        path_ref.emplace(kmer);
+        update_kmer(symbol, kmer, bitmask);
+        hits = agent.bulk_contains(kmer);
+        path.raw_data() &= hits.raw_data();
+        shift_count++;
     }
-    else if(kmer.length() == threshold)
+    else if(shift_count == (threshold))
     {
-        kmer = kmer.substr(1) + (char)symbol;
-        path_ref.emplace(kmer);
+        update_kmer(symbol, kmer, bitmask);
+        hits = agent.bulk_contains(kmer);
+        path.raw_data() &= hits.raw_data();
     }
 }
 
 
-void collect_kNFA(State *NFA, uint8_t &k)
+bitvector collect_kNFA(State *NFA, uint8_t &k, IndexStructure &ibf)
 {
-    std::vector<path_t> path_matrix;
+    bitvector path_matrix{ibf.getBinCount()};
+    std::fill(path_matrix.begin(), path_matrix.end(), false);
     std::stack<CollectionItem> search_stack;
-    CollectionItem stack_init(NFA, "", {}, 0);
-    search_stack.push(stack_init);
 
+    bitvector hit_vector{ibf.getBinCount()};
+    std::fill(hit_vector.begin(), hit_vector.end(), true);
     uint64_t threshold = k;
+    // Spawn IBF membership agent in this scope because it is expensive
+    auto && ibf_ref = ibf.getIBF();
+    auto agent = ibf_ref.membership_agent();
 
-    // uint64_t stack_max = 0;
+    CollectionItem stack_init(NFA, 0, hit_vector, 0, 0);
+    search_stack.push(stack_init);
 
     State *current_state;
     kmer_t kmer;
     path_t current_path;
     uint8_t split_hits;
+    uint8_t shift_counts;
 
     CollectionItem item1;
     CollectionItem item2;
@@ -44,23 +62,26 @@ void collect_kNFA(State *NFA, uint8_t &k)
         kmer = search_stack.top().kmer_;
         current_path = search_stack.top().path_;
         split_hits = search_stack.top().cycles_;
+        shift_counts = search_stack.top().shift_count_;
         search_stack.pop();
         
         int symbol = current_state->c_;
         switch(symbol)
         {
             case Match:
-                path_matrix.push_back(current_path);
+                path_matrix.raw_data() |= current_path.raw_data();
                 break;
             case SplitU:
                 item1.nfa_state_ = current_state->out1_;
                 item1.kmer_ = kmer;
                 item1.path_ = current_path;
                 item1.cycles_ = split_hits;
+                item1.shift_count_ = shift_counts;
                 item2.nfa_state_ = current_state->out2_;
                 item2.kmer_ = kmer;
                 item2.path_ = current_path;
                 item2.cycles_ = split_hits;
+                item2.shift_count_ = shift_counts;
                 search_stack.push(item2);
                 search_stack.push(item1);
                 break;
@@ -68,6 +89,7 @@ void collect_kNFA(State *NFA, uint8_t &k)
                 item1.nfa_state_ = current_state->out1_;
                 item1.kmer_ = kmer;
                 item1.path_ = current_path;
+                item1.shift_count_ = shift_counts;
                 if(split_hits == k)
                 {
                     item1.cycles_ = 0;
@@ -79,6 +101,7 @@ void collect_kNFA(State *NFA, uint8_t &k)
                 item2.kmer_ = kmer;
                 item2.path_ = current_path;
                 item2.cycles_ = split_hits;
+                item1.shift_count_ = shift_counts;
                 search_stack.push(item2);
                 search_stack.push(item1);
                 break;
@@ -86,6 +109,7 @@ void collect_kNFA(State *NFA, uint8_t &k)
                 item1.nfa_state_ = current_state->out1_;
                 item1.kmer_ = kmer;
                 item1.path_ = current_path;
+                item1.shift_count_ = shift_counts;
                 if(split_hits == (k+1))
                 {
                     item1.cycles_ = 0;
@@ -97,17 +121,17 @@ void collect_kNFA(State *NFA, uint8_t &k)
                 item2.kmer_ = kmer;
                 item2.path_ = current_path;
                 item2.cycles_ = split_hits;
+                item2.shift_count_ = shift_counts;
                 search_stack.push(item2);
                 search_stack.push(item1);
                 break;
             default:
                 if((current_state->out1_->c_ == SplitP) || (current_state->out1_->c_ == SplitK)) split_hits++;
-                update_path(kmer, current_path, threshold, symbol);
-                item1 = {current_state->out1_, kmer, current_path, split_hits};
+                update_path(kmer, shift_counts, threshold, symbol, agent, current_path, ibf.selection_mask_);
+                item1 = {current_state->out1_, kmer, current_path, split_hits, shift_counts};
                 search_stack.push(item1);
                 break;
         }
-        // stack_max = (stack_max < search_stack.size()) ? search_stack.size() : stack_max;
     }
-    seqan3::debug_stream << path_matrix << std::endl;
+    return path_matrix;
 }

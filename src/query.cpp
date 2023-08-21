@@ -107,24 +107,24 @@ void iter_disk_search(const bitvector &hits, const std::string &query, IndexStru
 
 void drive_query(query_arguments &cmd_args, const bool &model)
 {
-    double t1, t2, t3;
-    // omp_set_num_threads(cmd_args.t);
+    // double t1, t2, t3;
+    omp_set_num_threads(cmd_args.t);
     // Load index from disk
     // seqan3::debug_stream << "Reading Index from Disk ";
-    // IndexStructure ibf;
+    IndexStructure ibf;
     // t1 = omp_get_wtime();
-    // load_ibf(ibf, cmd_args.idx);
+    load_ibf(ibf, cmd_args.idx);
 
-    // if(ibf.molecule_ == "na") //TODO: Update the serializing logic
-    // {
-    //     ibf.create_selection_bitmask();
-    //     ibf.set_left_shift();
-    // }
-    // else
-    // {
-    //     ibf.set_alphabet_maps();
-    //     ibf.compute_powers();
-    // }
+    if(ibf.molecule_ == "na") //TODO: Update the serializing logic
+    {
+        ibf.create_selection_bitmask();
+        ibf.set_left_shift();
+    }
+    else
+    {
+        ibf.set_alphabet_maps();
+        ibf.compute_powers();
+    }
 
     // t2 = omp_get_wtime();
     // double load_time = t2-t1;
@@ -135,8 +135,7 @@ void drive_query(query_arguments &cmd_args, const bool &model)
 
     // Evaluate and search for Regular Expression
     // seqan3::debug_stream << "Querying " << std::endl;
-    // auto && bin_count = ibf.getBinCount();
-    // uint8_t &qlength = ibf.k_;
+    uint8_t &qlength = ibf.k_;
     std::string &rx = cmd_args.regex;
     std::string &query = cmd_args.query;
     preprocess_query(rx, query);
@@ -144,72 +143,14 @@ void drive_query(query_arguments &cmd_args, const bool &model)
     // seqan3::debug_stream << query << std::endl;
 
     // Postfix to Thompson NFA
-    // seqan3::debug_stream << "\tConstructing Thompson NFA from RegEx ";
     State* nfa = post2nfaE(query);
-    // seqan3::debug_stream << "[DONE]" << std::endl;
-    std::vector<std::vector<std::string>> matrix;
     // Thompson NFA to Korotkov NFA
-    // seqan3::debug_stream << "\tConstruction kNFA from Thompson NFA ";
-    uint8_t qlength = cmd_args.t;
-    // std::vector<kState *> knfa = nfa2knfa(nfa, qlength);
-    t1 = omp_get_wtime();
-    collect_kNFA(nfa, qlength);
-    t2 = omp_get_wtime();
-    seqan3::debug_stream << "Collection time: " << (t2-t1) << std::endl;
+
     // t1 = omp_get_wtime();
-    // std::vector<kState *> knfa = nfa2knfa(nfa, qlength);
-    // // seqan3::debug_stream << "[DONE]" << std::endl;
-    // for(auto i: knfa)
-    //     dfs_old(i, matrix);
-    // uMatrix(matrix);
+    bitvector hit_vector = collect_kNFA(nfa, qlength, ibf);
     // t2 = omp_get_wtime();
-    // seqan3::debug_stream << matrix << std::endl;
-    // seqan3::debug_stream << "kNFA Construction & DFS time: " << (t2-t1) << std::endl;
-    // deleteGraph(nfa);
-    
-    // for(auto &line: matrix)
-    //     seqan3::debug_stream << line << std::endl;
-
-    // Create kmer path matrix from kNFA
-    // seqan3::debug_stream << "\tComputing kmer path matrix from kNFA ";
-
-    // Create auxiliary data structures to avoid redundant kmer lookup
-    // robin_hood::unordered_map<uint64_t, bitvector> hash_to_bitvector{};
-
-    // Spawn IBF membership agent in this scope because it is expensive
-    // auto && ibf_ref = ibf.getIBF();
-    // auto agent = ibf_ref.membership_agent();
-
-    // std::vector<std::vector<uint64_t>> matrix{};
-    // for(auto i : knfa)
-    // {
-    //     if(ibf.molecule_ == "na")
-    //     {
-    //         dfs(i, matrix, hash_to_bitvector, agent, ibf);
-    //     }
-    //     else
-    //     {
-    //         dfs(i, matrix, hash_to_bitvector, agent, ibf);
-    //     }
-    // }
-
-    // uMatrix(matrix);
-    // seqan3::debug_stream << "[DONE]" << std::endl;
-
-
-    // Search kmer paths in index
-    // seqan3::debug_stream << "\tSearch kmers in index ";
-
-    // seqan3::interleaved_bloom_filter<seqan3::data_layout::uncompressed>::membership_agent_type::binning_bitvector hit_vector{ibf.getBinCount()};
-    // std::fill(hit_vector.begin(), hit_vector.end(), false);
-
-    // #pragma omp parallel for
-    // for(size_t i = 0; i < matrix.size(); ++i)
-    // {
-    //     auto hits = query_ibf(bin_count, hash_to_bitvector, matrix[i]);
-    //     hit_vector.raw_data() |= hits.raw_data();
-    // }
-    // seqan3::debug_stream << "[DONE]" << std::endl;
+    // seqan3::debug_stream << "Collection time: " << (t2-t1) << std::endl;
+    deleteGraph(nfa);
 
     // if(model)
     // {
@@ -229,7 +170,9 @@ void drive_query(query_arguments &cmd_args, const bool &model)
 
     // seqan3::debug_stream << "Verifying hits..." << std::endl;
 
-    // iter_disk_search(hit_vector, rx, ibf);
+    seqan3::debug_stream << hit_vector << std::endl;
+
+    iter_disk_search(hit_vector, rx, ibf);
     // t3 = omp_get_wtime();
     // double run_time = t3-t1;
     // std::cout << run_time << std::endl;

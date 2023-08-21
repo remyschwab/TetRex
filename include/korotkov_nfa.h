@@ -35,49 +35,6 @@ std::vector<kState *> nfa2knfa(State* nfa_ptr, const int& q);
 
 Path* findPath(kState* position);
 
-static void dfs_old(kState* input, std::vector<std::vector<std::string>>& matrix)
-{
-  std::vector<std::string> line{};
-  std::stack<Path*> stack{};
-
-  Path* p = findPath(input);
-  stack.push(p);
-
-  while(!stack.empty())
-  {
-    p = stack.top();
-
-    if(p->position_->marked_ == 0)
-    {
-      line.push_back(p->position_->qGram_);
-      p->position_->marked_ = 1;
-    }
-    if(p->qPath_ < p->position_->outs_.size())
-    {
-      if(p->position_->outs_[p->qPath_]->qGram_ == "$")
-      {
-        matrix.push_back(line);
-        p->qPath_++;
-      }
-      else
-      {
-        if(p->position_->outs_[p->qPath_]->marked_ == 0)
-        {
-          stack.push(findPath(p->position_->outs_[p->qPath_]));
-        }
-        p->qPath_++;
-      }
-    }
-    else
-    {
-      line.pop_back();
-      p->position_->marked_ = 0;
-      stack.pop();
-      delete p;
-    }
-  }
-}
-
 /*
  * Depth first search, generates the matrix with the possible paths
  */
