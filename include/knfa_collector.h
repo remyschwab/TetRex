@@ -19,7 +19,7 @@ struct CollectionItem
     uint8_t shift_count_;
 };
 
-void update_kmer(const int &symbol, kmer_t &kmer, const uint64_t &selector_mask);
+void update_kmer(const int &symbol, kmer_t &kmer, const uint64_t &selector_mask, const uint64_t &threshold);
 
 void update_path(kmer_t &kmer, uint8_t &shift_count, uint64_t &threshold, int &symbol, auto &agent, bitvector &path, const uint64_t &bitmask);
 

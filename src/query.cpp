@@ -107,12 +107,9 @@ void iter_disk_search(const bitvector &hits, const std::string &query, IndexStru
 
 void drive_query(query_arguments &cmd_args, const bool &model)
 {
-    // double t1, t2, t3;
+    double t1, t2, t3;
     omp_set_num_threads(cmd_args.t);
-    // Load index from disk
-    // seqan3::debug_stream << "Reading Index from Disk ";
     IndexStructure ibf;
-    // t1 = omp_get_wtime();
     load_ibf(ibf, cmd_args.idx);
 
     if(ibf.molecule_ == "na") //TODO: Update the serializing logic
@@ -126,55 +123,18 @@ void drive_query(query_arguments &cmd_args, const bool &model)
         ibf.compute_powers();
     }
 
-    // t2 = omp_get_wtime();
-    // double load_time = t2-t1;
-    // seqan3::debug_stream << "[DONE] " << load_time << "s" << std::endl;
-    // std::cout << load_time << ",";
-
-    // The RegEx is given in InFix notation and is translated to postfix notation for internal use
-
-    // Evaluate and search for Regular Expression
-    // seqan3::debug_stream << "Querying " << std::endl;
     uint8_t &qlength = ibf.k_;
     std::string &rx = cmd_args.regex;
     std::string &query = cmd_args.query;
     preprocess_query(rx, query);
 
-    // seqan3::debug_stream << query << std::endl;
+    State* nfa = post2nfaE(query); // Postfix to Thompson NFA
 
-    // Postfix to Thompson NFA
-    State* nfa = post2nfaE(query);
-    // Thompson NFA to Korotkov NFA
-
-    // t1 = omp_get_wtime();
-    bitvector hit_vector = collect_kNFA(nfa, qlength, ibf);
-    // t2 = omp_get_wtime();
-    // seqan3::debug_stream << "Collection time: " << (t2-t1) << std::endl;
-    deleteGraph(nfa);
-
-    // if(model)
-    // {
-    //     /////////// MODELING STEP ///////////////
-    //     double hit_count = 0;
-    //     for(auto &&bit: hit_vector)
-    //         hit_count+= bit;
-    //     size_t query_length = matrix[0].size()+qlength-1;
-    //     int text_length = cmd_args.text_length;
-    //     size_t multiplyer = matrix.size();
-    //     double result = compute_knut_model(query_length, qlength, text_length, multiplyer);
-    //     seqan3::debug_stream << "FINAL PROBABILITY: " << result << std::endl;
-    //     seqan3::debug_stream << "ACTUAL RATE: " << hit_count/hit_vector.size() << std::endl;
-    //     /////////// MODELING STEP ///////////////
-    //     return; // Modeling doesn't require verification step
-    // }
-
-    // seqan3::debug_stream << "Verifying hits..." << std::endl;
-
-    seqan3::debug_stream << hit_vector << std::endl;
+    t1 = omp_get_wtime();
+    bitvector hit_vector = collect_kNFA(nfa, qlength, ibf); // Collect kmers from NFA
+    t2 = omp_get_wtime();
+    seqan3::debug_stream << "Collection time: " << (t2-t1) << std::endl;
+    // deleteGraph(nfa); // I wonder if this is necessary...
 
     iter_disk_search(hit_vector, rx, ibf);
-    // t3 = omp_get_wtime();
-    // double run_time = t3-t1;
-    // std::cout << run_time << std::endl;
-    // seqan3::debug_stream << "DONE in " << run_time << "s" << std::endl;
 }

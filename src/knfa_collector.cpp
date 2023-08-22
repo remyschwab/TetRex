@@ -1,10 +1,14 @@
 #include "knfa_collector.h"
 
 
-void update_kmer(const int &symbol, kmer_t &kmer, const uint64_t &selector_mask)
+void update_kmer(const int &symbol, kmer_t &kmer, const uint64_t &selector_mask, const uint64_t &threshold)
 {
     uint64_t fb = (symbol>>1)&3;
-    kmer = ((kmer<<2)&selector_mask) | fb;
+    uint64_t forward;
+    uint64_t reverse;
+    forward = ((kmer<<2)&selector_mask) | fb;
+    reverse = revComplement(forward, threshold);
+    kmer = forward <= reverse ? forward : reverse;
 }
 
 
@@ -13,19 +17,19 @@ void update_path(kmer_t &kmer, uint8_t &shift_count, uint64_t &threshold, int &s
     bitvector hits;
     if(shift_count < (threshold-1)) // Corresponds to a new kmer < threshold size
     {
-        update_kmer(symbol, kmer, bitmask);
+        update_kmer(symbol, kmer, bitmask, threshold);
         shift_count++;
     }
     else if(shift_count == (threshold-1))
     {
-        update_kmer(symbol, kmer, bitmask);
+        update_kmer(symbol, kmer, bitmask, threshold);
         hits = agent.bulk_contains(kmer);
         path.raw_data() &= hits.raw_data();
         shift_count++;
     }
     else if(shift_count == (threshold))
     {
-        update_kmer(symbol, kmer, bitmask);
+        update_kmer(symbol, kmer, bitmask, threshold);
         hits = agent.bulk_contains(kmer);
         path.raw_data() &= hits.raw_data();
     }
@@ -72,61 +76,37 @@ bitvector collect_kNFA(State *NFA, uint8_t &k, IndexStructure &ibf)
                 path_matrix.raw_data() |= current_path.raw_data();
                 break;
             case SplitU:
-                item1.nfa_state_ = current_state->out1_;
-                item1.kmer_ = kmer;
-                item1.path_ = current_path;
-                item1.cycles_ = split_hits;
-                item1.shift_count_ = shift_counts;
-                item2.nfa_state_ = current_state->out2_;
-                item2.kmer_ = kmer;
-                item2.path_ = current_path;
-                item2.cycles_ = split_hits;
-                item2.shift_count_ = shift_counts;
+                item1 = {current_state->out1_, kmer, current_path, split_hits, shift_counts};
+                item2 = {current_state->out2_, kmer, current_path, split_hits, shift_counts};
                 search_stack.push(item2);
                 search_stack.push(item1);
                 break;
             case SplitP:
-                item1.nfa_state_ = current_state->out1_;
-                item1.kmer_ = kmer;
-                item1.path_ = current_path;
-                item1.shift_count_ = shift_counts;
                 if(split_hits == k)
                 {
-                    item1.cycles_ = 0;
+                    item1 = {current_state->out1_, kmer, current_path, 0, shift_counts};
                     search_stack.push(item1);
                     break;
                 }
-                item1.cycles_ = split_hits;
-                item2.nfa_state_ = current_state->out2_;
-                item2.kmer_ = kmer;
-                item2.path_ = current_path;
-                item2.cycles_ = split_hits;
-                item1.shift_count_ = shift_counts;
+                item1 = {current_state->out1_, kmer, current_path, 0, shift_counts};
+                item2 = {current_state->out2_, kmer, current_path, split_hits, shift_counts};
                 search_stack.push(item2);
                 search_stack.push(item1);
                 break;
             case SplitK:
-                item1.nfa_state_ = current_state->out1_;
-                item1.kmer_ = kmer;
-                item1.path_ = current_path;
-                item1.shift_count_ = shift_counts;
                 if(split_hits == (k+1))
                 {
-                    item1.cycles_ = 0;
+                    item1 = {current_state->out1_, kmer, current_path, 0, shift_counts};
                     search_stack.push(item1);
                     break;
                 }
-                item1.cycles_ = split_hits;
-                item2.nfa_state_ = current_state->out2_;
-                item2.kmer_ = kmer;
-                item2.path_ = current_path;
-                item2.cycles_ = split_hits;
-                item2.shift_count_ = shift_counts;
+                item1 = {current_state->out1_, kmer, current_path, 0, shift_counts};
+                item2 = {current_state->out2_, kmer, current_path, split_hits, shift_counts};
                 search_stack.push(item2);
                 search_stack.push(item1);
                 break;
             default:
-                if((current_state->out1_->c_ == SplitP) || (current_state->out1_->c_ == SplitK)) split_hits++;
+                if(current_state->out1_->c_ > SplitU) split_hits++;
                 update_path(kmer, shift_counts, threshold, symbol, agent, current_path, ibf.selection_mask_);
                 item1 = {current_state->out1_, kmer, current_path, split_hits, shift_counts};
                 search_stack.push(item1);
