@@ -79,6 +79,7 @@ bitvector collect_kNFA(State *NFA, uint8_t &k, IndexStructure &ibf)
                 item1 = {current_state->out1_, kmer, current_path, split_hits, shift_counts};
                 item2 = {current_state->out2_, kmer, current_path, split_hits, shift_counts};
                 if((current_state->out1_->c_ > SplitU)) item1.cycles_++;
+                if((current_state->out2_->c_ > SplitU)) item2.cycles_++;
                 search_stack.push(item2);
                 search_stack.push(item1);
                 break;
