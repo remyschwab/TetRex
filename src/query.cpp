@@ -130,10 +130,10 @@ void drive_query(query_arguments &cmd_args, const bool &model)
 
     State* nfa = post2nfaE(query); // Postfix to Thompson NFA
 
-    t1 = omp_get_wtime();
+    // t1 = omp_get_wtime();
     bitvector hit_vector = collect_kNFA(nfa, qlength, ibf); // Collect kmers from NFA
-    t2 = omp_get_wtime();
-    seqan3::debug_stream << "Collection time: " << (t2-t1) << std::endl;
+    // t2 = omp_get_wtime();
+    // seqan3::debug_stream << "Collection time: " << (t2-t1) << std::endl;
     // deleteGraph(nfa); // I wonder if this is necessary...
 
     iter_disk_search(hit_vector, rx, ibf);
