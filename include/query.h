@@ -16,7 +16,7 @@
 #include "korotkov_nfa.h"
 #include "graphMaker.h"
 #include "nfa_pointer.h"
-#include "knfa_collector.h"
+#include "otf_collector.h"
 #include "korotkov_nfa.h"
 
 

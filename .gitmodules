@@ -12,3 +12,6 @@
 [submodule "lib/simde"]
 	path = lib/simde
 	url = https://github.com/simd-everywhere/simde
+[submodule "lib/lemon"]
+	path = lib/lemon
+	url = git@github.com:seqan/lemon.git

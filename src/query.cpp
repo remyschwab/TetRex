@@ -76,7 +76,7 @@ void verify_fasta_hit(const gzFile &fasta_handle, kseq_t *record, re2::RE2 &crx)
         re2::StringPiece bin_content(record->seq.s);
         while (RE2::FindAndConsume(&bin_content, crx, &match))
         {
-            std::cout << ">" << record->name.s << "\t" << match << "\t" << start << "-" << start+match.length() << std::endl;
+            std::cout << ">" << record->name.s << "\t" << match << "\t" << start << "-" << start+match.length()-1 << std::endl;
             start++;
         }
     }
@@ -128,10 +128,10 @@ void drive_query(query_arguments &cmd_args, const bool &model)
     std::string &query = cmd_args.query;
     preprocess_query(rx, query);
 
-    State* nfa = post2nfaE(query); // Postfix to Thompson NFA
+    State* nfa = post2nfaE(query); // Postfix to NFA
 
     // t1 = omp_get_wtime();
-    bitvector hit_vector = collect_kNFA(nfa, qlength, ibf); // Collect kmers from NFA
+    bitvector hit_vector = collect_BFS(nfa, ibf); // Collect kmers from NFA
     // t2 = omp_get_wtime();
     // seqan3::debug_stream << "Collection time: " << (t2-t1) << std::endl;
     // deleteGraph(nfa); // I wonder if this is necessary...
