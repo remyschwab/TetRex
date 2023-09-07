@@ -8,7 +8,9 @@
 enum
 {
     Match = 256,
-    Split = 257
+    SplitU = 257, // Union Split
+    SplitP = 258, // + Split
+    SplitK = 259 // Kleene Split
 };
 
 
@@ -24,7 +26,7 @@ struct State
     int c_;
     State *out1_ = nullptr;
     State *out2_ = nullptr;
-    int lastlist_ = 0;
+    int backwards = 0;
 };
 
 

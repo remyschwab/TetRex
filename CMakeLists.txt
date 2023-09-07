@@ -27,9 +27,18 @@ set (FontReset "${Esc}[m")
 # Dependency: SeqAn3.
 find_package (SeqAn3 QUIET REQUIRED HINTS lib/seqan3/build_system)
 
-# Dependecy: re2
+# Dependency: re2
 option(RE2_BUILD_TESTING OFF)
 add_subdirectory(lib/re2)
+
+# Dependency: HIBF
+# include (FetchContent)
+# FetchContent_Declare (
+#     hibf_fetch_content
+#     GIT_REPOSITORY "https://github.com/seqan/Hierarchical_Interleaved_Bloomfilter"
+#     GIT_TAG "main")
+# option (INSTALL_HIBF "" OFF)
+# FetchContent_MakeAvailable (hibf_fetch_content)
 
 # Allow to include CMake scripts from seqan3.
 list (APPEND CMAKE_MODULE_PATH "${SEQAN3_CLONE_DIR}/test/cmake/")

@@ -1,7 +1,5 @@
-# Evaluation of Biological Regular Expressions with Korotkov NFAs
-This app constructs a Korotkov Automata from an input Regular Expression. A Korotkov Automata is an NFA with Q-gram/K-mer transitions. It is based on this [lecture](https://wiki.postgresql.org/images/6/6c/Index_support_for_regular_expression_search.pdf)
-
-A matrix is generated from the automata, which can be used for pattern matching. The regex need to be written in reverse polish notation and supports the following operations:
+# Search for Regular Expressions in large datasets
+Despite the many efficient tools implemented for finding Regular Expressions, the runtime needed to search for them is always dominated by the size of the text. This tool employs a novel algorithm for regular expression matching that leverages the Interleaved Bloom Filter. Regular Expressions are given as input in the command line and support the following operations:
 
 1. **|** - Or
 2. __*__ - Zero or more repetitions
@@ -29,8 +27,6 @@ kbioreg query ibf_idx.ibf "ACGTA(C|G)CC(A|G|T)A"
 kbioreg inspect ibf_idx.ibf
 ## Compute the probability of finding your RegEx
 kbioreg model -l 1000 ibf_idx.ibf "ACGTA(C|G)CC(A|G|T)A"
-## image of the automaton
-dot -Tpng graphPlot.dot > graphPlot.png
 ```
 
 ## Notes

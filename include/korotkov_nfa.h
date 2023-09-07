@@ -7,6 +7,7 @@
 #include "robin_hood.h"
 #include "utils.h"
 #include "index.h"
+#include "robin_hood.h"
 
 
 struct kState

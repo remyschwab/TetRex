@@ -26,9 +26,10 @@ State* post2nfaE(const std::string& postfix)
 {
     std::stack<Frag> stack;
     Frag e,e1,e2;
-    State *s;
 
+    State *s;
     State *matchstate = new State{Match};
+
     if(postfix.empty()) return nullptr;
 
     for(size_t i = 0; i < postfix.size(); i++)
@@ -38,9 +39,9 @@ State* post2nfaE(const std::string& postfix)
         {
             default: // char
             s = new State{p};
-            stack.push(frag(s, getVec(s)));
+            stack.push(frag(s, getVec(s))); // I think this should be just a null pointer not to itself
             break;
-        case '.': // concat
+        case '-': // concat
             e2 = stack.top();
             stack.pop();
             e1 = stack.top();
@@ -53,26 +54,26 @@ State* post2nfaE(const std::string& postfix)
             stack.pop();
             e1 = stack.top();
             stack.pop();
-            s = new State{Split, e1.start, e2.start};
+            s = new State{SplitU, e1.start, e2.start};
             stack.push(frag(s, appendVec(e1.out, e2.out)));
             break;
         case '?': // 0 or 1
             e = stack.top();
             stack.pop();
-            s = new State{Split, nullptr, e.start};
+            s = new State{SplitU, nullptr, e.start};
             stack.push(frag(s, appendVec(e.out, getVec(s))));
             break;
         case '*': //kleenestar
             e = stack.top();
             stack.pop();
-            s = new State{Split, nullptr, e.start};
+            s = new State{SplitK, nullptr, e.start};
             patchVec(e.out, s);
             stack.push(frag(s, getVec(s)));
             break;
         case '+': // one or more
             e = stack.top();
             stack.pop();
-            s = new State{Split, nullptr, e.start};
+            s = new State{SplitP, nullptr, e.start};
             patchVec(e.out, s);
             stack.push(frag(e.start, getVec(s)));
             break;
@@ -89,7 +90,7 @@ State* post2nfaE(const std::string& postfix)
     return e.start;
 }
 
-// concats vec1 & vec2
+// Append concatenates two pointer lists
 std::vector<State *> appendVec(const std::vector<State *>& vec1, const std::vector<State *>& vec2)
 {
     std::vector<State *> out = vec1;
@@ -100,7 +101,7 @@ std::vector<State *> appendVec(const std::vector<State *>& vec1, const std::vect
     return out;
 }
 
-// every state in "in" points with one pointer on "s"
+// Connects the dangling arrows in the pointer list l to the state s: it sets *outp = s for each pointer outp in l
 void patchVec(std::vector<State *>& in, State *s)
 {
     for(auto e : in)
@@ -109,7 +110,7 @@ void patchVec(std::vector<State *>& in, State *s)
     }
 }
 
-//makes one vektor only contains the pointer of the last state
+// List1 creates a new pointer list containing the single pointer outp
 std::vector<State *> getVec(State *input)
 {
     std::vector<State *> out{input};
@@ -119,26 +120,26 @@ std::vector<State *> getVec(State *input)
 /*
  * Generates a randomized word from the language that the automaton represents
  */
-std::string getRandomWord(State* startptr)
-{
-    std::string out{};
-    State* itptr = startptr;
-    int way = rand() % 2+1; // rand nr between 1-2;
-    while(itptr->c_ != Match)
-    {
-        if(itptr->c_ != Split)
-        {
-            out.push_back(itptr->c_);
-            itptr = itptr->out1_;
-        }
-        else
-        {
-            way == 1 ? itptr = itptr->out1_ : itptr = itptr->out2_;
-            way = rand() % 2+1;
-        }
-    }
-    return out;
-}
+// std::string getRandomWord(State* startptr)
+// {
+//     std::string out{};
+//     State* itptr = startptr;
+//     int way = rand() % 2+1; // rand nr between 1-2;
+//     while(itptr->c_ != Match)
+//     {
+//         if(itptr->c_ != Split)
+//         {
+//             out.push_back(itptr->c_);
+//             itptr = itptr->out1_;
+//         }
+//         else
+//         {
+//             way == 1 ? itptr = itptr->out1_ : itptr = itptr->out2_;
+//             way = rand() % 2+1;
+//         }
+//     }
+//     return out;
+// }
 
 /*
  * Helpfunction from deleteGraph

@@ -11,4 +11,4 @@ void printGraph(const std::vector<kState *>& input, const std::string& filename)
 
 void print(const std::vector<kState *>& input);
 
-void uMatrix(std::vector<std::vector<uint64_t>>& matrix);
+void uMatrix(std::vector<std::vector<std::string>>& matrix);
