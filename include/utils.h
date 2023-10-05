@@ -4,16 +4,12 @@
 #include <string>
 #include <vector>
 #include <algorithm>
-#include <iostream>
 #include <math.h>
 #include <fstream>
-#include <string>
 #include <stack>
-#include <vector>
 #include <filesystem>
 #include <stdio.h>
 #include <stdlib.h>
-#include <string.h>
 #include <unistd.h>
 #include <cstring>
 

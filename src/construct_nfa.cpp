@@ -1,16 +1,37 @@
 #include "construct_nfa.h"
 
 
-void export_nfa_img(nfa_t &nfa)
-{
-    lemon::graphToEps(nfa, "nfa.eps").run();
-}
+// void export_nfa_img(nfa_t &nfa, std::string &title)
+// {
+//     lemon::graphToEps(nfa, "/Users/rschwab/Desktop/nfa.eps").title(title).copyright("(C) 2003-2009 LEMON Project").run();
+// }
 
 
-node_pair_t copy_subgraph(node_pair_t &node_pair)
+void copy_subgraph(node_pair_t &node_pair, nfa_t &NFA, lmap_t &node_map)
 {
     //TODO: return a copy of whatever is between a source and target node
     // This is necessary for making an acyclic NFA with * and +
+    if(bool twins = node_pair.first == node_pair.second)
+    {
+        const int symbol = node_map[node_pair.first];
+        node_t new_node = NFA.addNode();
+        node_map[new_node] = symbol;
+        node_t ghost_node = NFA.addNode();
+        node_map[ghost_node] = Ghost;
+        NFA.addArc(node_pair.second, new_node);
+        NFA.addArc(new_node, ghost_node);
+    }
+}
+
+
+void run_top_sort(nfa_t &NFA)
+{
+    lemon::Dfs<nfa_t> dfs(NFA);
+    dfs.run();
+    for (nfa_t::NodeIt n(NFA); n != lemon::INVALID; ++n)
+        std::cout << NFA.id(n) << " ";
+    
+    std::cout << std::endl;
 }
 
 
@@ -18,7 +39,7 @@ void default_procedure(nfa_t &nfa, nfa_stack_t &stack, lmap_t &node_map, const i
 {
     node_t node = nfa.addNode();
     node_map[node] = symbol;
-    node_pair_t twins = std::make_pair(node, node);
+    node_pair_t twins = std::make_pair(node, node); // Source and target are the same node
     stack.push(twins);
 }
 
@@ -131,7 +152,7 @@ void plus_procedure(nfa_t &nfa, nfa_stack_t &stack, lmap_t &node_map, const uint
 }
 
 
-void construct_graph(const std::string &postfix, nfa_t &nfa, lmap_t &node_map, const uint8_t &k)
+void construct_kgraph(const std::string &postfix, nfa_t &nfa, lmap_t &node_map, const uint8_t &k)
 {
     nfa_stack_t stack;
     for(size_t i = 0; i < postfix.size(); i++)
@@ -160,7 +181,7 @@ void construct_graph(const std::string &postfix, nfa_t &nfa, lmap_t &node_map, c
         }
     }
     node_t match_node = nfa.addNode();
-    node_map[match_node] = 256;
+    node_map[match_node] = Match;
     node_t tail_node = stack.top().second;
     nfa.addArc(tail_node, match_node);
     stack.pop();

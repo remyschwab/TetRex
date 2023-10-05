@@ -63,7 +63,7 @@
 // }
 
 
-// bitvector collect_BFS(State *NFA, IndexStructure &ibf)
+// bitvector collect_BFS(nfa_t &NFA, IndexStructure &ibf, lmap_t &nfa_map)
 // {
 //     bitvector path_matrix{ibf.getBinCount()};
 //     std::fill(path_matrix.begin(), path_matrix.end(), false);
@@ -83,7 +83,6 @@
 //     State *current_state;
 //     kmer_t kmer;
 //     path_t current_path;
-//     uint8_t split_hits;
 //     uint8_t shift_counts;
 
 //     CollectionItem item1;
@@ -91,10 +90,10 @@
 
 //     while(!queue.empty())
 //     {
+//         auto front = queue.front();
 //         current_state = queue.front().nfa_state_;
 //         kmer = queue.front().kmer_;
 //         current_path = queue.front().path_;
-//         split_hits = queue.front().cycles_;
 //         shift_counts = queue.front().shift_count_;
 //         queue.pop();
         

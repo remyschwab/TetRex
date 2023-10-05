@@ -2,9 +2,7 @@
 // #include <vector>
 // #include <stack>
 // #include <queue>
-// #include "molecule_encodings.h"
-// #include "utils.h"
-// #include "robin_hood.h"
+// #include "index.h"
 // #include "construct_nfa.h"
 
 
@@ -14,10 +12,9 @@
 
 // struct CollectionItem
 // {
-//     State *nfa_state_;
+//     node_t node;
 //     kmer_t kmer_;
 //     path_t path_;
-//     uint8_t cycles_;
 //     uint8_t shift_count_;
 // };
 
@@ -29,6 +26,4 @@
 
 // void condense_queue(std::queue<CollectionItem> &queue);
 
-// bitvector collect_DFS(State *NFA, IndexStructure &ibf);
-
-// bitvector collect_BFS(State *NFA, IndexStructure &ibf);
+// bitvector collect_BFS(nfa_t &NFA, IndexStructure &ibf, lmap_t &nfa_map);
