@@ -24,14 +24,14 @@ void copy_subgraph(node_pair_t &node_pair, nfa_t &NFA, lmap_t &node_map)
 }
 
 
-void run_top_sort(nfa_t &NFA)
+wmap_t run_top_sort(nfa_t &NFA, lmap_t &node_map)
 {
-    lemon::Dfs<nfa_t> dfs(NFA);
-    dfs.run();
-    for (nfa_t::NodeIt n(NFA); n != lemon::INVALID; ++n)
-        std::cout << NFA.id(n) << " ";
-    
+    wmap_t list(NFA);
+    lemon::topologicalSort(NFA, list);
+    for(auto &&it: list.order)
+        std::cout << node_map[it] << "  ";
     std::cout << std::endl;
+    return list;
 }
 
 
