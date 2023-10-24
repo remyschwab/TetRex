@@ -135,7 +135,7 @@ void drive_query(query_arguments &cmd_args, const bool &model)
     wmap_t top_map = run_top_sort(NFA, nfa_map);
 
     // t1 = omp_get_wtime();
-    bitvector hit_vector = collect_BFS(NFA, ibf, nfa_map); // Collect kmers from NFA
+    // bitvector hit_vector = collect_BFS(NFA, ibf, nfa_map); // Collect kmers from NFA
     // t2 = omp_get_wtime();
     // seqan3::debug_stream << "Collection time: " << (t2-t1) << std::endl;
 

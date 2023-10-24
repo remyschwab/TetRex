@@ -7,21 +7,21 @@
 // }
 
 
-void copy_subgraph(node_pair_t &node_pair, nfa_t &NFA, lmap_t &node_map)
-{
-    //TODO: return a copy of whatever is between a source and target node
-    // This is necessary for making an acyclic NFA with * and +
-    if(bool twins = node_pair.first == node_pair.second)
-    {
-        const int symbol = node_map[node_pair.first];
-        node_t new_node = NFA.addNode();
-        node_map[new_node] = symbol;
-        node_t ghost_node = NFA.addNode();
-        node_map[ghost_node] = Ghost;
-        NFA.addArc(node_pair.second, new_node);
-        NFA.addArc(new_node, ghost_node);
-    }
-}
+// void copy_subgraph(node_pair_t &node_pair, nfa_t &NFA, lmap_t &node_map)
+// {
+//     //TODO: return a copy of whatever is between a source and target node
+//     // This is necessary for making an acyclic NFA with * and +
+//     if(bool twins = node_pair.first == node_pair.second)
+//     {
+//         const int symbol = node_map[node_pair.first];
+//         node_t new_node = NFA.addNode();
+//         node_map[new_node] = symbol;
+//         node_t ghost_node = NFA.addNode();
+//         node_map[ghost_node] = Ghost;
+//         NFA.addArc(node_pair.second, new_node);
+//         NFA.addArc(new_node, ghost_node);
+//     }
+// }
 
 
 wmap_t run_top_sort(nfa_t &NFA, lmap_t &node_map)
@@ -29,7 +29,12 @@ wmap_t run_top_sort(nfa_t &NFA, lmap_t &node_map)
     wmap_t list(NFA);
     lemon::topologicalSort(NFA, list);
     for(auto &&it: list.order)
-        std::cout << node_map[it] << "  ";
+    {
+        if(node_map[it] < 256)
+        {
+            std::cout << static_cast<char>(node_map[it]) << "  ";
+        }
+    }
     std::cout << std::endl;
     return list;
 }
@@ -155,6 +160,7 @@ void plus_procedure(nfa_t &nfa, nfa_stack_t &stack, lmap_t &node_map, const uint
 void construct_kgraph(const std::string &postfix, nfa_t &nfa, lmap_t &node_map, const uint8_t &k)
 {
     nfa_stack_t stack;
+    default_procedure(nfa, stack, node_map, Ghost); // I don't know why, but a buffer node is necessary for top sort...
     for(size_t i = 0; i < postfix.size(); i++)
     {
         int symbol = postfix[i];
