@@ -4,8 +4,6 @@
 
 #pragma once
 
-#include <seqan3/alphabet/views/all.hpp>
-
 #include <re2/re2.h>
 #include <omp.h>
 
@@ -13,11 +11,8 @@
 #include "utils.h"
 #include "index.h"
 #include "arg_parse.h"
-#include "korotkov_nfa.h"
-#include "graphMaker.h"
-#include "nfa_pointer.h"
 #include "otf_collector.h"
-#include "korotkov_nfa.h"
+#include "construct_nfa.h"
 
 
 bitvector query_ibf(uint32_t &bin_count, robin_hood::unordered_map<uint64_t, bitvector> &hash_to_bits, std::vector<std::pair<std::string, uint64_t>> &path);

@@ -128,13 +128,16 @@ void drive_query(query_arguments &cmd_args, const bool &model)
     std::string &query = cmd_args.query;
     preprocess_query(rx, query);
 
-    State* nfa = post2nfaE(query); // Postfix to NFA
+    // State* nfa = post2nfaE(query); // Postfix to NFA
+    nfa_t NFA;
+    lmap_t nfa_map(NFA);
+    construct_kgraph(cmd_args.query, NFA, nfa_map, ibf.k_);
+    wmap_t top_map = run_top_sort(NFA, nfa_map);
 
     // t1 = omp_get_wtime();
-    bitvector hit_vector = collect_BFS(nfa, ibf); // Collect kmers from NFA
+    // bitvector hit_vector = collect_BFS(NFA, ibf, nfa_map); // Collect kmers from NFA
     // t2 = omp_get_wtime();
     // seqan3::debug_stream << "Collection time: " << (t2-t1) << std::endl;
-    // deleteGraph(nfa); // I wonder if this is necessary...
 
-    iter_disk_search(hit_vector, rx, ibf);
+    // iter_disk_search(hit_vector, rx, ibf);
 }

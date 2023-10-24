@@ -1,5 +1,6 @@
 #include "utils.h"
 
+
 char* re2post(char *re)
 {
     int nalt, natom;
@@ -88,40 +89,4 @@ std::string translate(const std::string& str)
   std::string out = re2post(cstr);
   delete [] cstr;
   return out;
-}
-
-
-std::vector<char> getAlphabet(const std::string& regex)
-{
-    std::vector<char> alphabet{};
-    for(auto e : regex)
-    {
-        if(e != '.' && e != '|' && e != '?' && e != '+' && e != '*' && e != '-')
-        {
-            alphabet.push_back(e);
-        }
-    }
-    std::sort(alphabet.begin(), alphabet.end());
-    auto last = std::unique(alphabet.begin(), alphabet.end());
-    alphabet.erase(last, alphabet.end());
-    return alphabet;
-}
-
-
-void matrixTotxt(const std::vector<std::vector<std::string>>& matrix, std::string& filename)
-{
-    std::fstream f;
-
-    f.open(filename += ".txt", std::ios::out);
-    if(f.good())
-    {
-        for(auto z : matrix)
-        {
-            for(auto s : z)
-            {
-                f << s <<" ";
-            }
-            f << "\n";
-        }
-    }
 }

@@ -2,9 +2,8 @@
 #include <vector>
 #include <stack>
 #include <queue>
-#include "utils.h"
-#include "robin_hood.h"
-#include "nfa_pointer.h"
+#include "index.h"
+#include "construct_nfa.h"
 
 
 using kmer_t = uint64_t;
@@ -13,10 +12,9 @@ using cache_t = robin_hood::unordered_map<uint64_t, bitvector>;
 
 struct CollectionItem
 {
-    State *nfa_state_;
+    node_t node;
     kmer_t kmer_;
     path_t path_;
-    uint8_t cycles_;
     uint8_t shift_count_;
 };
 
@@ -28,6 +26,4 @@ bool all_bits_zero(bitvector const & bitvector) noexcept;
 
 void condense_queue(std::queue<CollectionItem> &queue);
 
-bitvector collect_DFS(State *NFA, IndexStructure &ibf);
-
-bitvector collect_BFS(State *NFA, IndexStructure &ibf);
+bitvector collect_BFS(nfa_t &NFA, IndexStructure &ibf, lmap_t &nfa_map);
