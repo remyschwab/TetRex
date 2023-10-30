@@ -107,15 +107,24 @@ void kleene_procedure(nfa_t &nfa, nfa_stack_t &stack, lmap_t &node_map, const ui
     node_t ghost_node = nfa.addNode();
     node_map[ghost_node] = Ghost;
     nfa.addArc(split_node, ghost_node); // * should allow for a path to skip the operand completely
-    nfa.addArc(node.second, ghost_node);
 
     node_t *back_node = &node.second;
     for(uint8_t i = 1; i < (k-1); ++i) // I iterate starting at 1 to represent how I already linearized one cycle
     {
+        node_t inner_split = nfa.addNode();
+        node_map[inner_split] = SplitU;
+        nfa.addArc(*back_node, inner_split);
+        nfa.addArc(inner_split, ghost_node);
+
         node_t new_node = nfa.addNode();
         node_map[new_node] = symbol;
-        nfa.addArc(*back_node, new_node);
-        nfa.addArc(new_node, ghost_node);
+        nfa.addArc(inner_split, new_node);
+
+        if(i == (k-2))
+        {
+            nfa.addArc(new_node, ghost_node);
+            break;
+        }
         back_node = &new_node;
     }
     node_pair_t node_pair = std::make_pair(split_node, ghost_node);
@@ -131,20 +140,27 @@ void plus_procedure(nfa_t &nfa, nfa_stack_t &stack, lmap_t &node_map, const uint
 
     node_t split_node = nfa.addNode();
     node_map[split_node] = SplitP;
-    nfa.addArc(split_node, node.first);
+    nfa.addArc(node.first, split_node);
 
     node_t ghost_node = nfa.addNode();
     node_map[ghost_node] = Ghost;
     nfa.addArc(node.second, ghost_node);
 
-    node_t back_node = node.second;
+    node_t *back_node = &split_node;
     for(uint8_t i = 1; i < (k-1); ++i) // I iterate starting at 1 to represent how I already linearized one cycle
     {
         node_t new_node = nfa.addNode();
         node_map[new_node] = symbol;
-        nfa.addArc(back_node, new_node);
-        nfa.addArc(new_node, ghost_node);
-        back_node = new_node;
+        nfa.addArc(*back_node, new_node);
+        if(i == (k-2))
+        {
+            nfa.addArc(new_node, ghost_node);
+            break;
+        }
+        node_t inner_split = nfa.addNode();
+        node_map[inner_split] = SplitU;
+        nfa.addArc(new_node, inner_split);
+        back_node = &inner_split;
     }
     node_pair_t node_pair = std::make_pair(split_node, ghost_node);
     stack.push(node_pair);
