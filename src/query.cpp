@@ -132,7 +132,8 @@ void drive_query(query_arguments &cmd_args, const bool &model)
     nfa_t NFA;
     lmap_t nfa_map(NFA);
     construct_kgraph(cmd_args.query, NFA, nfa_map, ibf.k_);
-    wmap_t top_map = run_top_sort(NFA, nfa_map);
+    wmap_t top_map = run_top_sort(NFA);
+    bitvector hit_vector = collect_TOP(NFA, ibf, nfa_map, top_map);
 
     // t1 = omp_get_wtime();
     // bitvector hit_vector = collect_BFS(NFA, ibf, nfa_map); // Collect kmers from NFA

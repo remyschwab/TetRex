@@ -24,18 +24,10 @@
 // }
 
 
-wmap_t run_top_sort(nfa_t &NFA, lmap_t &node_map)
+wmap_t run_top_sort(nfa_t &NFA)
 {
     wmap_t list(NFA);
     lemon::topologicalSort(NFA, list);
-    for(auto &&it: list.order)
-    {
-        if(node_map[it] < 256)
-        {
-            std::cout << static_cast<char>(node_map[it]) << "  ";
-        }
-    }
-    std::cout << std::endl;
     return list;
 }
 
@@ -110,19 +102,21 @@ void kleene_procedure(nfa_t &nfa, nfa_stack_t &stack, lmap_t &node_map, const ui
 
     node_t split_node = nfa.addNode();
     node_map[split_node] = SplitK;
+    nfa.addArc(split_node, node.first);
 
     node_t ghost_node = nfa.addNode();
     node_map[ghost_node] = Ghost;
-    nfa.addArc(split_node, ghost_node);
+    nfa.addArc(split_node, ghost_node); // * should allow for a path to skip the operand completely
+    nfa.addArc(node.second, ghost_node);
 
-    node_t back_node = split_node; // This functions as a pointer
+    node_t *back_node = &node.second;
     for(uint8_t i = 1; i < (k-1); ++i) // I iterate starting at 1 to represent how I already linearized one cycle
     {
         node_t new_node = nfa.addNode();
         node_map[new_node] = symbol;
-        nfa.addArc(back_node, new_node);
+        nfa.addArc(*back_node, new_node);
         nfa.addArc(new_node, ghost_node);
-        back_node = new_node;
+        back_node = &new_node;
     }
     node_pair_t node_pair = std::make_pair(split_node, ghost_node);
     stack.push(node_pair);
@@ -160,7 +154,7 @@ void plus_procedure(nfa_t &nfa, nfa_stack_t &stack, lmap_t &node_map, const uint
 void construct_kgraph(const std::string &postfix, nfa_t &nfa, lmap_t &node_map, const uint8_t &k)
 {
     nfa_stack_t stack;
-    default_procedure(nfa, stack, node_map, Ghost); // I don't know why, but a buffer node is necessary for top sort...
+    default_procedure(nfa, stack, node_map, Ghost); //I don't know why, but a buffer node is necessary for top sort...
     for(size_t i = 0; i < postfix.size(); i++)
     {
         int symbol = postfix[i];

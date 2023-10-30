@@ -17,14 +17,14 @@ public:
 
   OrderedList  order;
 
-  SerializingWriteMap( const GR& ) {}
+  SerializingWriteMap(const GR&) {}
 
-  void  set( const Key& k, const Value& v )
+  void set(const Key& k, const Value& v)
   {
     if( v ) order.push_front(k);
   }
 
-  Value  operator[] ( const Key& )
+  Value operator[] (const Key&)
   {
     return false;
   }
@@ -51,7 +51,7 @@ void export_nfa_img(nfa_t &nfa, std::string &title);
 
 void copy_subgraph(node_pair_t &node_pair);
 
-wmap_t run_top_sort(nfa_t &NFA, lmap_t &node_map);
+wmap_t run_top_sort(nfa_t &NFA);
 
 void default_procedure(nfa_t &nfa, nfa_stack_t &stack, lmap_t &node_map, const int &symbol);
 
