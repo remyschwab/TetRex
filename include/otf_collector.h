@@ -1,6 +1,5 @@
 #include <iostream>
 #include <vector>
-#include <stack>
 #include <queue>
 #include "index.h"
 #include "construct_nfa.h"
@@ -10,6 +9,7 @@ using kmer_t = uint64_t;
 using path_t = bitvector;
 using cache_t = robin_hood::unordered_map<uint64_t, bitvector>;
 using comp_table_t = std::vector<std::vector<std::pair<kmer_t, bitvector>>>;
+using minheap_t = std::priority_queue<int, std::vector<int>, std::greater<int>>;
 
 struct CollectionItem
 {

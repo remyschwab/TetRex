@@ -48,7 +48,7 @@ void concat_procedure(nfa_t &nfa, nfa_stack_t &stack)
     node_pair_t node1 = stack.top();
     stack.pop();
     nfa.addArc(node1.second, node2.first);
-    node_pair_t node_pair = std::make_pair(node1.second, node2.first);
+    node_pair_t node_pair = std::make_pair(node1.first, node2.second);
     stack.push(node_pair);
 }
 
@@ -106,7 +106,7 @@ void kleene_procedure(nfa_t &nfa, nfa_stack_t &stack, lmap_t &node_map, const ui
 
     node_t ghost_node = nfa.addNode();
     node_map[ghost_node] = Ghost;
-    nfa.addArc(split_node, ghost_node); // * should allow for a path to skip the operand completely
+    nfa.addArc(split_node, ghost_node); // * allows to skip the operand completely
 
     node_t *back_node = &node.second;
     for(uint8_t i = 1; i < (k-1); ++i) // I iterate starting at 1 to represent how I already linearized one cycle
@@ -144,7 +144,7 @@ void plus_procedure(nfa_t &nfa, nfa_stack_t &stack, lmap_t &node_map, const uint
 
     node_t ghost_node = nfa.addNode();
     node_map[ghost_node] = Ghost;
-    nfa.addArc(node.second, ghost_node);
+    nfa.addArc(split_node, ghost_node);
 
     node_t *back_node = &split_node;
     for(uint8_t i = 1; i < (k-1); ++i) // I iterate starting at 1 to represent how I already linearized one cycle
@@ -162,7 +162,7 @@ void plus_procedure(nfa_t &nfa, nfa_stack_t &stack, lmap_t &node_map, const uint
         nfa.addArc(new_node, inner_split);
         back_node = &inner_split;
     }
-    node_pair_t node_pair = std::make_pair(split_node, ghost_node);
+    node_pair_t node_pair = std::make_pair(node.first, ghost_node);
     stack.push(node_pair);
 }
 

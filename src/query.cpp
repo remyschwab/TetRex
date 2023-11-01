@@ -128,9 +128,10 @@ void drive_query(query_arguments &cmd_args, const bool &model)
     std::string &query = cmd_args.query;
     preprocess_query(rx, query);
 
-    // State* nfa = post2nfaE(query); // Postfix to NFA
     nfa_t NFA;
     lmap_t nfa_map(NFA);
+    amap_t arc_map(NFA);
+    
     construct_kgraph(cmd_args.query, NFA, nfa_map, ibf.k_);
     wmap_t top_map = run_top_sort(NFA);
     bitvector hit_vector = collect_TOP(NFA, ibf, nfa_map, top_map);

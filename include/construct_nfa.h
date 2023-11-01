@@ -31,8 +31,10 @@ public:
 };
 
 using nfa_t = lemon::SmartDigraph;
-using node_t = lemon::SmartDigraph::Node;
-using lmap_t = lemon::SmartDigraph::NodeMap<int>;
+using node_t = nfa_t::Node;
+using arc_t = nfa_t::Arc;
+using lmap_t = nfa_t::NodeMap<int>;
+using amap_t = nfa_t::ArcMap<int>;
 using node_pair_t = std::pair<node_t, node_t>;
 using nfa_stack_t = std::stack<node_pair_t>;
 using wmap_t = SerializingWriteMap<nfa_t>;
