@@ -24,11 +24,50 @@
 // }
 
 
-wmap_t run_top_sort(nfa_t &NFA)
+void print_kgraph_arcs(const nfa_t &NFA)
+{
+    for(auto &&arc: NFA.arcs())
+    {
+        std::cout << NFA.id(NFA.source(arc)) << " --> " <<NFA.id(NFA.target(arc)) << std::endl;
+    }
+}
+
+
+void update_arc_map(nfa_t &NFA, lmap_t &node_map, amap_t &arc_map, const node_t &source, const node_t &target)
+{
+    const int source_id = NFA.id(source);
+    const int symbol = node_map[source];
+    if(symbol < 256) // If the node is not a split just place the target in the first slot
+    {
+        arc_map[source_id].first = &target;
+    }
+    else // If it's a split
+    {
+        if(arc_map.find(source_id) == arc_map.end())
+        {
+            arc_map[source_id].first = &target; // Place it in the first slot if we haven't seen it before
+        }
+        else
+        {
+            arc_map[source_id].second = &target; // Place it in the second if we have
+        }
+    }
+}
+
+
+std::vector<int> run_top_sort(nfa_t &NFA)
 {
     wmap_t list(NFA);
     lemon::topologicalSort(NFA, list);
-    return list;
+    std::vector<int> priority_map;
+    priority_map.resize(NFA.nodeNum());
+    size_t rank = 1; // Start node is always at 0
+    for(auto &&it: list.order)
+    {
+        priority_map[NFA.id(it)] = rank;
+        rank++;
+    }
+    return priority_map;
 }
 
 
@@ -41,19 +80,20 @@ void default_procedure(nfa_t &nfa, nfa_stack_t &stack, lmap_t &node_map, const i
 }
 
 
-void concat_procedure(nfa_t &nfa, nfa_stack_t &stack)
+void concat_procedure(nfa_t &nfa, lmap_t &node_map, nfa_stack_t &stack, amap_t &arc_map)
 {
     node_pair_t node2 = stack.top();
     stack.pop();
     node_pair_t node1 = stack.top();
     stack.pop();
     nfa.addArc(node1.second, node2.first);
+    update_arc_map(nfa, node_map, arc_map, node1.second, node2.first);
     node_pair_t node_pair = std::make_pair(node1.first, node2.second);
     stack.push(node_pair);
 }
 
 
-void union_procedure(nfa_t &nfa, nfa_stack_t &stack, lmap_t &node_map)
+void union_procedure(nfa_t &nfa, nfa_stack_t &stack, lmap_t &node_map, amap_t &arc_map)
 {
     node_pair_t node2 = stack.top();
     stack.pop();
@@ -63,19 +103,23 @@ void union_procedure(nfa_t &nfa, nfa_stack_t &stack, lmap_t &node_map)
     node_t split_node = nfa.addNode();
     node_map[split_node] = SplitU;
     nfa.addArc(split_node, node1.first);
+    update_arc_map(nfa, node_map, arc_map, split_node, node1.first);
     nfa.addArc(split_node, node2.first);
+    update_arc_map(nfa, node_map, arc_map, split_node, node2.first);
 
     node_t ghost_node = nfa.addNode();
     node_map[ghost_node] = Ghost;
     nfa.addArc(node1.second, ghost_node);
+    update_arc_map(nfa, node_map, arc_map, node1.second, ghost_node);
     nfa.addArc(node2.second, ghost_node);
+    update_arc_map(nfa, node_map, arc_map, node2.second, ghost_node);
 
     node_pair_t node_pair = std::make_pair(split_node, ghost_node);
     stack.push(node_pair);
 }
 
 
-void optional_procedure(nfa_t &nfa, nfa_stack_t &stack, lmap_t &node_map)
+void optional_procedure(nfa_t &nfa, nfa_stack_t &stack, lmap_t &node_map, amap_t &arc_map)
 {
     node_pair_t node = stack.top();
     stack.pop();
@@ -83,18 +127,21 @@ void optional_procedure(nfa_t &nfa, nfa_stack_t &stack, lmap_t &node_map)
     node_t split_node = nfa.addNode();
     node_map[split_node] = SplitU;
     nfa.addArc(split_node, node.first);
+    update_arc_map(nfa, node_map, arc_map, split_node, node.first);
 
     node_t ghost_node = nfa.addNode();
     node_map[ghost_node] = Ghost;
     nfa.addArc(split_node, ghost_node);
+    update_arc_map(nfa, node_map, arc_map, split_node, ghost_node);
     nfa.addArc(node.second, ghost_node);
+    update_arc_map(nfa, node_map, arc_map, node.second, ghost_node);
 
     node_pair_t node_pair = std::make_pair(split_node, ghost_node);
     stack.push(node_pair);
 }
 
 
-void kleene_procedure(nfa_t &nfa, nfa_stack_t &stack, lmap_t &node_map, const uint8_t &k)
+void kleene_procedure(nfa_t &nfa, nfa_stack_t &stack, lmap_t &node_map, const uint8_t &k, amap_t &arc_map)
 {
     node_pair_t node = stack.top();
     stack.pop();
@@ -103,10 +150,12 @@ void kleene_procedure(nfa_t &nfa, nfa_stack_t &stack, lmap_t &node_map, const ui
     node_t split_node = nfa.addNode();
     node_map[split_node] = SplitK;
     nfa.addArc(split_node, node.first);
+    update_arc_map(nfa, node_map, arc_map, split_node, node.first);
 
     node_t ghost_node = nfa.addNode();
     node_map[ghost_node] = Ghost;
     nfa.addArc(split_node, ghost_node); // * allows to skip the operand completely
+    update_arc_map(nfa, node_map, arc_map, split_node, ghost_node);
 
     node_t *back_node = &node.second;
     for(uint8_t i = 1; i < (k-1); ++i) // I iterate starting at 1 to represent how I already linearized one cycle
@@ -114,15 +163,19 @@ void kleene_procedure(nfa_t &nfa, nfa_stack_t &stack, lmap_t &node_map, const ui
         node_t inner_split = nfa.addNode();
         node_map[inner_split] = SplitU;
         nfa.addArc(*back_node, inner_split);
+        update_arc_map(nfa, node_map, arc_map, *back_node, inner_split);
         nfa.addArc(inner_split, ghost_node);
+        update_arc_map(nfa, node_map, arc_map, inner_split, ghost_node);
 
         node_t new_node = nfa.addNode();
         node_map[new_node] = symbol;
         nfa.addArc(inner_split, new_node);
+        update_arc_map(nfa, node_map, arc_map, inner_split, new_node);
 
         if(i == (k-2))
         {
             nfa.addArc(new_node, ghost_node);
+            update_arc_map(nfa, node_map, arc_map, new_node, ghost_node);
             break;
         }
         back_node = &new_node;
@@ -132,7 +185,7 @@ void kleene_procedure(nfa_t &nfa, nfa_stack_t &stack, lmap_t &node_map, const ui
 }
 
 
-void plus_procedure(nfa_t &nfa, nfa_stack_t &stack, lmap_t &node_map, const uint8_t &k)
+void plus_procedure(nfa_t &nfa, nfa_stack_t &stack, lmap_t &node_map, const uint8_t &k, amap_t &arc_map)
 {
     node_pair_t node = stack.top();
     stack.pop();
@@ -141,10 +194,12 @@ void plus_procedure(nfa_t &nfa, nfa_stack_t &stack, lmap_t &node_map, const uint
     node_t split_node = nfa.addNode();
     node_map[split_node] = SplitP;
     nfa.addArc(node.first, split_node);
+    update_arc_map(nfa, node_map, arc_map, node.first, split_node);
 
     node_t ghost_node = nfa.addNode();
     node_map[ghost_node] = Ghost;
     nfa.addArc(split_node, ghost_node);
+    update_arc_map(nfa, node_map, arc_map, split_node, ghost_node);
 
     node_t *back_node = &split_node;
     for(uint8_t i = 1; i < (k-1); ++i) // I iterate starting at 1 to represent how I already linearized one cycle
@@ -152,14 +207,17 @@ void plus_procedure(nfa_t &nfa, nfa_stack_t &stack, lmap_t &node_map, const uint
         node_t new_node = nfa.addNode();
         node_map[new_node] = symbol;
         nfa.addArc(*back_node, new_node);
+        update_arc_map(nfa, node_map, arc_map, *back_node, new_node);
         if(i == (k-2))
         {
             nfa.addArc(new_node, ghost_node);
+            update_arc_map(nfa, node_map, arc_map, new_node, ghost_node);
             break;
         }
         node_t inner_split = nfa.addNode();
         node_map[inner_split] = SplitU;
         nfa.addArc(new_node, inner_split);
+        update_arc_map(nfa, node_map, arc_map, new_node, inner_split);
         back_node = &inner_split;
     }
     node_pair_t node_pair = std::make_pair(node.first, ghost_node);
@@ -167,10 +225,10 @@ void plus_procedure(nfa_t &nfa, nfa_stack_t &stack, lmap_t &node_map, const uint
 }
 
 
-void construct_kgraph(const std::string &postfix, nfa_t &nfa, lmap_t &node_map, const uint8_t &k)
+void construct_kgraph(const std::string &postfix, nfa_t &nfa, lmap_t &node_map, amap_t &arc_map, const uint8_t &k)
 {
     nfa_stack_t stack;
-    default_procedure(nfa, stack, node_map, Ghost); //I don't know why, but a buffer node is necessary for top sort...
+    node_t start_node = nfa.addNode(); // I don't know why, but a buffer node is necessary for top sort...
     for(size_t i = 0; i < postfix.size(); i++)
     {
         int symbol = postfix[i];
@@ -180,25 +238,32 @@ void construct_kgraph(const std::string &postfix, nfa_t &nfa, lmap_t &node_map, 
                 default_procedure(nfa, stack, node_map, symbol);
                 break;
             case '-': // Concat
-                concat_procedure(nfa, stack);
+                concat_procedure(nfa, node_map, stack, arc_map);
                 break;
             case '|': // Or
-                union_procedure(nfa, stack, node_map);
+                union_procedure(nfa, stack, node_map, arc_map);
                 break;
             case '?': // Optional
-                optional_procedure(nfa, stack, node_map);
+                optional_procedure(nfa, stack, node_map, arc_map);
                 break;
             case '*': // Kleene
-                kleene_procedure(nfa, stack, node_map, k);
+                kleene_procedure(nfa, stack, node_map, k, arc_map);
                 break;
             case '+': // One or More
-                plus_procedure(nfa, stack, node_map, k);
+                plus_procedure(nfa, stack, node_map, k, arc_map);
                 break;
         }
     }
+    // Cap the graph at both ends
+    // With a start node
+    nfa.addArc(start_node, nfa.nodeFromId(1));
+    update_arc_map(nfa, node_map, arc_map, start_node, nfa.nodeFromId(1));
+    
+    // and with an accepting node
     node_t match_node = nfa.addNode();
     node_map[match_node] = Match;
     node_t tail_node = stack.top().second;
     nfa.addArc(tail_node, match_node);
+    update_arc_map(nfa, node_map, arc_map, tail_node, match_node);
     stack.pop();
 }

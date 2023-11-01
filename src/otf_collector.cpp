@@ -150,28 +150,9 @@ bool all_bits_zero(bitvector const & bitvector) noexcept
 // }
 
 
-bitvector collect_TOP(nfa_t &NFA, IndexStructure &ibf, lmap_t &nfa_map, wmap_t &top_map)
+bitvector collect_TOP(nfa_t &NFA, IndexStructure &ibf, lmap_t &nfa_map, const std::vector<int> &rank_map, const amap_t &arc_map)
 {
     bitvector path_matrix{ibf.getBinCount()};
-    comp_table_t comp_table(lemon::countNodes(NFA));
-    std::vector<int> priority_map;
-    priority_map.resize(NFA.nodeNum());
-    size_t rank = 1; // Start node is always at 0
-    for(auto &&it: top_map.order)
-    {
-        priority_map[NFA.id(it)] = rank;
-        if(nfa_map[it] < 256) std::cout << NFA.id(it) << " " << static_cast<char>(nfa_map[it]) << std::endl;
-        else if(nfa_map[it] == Ghost) std::cout << NFA.id(it) << " " << "Ghost" << std::endl;
-        else if(nfa_map[it] == Match) std::cout << NFA.id(it) << " " << "Match" << std::endl;
-        else if(nfa_map[it] == SplitK) std::cout << NFA.id(it) << " " << "KSplit" << std::endl;
-        else if(nfa_map[it] == SplitU) std::cout << NFA.id(it) << " " << "USplit" << std::endl;
-        else if(nfa_map[it] == SplitP) std::cout << NFA.id(it) << " " << "PSplit" << std::endl;
-        rank++;
-    }
-    for(auto &&arc: NFA.arcs())
-    {
-        seqan3::debug_stream << NFA.id(NFA.source(arc)) << " --> " << NFA.id(NFA.target(arc)) << std::endl;
-    }
-    seqan3::debug_stream << priority_map << std::endl;
+    minheap_t minheap(std::bind(customComparator, std::placeholders::_1, std::placeholders::_2, rank_map));
     return path_matrix;
 }
