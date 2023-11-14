@@ -7,34 +7,46 @@
 #include "construct_nfa.h"
 
 
-
-// Define custom lambda comparator for the min-heap that uses the topological rankings
-const auto customComparator = [](const int& a, const int& b, const std::vector<int> &rankings) {
-    return rankings[a] > rankings[b];
-};
-
 using kmer_t = uint64_t;
 using path_t = bitvector;
 using cache_t = robin_hood::unordered_map<uint64_t, bitvector>;
 using comp_table_t = std::vector<std::vector<std::pair<kmer_t, bitvector>>>;
-using minheap_t = std::priority_queue<int, std::vector<int>, std::function<bool(int, int)>>;
 
-struct CollectionItem
+struct CollectorsItem
 {
     node_t node;
+    int id_;
+    uint8_t shift_count_;
     kmer_t kmer_;
     path_t path_;
-    uint8_t shift_count_;
 };
+
+class CustomCompare
+{
+    private:
+        std::vector<int> ranks_;
+
+    public:
+        bool operator() (CollectorsItem &item1, CollectorsItem &item2)
+        {
+            return ranks_[item1.id_] > ranks_[item2.id_];
+        }
+
+    CustomCompare() = default;
+
+    explicit CustomCompare(std::vector<int> ranks) : ranks_{ranks} {}
+};
+
+using minheap_t = std::priority_queue<CollectorsItem, std::vector<CollectorsItem>, CustomCompare>;
 
 void update_kmer(const int &symbol, kmer_t &kmer, IndexStructure &ibf);
 
-void update_path(kmer_t &kmer, uint8_t &shift_count, int &symbol, auto &agent, bitvector &path, IndexStructure &ibf, cache_t &cache);
+void update_path(auto &current_state, int &symbol, auto &agent, IndexStructure &ibf, cache_t &cache);
 
 bool all_bits_zero(bitvector const & bitvector) noexcept;
 
-void condense_queue(std::queue<CollectionItem> &queue);
+void condense_queue(std::queue<CollectorsItem> &queue);
 
 bitvector collect_BFS(nfa_t &NFA, IndexStructure &ibf, lmap_t &nfa_map);
 
-bitvector collect_TOP(nfa_t &NFA, IndexStructure &ibf, lmap_t &nfa_map, const std::vector<int> &rank_map, const amap_t &arc_map);
+bitvector collect_Top(nfa_t &NFA, IndexStructure &ibf, lmap_t &nfa_map, const std::vector<int> &rank_map, const amap_t &arc_map);

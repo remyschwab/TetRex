@@ -6,6 +6,7 @@
 #include "lemon/smart_graph.h"
 #include "lemon/maps.h"
 #include "lemon/connectivity.h"
+#include "utils.h"
 
 
 template< typename GR >
@@ -35,11 +36,10 @@ using nfa_t = lemon::SmartDigraph;
 using node_t = nfa_t::Node;
 using arc_t = nfa_t::Arc;
 using lmap_t = nfa_t::NodeMap<int>;
-using amap_t = robin_hood::unordered_map<int, std::pair<const node_t*, const node_t*>>;
+using amap_t = robin_hood::unordered_map<int, std::pair<node_t*, node_t*>>;
 using node_pair_t = std::pair<node_t, node_t>;
 using nfa_stack_t = std::stack<node_pair_t>;
 using wmap_t = SerializingWriteMap<nfa_t>;
-
 
 enum
 {
@@ -50,7 +50,7 @@ enum
     SplitK = 260, // Kleene Split
 };
 
-void update_arc_map(nfa_t &NFA, lmap_t &node_map, amap_t &arc_map, const node_t &source, const node_t &target);
+void update_arc_map(nfa_t &NFA, lmap_t &node_map, amap_t &arc_map, node_t &source, node_t &target);
 
 void print_kgraph_arcs(const nfa_t &NFA);
 

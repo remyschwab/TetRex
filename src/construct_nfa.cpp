@@ -24,6 +24,15 @@
 // }
 
 
+void print_node_addresses(const amap_t &arc_map, nfa_t &nfa)
+{
+    for(auto [id, target_pair]: arc_map)
+    {
+        seqan3::debug_stream << id << " " << target_pair << std::endl;
+    }
+}
+
+
 void print_kgraph_arcs(const nfa_t &NFA)
 {
     for(auto &&arc: NFA.arcs())
@@ -33,13 +42,14 @@ void print_kgraph_arcs(const nfa_t &NFA)
 }
 
 
-void update_arc_map(nfa_t &NFA, lmap_t &node_map, amap_t &arc_map, const node_t &source, const node_t &target)
+void update_arc_map(nfa_t &NFA, lmap_t &node_map, amap_t &arc_map, node_t &source, node_t &target)
 {
     const int source_id = NFA.id(source);
     const int symbol = node_map[source];
-    if(symbol < 256) // If the node is not a split just place the target in the first slot
+    if(symbol < 258) // If the node is not a split just place the target in the first slot
     {
         arc_map[source_id].first = &target;
+        arc_map[source_id].second = nullptr;
     }
     else // If it's a split
     {
@@ -229,6 +239,7 @@ void construct_kgraph(const std::string &postfix, nfa_t &nfa, lmap_t &node_map, 
 {
     nfa_stack_t stack;
     node_t start_node = nfa.addNode(); // I don't know why, but a buffer node is necessary for top sort...
+    node_map[start_node] = Ghost;
     for(size_t i = 0; i < postfix.size(); i++)
     {
         int symbol = postfix[i];
@@ -257,7 +268,8 @@ void construct_kgraph(const std::string &postfix, nfa_t &nfa, lmap_t &node_map, 
     // Cap the graph at both ends
     // With a start node
     nfa.addArc(start_node, nfa.nodeFromId(1));
-    update_arc_map(nfa, node_map, arc_map, start_node, nfa.nodeFromId(1));
+    node_t &&not_head = nfa.nodeFromId(1);
+    update_arc_map(nfa, node_map, arc_map, start_node, not_head);
     
     // and with an accepting node
     node_t match_node = nfa.addNode();
@@ -266,4 +278,5 @@ void construct_kgraph(const std::string &postfix, nfa_t &nfa, lmap_t &node_map, 
     nfa.addArc(tail_node, match_node);
     update_arc_map(nfa, node_map, arc_map, tail_node, match_node);
     stack.pop();
+    print_node_addresses(arc_map, nfa);
 }
