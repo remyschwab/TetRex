@@ -10,7 +10,6 @@
 using kmer_t = uint64_t;
 using path_t = bitvector;
 using cache_t = robin_hood::unordered_map<uint64_t, bitvector>;
-using comp_table_t = std::vector<std::vector<std::pair<kmer_t, bitvector>>>;
 
 struct CollectorsItem
 {
@@ -44,6 +43,8 @@ void update_kmer(const int &symbol, kmer_t &kmer, IndexStructure &ibf);
 void update_path(auto &current_state, int &symbol, auto &agent, IndexStructure &ibf, cache_t &cache);
 
 bool all_bits_zero(bitvector const & bitvector) noexcept;
+
+void split_procedure(const amap_t &arc_map, int &id, auto &top, minheap_t &minheap, CollectorsItem &item, nfa_t &NFA);
 
 void condense_queue(std::queue<CollectorsItem> &queue);
 

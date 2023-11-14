@@ -24,13 +24,13 @@
 // }
 
 
-void print_node_addresses(const amap_t &arc_map, nfa_t &nfa)
-{
-    for(auto [id, target_pair]: arc_map)
-    {
-        seqan3::debug_stream << id << " " << target_pair << std::endl;
-    }
-}
+// void print_node_addresses(const amap_t &arc_map, nfa_t &nfa)
+// {
+//     for(auto [id, target_pair]: arc_map)
+//     {
+//         seqan3::debug_stream << id << " " << target_pair << std::endl;
+//     }
+// }
 
 
 void print_kgraph_arcs(const nfa_t &NFA)
@@ -44,22 +44,21 @@ void print_kgraph_arcs(const nfa_t &NFA)
 
 void update_arc_map(nfa_t &NFA, lmap_t &node_map, amap_t &arc_map, node_t &source, node_t &target)
 {
-    const int source_id = NFA.id(source);
-    const int symbol = node_map[source];
+    int source_id = NFA.id(source);
+    int symbol = node_map[source];
     if(symbol < 258) // If the node is not a split just place the target in the first slot
     {
-        arc_map[source_id].first = &target;
-        arc_map[source_id].second = nullptr;
+        arc_map[source_id].first = target;
     }
     else // If it's a split
     {
         if(arc_map.find(source_id) == arc_map.end())
         {
-            arc_map[source_id].first = &target; // Place it in the first slot if we haven't seen it before
+            arc_map[source_id].first = target; // Place it in the first slot if we haven't seen it before
         }
         else
         {
-            arc_map[source_id].second = &target; // Place it in the second if we have
+            arc_map[source_id].second = target; // Place it in the second if we have
         }
     }
 }
@@ -278,5 +277,5 @@ void construct_kgraph(const std::string &postfix, nfa_t &nfa, lmap_t &node_map, 
     nfa.addArc(tail_node, match_node);
     update_arc_map(nfa, node_map, arc_map, tail_node, match_node);
     stack.pop();
-    print_node_addresses(arc_map, nfa);
+    // print_node_addresses(arc_map, nfa);
 }
