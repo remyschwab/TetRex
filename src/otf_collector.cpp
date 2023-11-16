@@ -62,22 +62,22 @@ bool all_bits_zero(bitvector const & bitvector) noexcept
     return !result;
 }
 
-void split_procedure(const amap_t &arc_map, int &id, auto &top, minheap_t &minheap, CollectorsItem &item, nfa_t &NFA)
+void split_procedure(const amap_t &arc_map, int &id, auto &top, CustomQueue &minheap, nfa_t &NFA)
 {
     node_t n1 = arc_map.at(id).first;
-    item = {n1, NFA.id(n1), top.shift_count_, top.kmer_, top.path_};
-    minheap.push(item);
+    CollectorsItem item1 = {n1, NFA.id(n1), top.shift_count_, top.kmer_, top.path_};
+    minheap.push(item1);
     node_t n2 = arc_map.at(id).second;
-    item = {n2, NFA.id(n2), top.shift_count_, top.kmer_, top.path_};
-    minheap.push(item);
+    CollectorsItem item2 = {n2, NFA.id(n2), top.shift_count_, top.kmer_, top.path_};
+    minheap.push(item2);
 }
 
 
 bitvector collect_Top(nfa_t &NFA, IndexStructure &ibf, lmap_t &nfa_map, const std::vector<int> &rank_map, const amap_t &arc_map)
 {
     bitvector path_matrix{ibf.getBinCount()};
-    CustomCompare ranker(rank_map);
-    minheap_t minheap(ranker);
+    CustomQueue minheap(rank_map, NFA);
+    minheap.create_selection_bitmask(ibf.k_);
 
     cache_t kmer_cache;
     auto && ibf_ref = ibf.getIBF();
@@ -89,7 +89,6 @@ bitvector collect_Top(nfa_t &NFA, IndexStructure &ibf, lmap_t &nfa_map, const st
     uint64_t kmer_init = 0;
     node_t graph_head = NFA.nodeFromId(id);
     CollectorsItem item = {graph_head, id, 0, kmer_init, hit_vector};
-    CollectorsItem item2; // For Splits...
     minheap.push(item);
     
     node_t next1;
@@ -101,7 +100,6 @@ bitvector collect_Top(nfa_t &NFA, IndexStructure &ibf, lmap_t &nfa_map, const st
         minheap.pop();
         id = top.id_;
         int symbol = nfa_map[top.node];
-        seqan3::debug_stream << id << " " << symbol << std::endl;
         switch(symbol)
         {
             case Match:
@@ -112,14 +110,8 @@ bitvector collect_Top(nfa_t &NFA, IndexStructure &ibf, lmap_t &nfa_map, const st
                 item = {next1, NFA.id(next1), top.shift_count_, top.kmer_, top.path_};
                 minheap.push(item);
                 break;
-            case SplitU:
-                split_procedure(arc_map, id, top, minheap, item, NFA);
-                break;
-            case SplitP:
-                split_procedure(arc_map, id, top, minheap, item, NFA);
-                break;
-            case SplitK:
-                split_procedure(arc_map, id, top, minheap, item, NFA);
+            case Split:
+                split_procedure(arc_map, id, top, minheap, NFA);
                 break;
             default:
                 update_path(top, symbol, agent, ibf, kmer_cache);

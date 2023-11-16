@@ -107,7 +107,7 @@ void iter_disk_search(const bitvector &hits, const std::string &query, IndexStru
 
 void drive_query(query_arguments &cmd_args, const bool &model)
 {
-    double t1, t2, t3;
+    double t1, t2;
     omp_set_num_threads(cmd_args.t);
     IndexStructure ibf;
     load_ibf(ibf, cmd_args.idx);
@@ -132,17 +132,11 @@ void drive_query(query_arguments &cmd_args, const bool &model)
     lmap_t nfa_map(NFA);
     amap_t arc_map;
     
-    // t1 = omp_get_wtime();
+    t1 = omp_get_wtime();
     construct_kgraph(cmd_args.query, NFA, nfa_map, arc_map, ibf.k_);
-    // t2 = omp_get_wtime();
-    // seqan3::debug_stream << "Construction time: " << (t2-t1) << std::endl;
-    // t1 = omp_get_wtime();
     std::vector<int> top_rank_map = run_top_sort(NFA);
-    // t2 = omp_get_wtime();
-    // seqan3::debug_stream << "Prioritization time: " << (t2-t1) << std::endl;
-    // t1 = omp_get_wtime();
     bitvector hit_vector = collect_Top(NFA, ibf, nfa_map, top_rank_map, arc_map);
-    // t2 = omp_get_wtime();
-    // seqan3::debug_stream << "Collection time: " << (t2-t1) << std::endl;
     if(!all_bits_zero(hit_vector)) iter_disk_search(hit_vector, rx, ibf);
+    t2 = omp_get_wtime();
+    seqan3::debug_stream << "Query Time: " << (t2-t1) << std::endl;
 }

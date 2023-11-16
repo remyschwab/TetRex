@@ -1,0 +1,120 @@
+#include <queue>
+#include "robin_hood.h"
+#include "construct_nfa.h"
+
+
+using kmer_t = uint64_t;
+using path_t = bitvector;
+using cache_t = robin_hood::unordered_map<uint64_t, bitvector>;
+
+
+struct CollectorsItem
+{
+    node_t node;
+    int id_;
+    uint8_t shift_count_;
+    kmer_t kmer_;
+    path_t path_;
+};
+
+
+using comp_table_t = std::vector<robin_hood::unordered_map<uint64_t, CollectorsItem>>;
+
+
+class CustomCompare
+{
+    private:
+        std::vector<int> ranks_;
+
+    public:
+        bool operator() (int &item1, int &item2) const
+        {
+            return ranks_[item1] > ranks_[item2];
+        }
+
+    CustomCompare() = default;
+
+    explicit CustomCompare(std::vector<int> ranks) : ranks_{ranks} {}
+};
+
+using minheap_t = std::priority_queue<int, std::vector<int>, CustomCompare>;
+
+
+class CustomQueue
+{
+    private:
+        CustomCompare ranker_;
+        minheap_t minheap_;
+        uint64_t submask_;
+
+    public:
+        comp_table_t comp_table_;
+
+    CustomQueue() = default;
+
+    explicit CustomQueue(std::vector<int> ranks, nfa_t &NFA)
+    {
+        ranker_ = CustomCompare(ranks);
+        minheap_ = minheap_t(ranker_);
+        comp_table_.resize(NFA.nodeNum());
+    }
+
+    void push(CollectorsItem &item)
+    {
+        uint64_t subhash = extract_hash(item);
+        if(comp_table_[item.id_].find(subhash) == comp_table_[item.id_].end())
+        {
+            comp_table_[item.id_][subhash] = item;
+            minheap_.push(item.id_);
+        }
+        else
+        {
+            absorb(subhash, item);
+        }
+    }
+
+    void absorb(uint64_t &subhash, CollectorsItem &item)
+    {
+        comp_table_[item.id_][subhash].path_.raw_data() |= item.path_.raw_data();
+    }
+
+    void pop()
+    {
+        int topid = minheap_.top();
+        auto it = comp_table_[topid].begin();
+        comp_table_[topid].erase(it);
+        minheap_.pop();
+    }
+
+    CollectorsItem top()
+    {
+        int heap_top = minheap_.top();
+        return comp_table_[heap_top].begin()->second;
+    }
+
+    bool empty()
+    {
+        return minheap_.empty();
+    }
+
+    uint64_t extract_hash(CollectorsItem &item)
+    {
+        uint64_t subhash = (item.kmer_ & submask_);
+        return subhash;
+    }
+
+    void create_selection_bitmask(uint8_t &k)
+    {
+        /*
+        Example with k=4 creates a bitmask like 
+        0b00000000-00000000-00000000-00000000-00000000-00000000-00000000-00111111
+        for the rolling hash
+        */
+        size_t countdown = (k-1);
+        while(countdown > 0)
+        {
+            submask_ = (submask_<<2) | 0b11;
+            countdown--;
+        }
+    }
+};

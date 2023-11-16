@@ -45,9 +45,7 @@ enum
 {
     Match = 256,
     Ghost = 257,
-    SplitU = 258, // Union Split
-    SplitP = 259, // + Split
-    SplitK = 260, // Kleene Split
+    Split = 258
 };
 
 void update_arc_map(nfa_t &NFA, lmap_t &node_map, amap_t &arc_map, node_t &source, node_t &target);

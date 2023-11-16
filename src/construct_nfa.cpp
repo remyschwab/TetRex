@@ -24,21 +24,17 @@
 // }
 
 
-// void print_node_addresses(const amap_t &arc_map, nfa_t &nfa)
-// {
-//     for(auto [id, target_pair]: arc_map)
-//     {
-//         seqan3::debug_stream << id << " " << target_pair << std::endl;
-//     }
-// }
+void print_node_addresses(const amap_t &arc_map, nfa_t &nfa)
+{
+    for(auto [id, target_pair]: arc_map)
+        std::cout << id << " --> " << nfa.id(target_pair.first) << "-" << nfa.id(target_pair.second) << std::endl;
+}
 
 
 void print_kgraph_arcs(const nfa_t &NFA)
 {
     for(auto &&arc: NFA.arcs())
-    {
         std::cout << NFA.id(NFA.source(arc)) << " --> " <<NFA.id(NFA.target(arc)) << std::endl;
-    }
 }
 
 
@@ -110,7 +106,7 @@ void union_procedure(nfa_t &nfa, nfa_stack_t &stack, lmap_t &node_map, amap_t &a
     stack.pop();
 
     node_t split_node = nfa.addNode();
-    node_map[split_node] = SplitU;
+    node_map[split_node] = Split;
     nfa.addArc(split_node, node1.first);
     update_arc_map(nfa, node_map, arc_map, split_node, node1.first);
     nfa.addArc(split_node, node2.first);
@@ -134,7 +130,7 @@ void optional_procedure(nfa_t &nfa, nfa_stack_t &stack, lmap_t &node_map, amap_t
     stack.pop();
 
     node_t split_node = nfa.addNode();
-    node_map[split_node] = SplitU;
+    node_map[split_node] = Split;
     nfa.addArc(split_node, node.first);
     update_arc_map(nfa, node_map, arc_map, split_node, node.first);
 
@@ -157,7 +153,7 @@ void kleene_procedure(nfa_t &nfa, nfa_stack_t &stack, lmap_t &node_map, const ui
     const int symbol = node_map[node.first]; // This isn't a full solution!
 
     node_t split_node = nfa.addNode();
-    node_map[split_node] = SplitK;
+    node_map[split_node] = Split;
     nfa.addArc(split_node, node.first);
     update_arc_map(nfa, node_map, arc_map, split_node, node.first);
 
@@ -170,7 +166,7 @@ void kleene_procedure(nfa_t &nfa, nfa_stack_t &stack, lmap_t &node_map, const ui
     for(uint8_t i = 1; i < (k-1); ++i) // I iterate starting at 1 to represent how I already linearized one cycle
     {
         node_t inner_split = nfa.addNode();
-        node_map[inner_split] = SplitU;
+        node_map[inner_split] = Split;
         nfa.addArc(*back_node, inner_split);
         update_arc_map(nfa, node_map, arc_map, *back_node, inner_split);
         nfa.addArc(inner_split, ghost_node);
@@ -201,7 +197,7 @@ void plus_procedure(nfa_t &nfa, nfa_stack_t &stack, lmap_t &node_map, const uint
     const int symbol = node_map[node.first]; // This isn't a full solution!
 
     node_t split_node = nfa.addNode();
-    node_map[split_node] = SplitP;
+    node_map[split_node] = Split;
     nfa.addArc(node.first, split_node);
     update_arc_map(nfa, node_map, arc_map, node.first, split_node);
 
@@ -224,7 +220,7 @@ void plus_procedure(nfa_t &nfa, nfa_stack_t &stack, lmap_t &node_map, const uint
             break;
         }
         node_t inner_split = nfa.addNode();
-        node_map[inner_split] = SplitU;
+        node_map[inner_split] = Split;
         nfa.addArc(new_node, inner_split);
         update_arc_map(nfa, node_map, arc_map, new_node, inner_split);
         back_node = &inner_split;
@@ -277,5 +273,10 @@ void construct_kgraph(const std::string &postfix, nfa_t &nfa, lmap_t &node_map, 
     nfa.addArc(tail_node, match_node);
     update_arc_map(nfa, node_map, arc_map, tail_node, match_node);
     stack.pop();
+    
+    // Last but not least...
+    stack.pop();
+
+    // print_kgraph_arcs(nfa);
     // print_node_addresses(arc_map, nfa);
 }
