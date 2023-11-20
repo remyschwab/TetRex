@@ -80,12 +80,12 @@ class CustomQueue
         {
             absorb(subhash, item);
         }
-        seqan3::debug_stream << minheap_.size() << std::endl;
+        // seqan3::debug_stream << minheap_.size() << std::endl;
     }
 
     void absorb(uint64_t &subhash, CollectorsItem &item)
     {
-        seqan3::debug_stream << "[-->" << item.id_ << "<--]" << std::endl;
+        // seqan3::debug_stream << "[-->" << item.id_ << "<--]" << std::endl;
         comp_table_[item.id_][subhash].path_.raw_data() |= item.path_.raw_data();
     }
 
