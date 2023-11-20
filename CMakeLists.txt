@@ -3,7 +3,7 @@ cmake_minimum_required (VERSION 3.8)
 ## CUSTOMISE
 
 # Define the application name and version.
-project (kbioreg VERSION 1.0.0)
+project (tetrix VERSION 1.0.0)
 
 ## BUILD
 

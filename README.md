@@ -17,16 +17,16 @@ Despite the many efficient tools implemented for finding Regular Expressions, th
 4. Build with make ```make```
 
 ## Usage
-kBioReg offers two main commands [index & query] and two utility commands:
+Tetrix offers two main commands [index & query] and two utility commands:
 ```bash
 ## Index Nucleic Acid DB, with kmer size = 7, 3 hash functions, & 644830 bits per Bloom Filter, each input file represents a bin
-kbioreg index -k 7 -c 3 -s 644830 -m na -o ibf_idx file1.fna file2.fna
+tetrix index -k 7 -c 3 -s 644830 -m na -o ibf_idx file1.fna file2.fna
 ## Query RegEx
-kbioreg query ibf_idx.ibf "ACGTA(C|G)CC(A|G|T)A"
+tetrix query ibf_idx.ibf "ACGTA(C|G)CC(A|G|T)A"
 ## Print meta info for an index
-kbioreg inspect ibf_idx.ibf
+tetrix inspect ibf_idx.ibf
 ## Compute the probability of finding your RegEx
-kbioreg model -l 1000 ibf_idx.ibf "ACGTA(C|G)CC(A|G|T)A"
+tetrix model -l 1000 ibf_idx.ibf "ACGTA(C|G)CC(A|G|T)A"
 ```
 
 ## Notes
