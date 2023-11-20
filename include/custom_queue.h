@@ -35,6 +35,14 @@ class CustomCompare
     CustomCompare() = default;
 
     explicit CustomCompare(std::vector<int> ranks) : ranks_{ranks} {}
+
+    void print_ranks()
+    {
+        for(size_t i = 0; i < ranks_.size(); ++i)
+        {
+            std::cout << i << " " << ranks_[i] << std::endl;
+        }
+    }
 };
 
 using minheap_t = std::priority_queue<int, std::vector<int>, CustomCompare>;
@@ -52,11 +60,12 @@ class CustomQueue
 
     CustomQueue() = default;
 
-    explicit CustomQueue(std::vector<int> ranks, nfa_t &NFA)
+    explicit CustomQueue(std::vector<int> ranks, nfa_t &NFA, uint8_t &k)
     {
         ranker_ = CustomCompare(ranks);
         minheap_ = minheap_t(ranker_);
         comp_table_.resize(NFA.nodeNum());
+        create_selection_bitmask(k);
     }
 
     void push(CollectorsItem &item)
@@ -71,17 +80,19 @@ class CustomQueue
         {
             absorb(subhash, item);
         }
+        seqan3::debug_stream << minheap_.size() << std::endl;
     }
 
     void absorb(uint64_t &subhash, CollectorsItem &item)
     {
+        seqan3::debug_stream << "[-->" << item.id_ << "<--]" << std::endl;
         comp_table_[item.id_][subhash].path_.raw_data() |= item.path_.raw_data();
     }
 
     void pop()
     {
         int topid = minheap_.top();
-        auto it = comp_table_[topid].begin();
+        auto it = comp_table_[topid].begin(); // This creates some randomization
         comp_table_[topid].erase(it);
         minheap_.pop();
     }
@@ -108,7 +119,7 @@ class CustomQueue
         /*
         Example with k=4 creates a bitmask like 
         0b00000000-00000000-00000000-00000000-00000000-00000000-00000000-00111111
-        for the rolling hash
+        to detect collisions for absorption
         */
         size_t countdown = (k-1);
         while(countdown > 0)
@@ -116,5 +127,10 @@ class CustomQueue
             submask_ = (submask_<<2) | 0b11;
             countdown--;
         }
+    }
+
+    void print_ranks()
+    {
+        ranker_.print_ranks();
     }
 };

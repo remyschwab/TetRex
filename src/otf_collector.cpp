@@ -76,8 +76,7 @@ void split_procedure(const amap_t &arc_map, int &id, auto &top, CustomQueue &min
 bitvector collect_Top(nfa_t &NFA, IndexStructure &ibf, lmap_t &nfa_map, const std::vector<int> &rank_map, const amap_t &arc_map)
 {
     bitvector path_matrix{ibf.getBinCount()};
-    CustomQueue minheap(rank_map, NFA);
-    minheap.create_selection_bitmask(ibf.k_);
+    CustomQueue minheap(rank_map, NFA, ibf.k_);
 
     cache_t kmer_cache;
     auto && ibf_ref = ibf.getIBF();
@@ -92,14 +91,16 @@ bitvector collect_Top(nfa_t &NFA, IndexStructure &ibf, lmap_t &nfa_map, const st
     minheap.push(item);
     
     node_t next1;
-    node_t next2;
-    
+
+    // size_t loop_count = 0;
     while(!minheap.empty())
     {
+        // loop_count++;
         auto top = minheap.top();
         minheap.pop();
         id = top.id_;
         int symbol = nfa_map[top.node];
+        // seqan3::debug_stream << symbol << std::endl;
         switch(symbol)
         {
             case Match:
@@ -123,5 +124,6 @@ bitvector collect_Top(nfa_t &NFA, IndexStructure &ibf, lmap_t &nfa_map, const st
         }
     }
     // seqan3::debug_stream << path_matrix << std::endl;
+    // seqan3::debug_stream << loop_count << std::endl;
     return path_matrix;
 }

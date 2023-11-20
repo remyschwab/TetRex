@@ -15,8 +15,4 @@ bool all_bits_zero(bitvector const & bitvector) noexcept;
 
 void split_procedure(const amap_t &arc_map, int &id, auto &top, CustomQueue &minheap, nfa_t &NFA);
 
-void condense_queue(std::queue<CollectorsItem> &queue);
-
-bitvector collect_BFS(nfa_t &NFA, IndexStructure &ibf, lmap_t &nfa_map);
-
 bitvector collect_Top(nfa_t &NFA, IndexStructure &ibf, lmap_t &nfa_map, const std::vector<int> &rank_map, const amap_t &arc_map);

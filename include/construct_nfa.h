@@ -52,6 +52,8 @@ void update_arc_map(nfa_t &NFA, lmap_t &node_map, amap_t &arc_map, node_t &sourc
 
 void print_kgraph_arcs(const nfa_t &NFA);
 
+void print_node_ids(nfa_t &NFA, lmap_t &nmap);
+
 void export_nfa_img(nfa_t &nfa, std::string &title);
 
 void copy_subgraph(node_pair_t &node_pair);

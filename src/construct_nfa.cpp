@@ -38,6 +38,31 @@ void print_kgraph_arcs(const nfa_t &NFA)
 }
 
 
+void print_node_ids(nfa_t &NFA, lmap_t &nmap)
+{
+    for(auto &&node: NFA.nodes())
+    {
+        int symbol = nmap[node];
+        if(symbol < 256)
+        {
+            std::cout << NFA.id(node) << " " << static_cast<char>(nmap[node]) << std::endl;
+        }
+        else if(symbol == 256)
+        {
+            std::cout << NFA.id(node) << " ∆" << std::endl;
+        }
+        else if(symbol == 257)
+        {
+            std::cout << NFA.id(node) << " •" << std::endl;
+        }
+        else if(symbol == 258)
+        {
+            std::cout << NFA.id(node) << " Ø" << std::endl;
+        }
+    }
+}
+
+
 void update_arc_map(nfa_t &NFA, lmap_t &node_map, amap_t &arc_map, node_t &source, node_t &target)
 {
     int source_id = NFA.id(source);
@@ -276,7 +301,4 @@ void construct_kgraph(const std::string &postfix, nfa_t &nfa, lmap_t &node_map, 
     
     // Last but not least...
     stack.pop();
-
-    // print_kgraph_arcs(nfa);
-    // print_node_addresses(arc_map, nfa);
 }

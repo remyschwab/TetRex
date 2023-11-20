@@ -134,6 +134,10 @@ void drive_query(query_arguments &cmd_args, const bool &model)
     
     t1 = omp_get_wtime();
     construct_kgraph(cmd_args.query, NFA, nfa_map, arc_map, ibf.k_);
+    // print_kgraph_arcs(NFA);
+    // print_node_addresses(arc_map, NFA);
+    // print_node_ids(NFA, nfa_map);
+    // seqan3::debug_stream << std::endl;
     std::vector<int> top_rank_map = run_top_sort(NFA);
     bitvector hit_vector = collect_Top(NFA, ibf, nfa_map, top_rank_map, arc_map);
     if(!all_bits_zero(hit_vector)) iter_disk_search(hit_vector, rx, ibf);
