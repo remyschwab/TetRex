@@ -6,11 +6,8 @@ void update_kmer(const int &symbol, kmer_t &kmer, IndexStructure &ibf)
     if(ibf.molecule_ == "na")
     {
         uint64_t fb = (symbol>>1)&3;
-        uint64_t forward;
-        uint64_t reverse;
-        forward = ((kmer<<2)&ibf.selection_mask_) | fb;
-        reverse = revComplement(forward, ibf.k_);
-        kmer = forward <= reverse ? forward : reverse;
+        uint64_t forward = ((kmer<<2)&ibf.selection_mask_) | fb;
+        kmer = forward;
         return;
     }
 }
@@ -19,6 +16,8 @@ void update_kmer(const int &symbol, kmer_t &kmer, IndexStructure &ibf)
 void update_path(auto &current_state, int &symbol, auto &agent, IndexStructure &ibf, cache_t &cache)
 {
     bitvector hits;
+    uint64_t canonical_kmer = 0;
+    uint64_t reverse = 0;
     if(current_state.shift_count_ < (ibf.k_-1)) // Corresponds to a new kmer < threshold size (--A)
     {
         update_kmer(symbol, current_state.kmer_, ibf);
@@ -27,22 +26,24 @@ void update_path(auto &current_state, int &symbol, auto &agent, IndexStructure &
     else if(current_state.shift_count_ == (ibf.k_-1)) // If the kmer just needs to be updated one more time to be a valid kmer (-AC)
     {
         update_kmer(symbol, current_state.kmer_, ibf);
+        reverse = revComplement(current_state.kmer_, ibf.k_);
+        canonical_kmer = current_state.kmer_ <= reverse ? current_state.kmer_ : reverse;
         if(cache.find(current_state.kmer_) == cache.end())
         {
-            hits = agent.bulk_contains(current_state.kmer_);
-            cache[current_state.kmer_] = hits;
+            cache[current_state.kmer_] = agent.bulk_contains(canonical_kmer);
         }
-        // hits = cache[current_state.kmer_];
+        hits = cache[current_state.kmer_];
         current_state.path_.raw_data() &= hits.raw_data();
         current_state.shift_count_++;
     }
     else if(current_state.shift_count_ == (ibf.k_)) // (ACG) Next kmer will be valid
     {
         update_kmer(symbol, current_state.kmer_, ibf);
+        reverse = revComplement(current_state.kmer_, ibf.k_);
+        canonical_kmer = current_state.kmer_ <= reverse ? current_state.kmer_ : reverse;
         if(cache.find(current_state.kmer_) == cache.end())
         {
-            hits = agent.bulk_contains(current_state.kmer_);
-            cache[current_state.kmer_] = hits;
+            cache[current_state.kmer_] = agent.bulk_contains(canonical_kmer);
         }
         hits = cache[current_state.kmer_];
         current_state.path_.raw_data() &= hits.raw_data();
@@ -77,6 +78,8 @@ bitvector collect_Top(nfa_t &NFA, IndexStructure &ibf, lmap_t &nfa_map, const st
 {
     bitvector path_matrix{ibf.getBinCount()};
     CustomQueue minheap(rank_map, NFA, ibf.k_);
+    // minheap.print_ranks();
+    // seqan3::debug_stream << std::endl;
 
     cache_t kmer_cache;
     auto && ibf_ref = ibf.getIBF();
@@ -118,6 +121,7 @@ bitvector collect_Top(nfa_t &NFA, IndexStructure &ibf, lmap_t &nfa_map, const st
                 update_path(top, symbol, agent, ibf, kmer_cache);
                 if(all_bits_zero(top.path_)) break; // Immediately get rid of deadend paths
                 next1 = arc_map.at(id).first;
+                // seqan3::debug_stream << top.kmer_ << std::endl;
                 item = {next1, NFA.id(next1), top.shift_count_, top.kmer_, top.path_};
                 minheap.push(item);
                 break;

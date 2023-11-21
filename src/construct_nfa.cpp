@@ -24,7 +24,7 @@
 // }
 
 
-void print_node_addresses(const amap_t &arc_map, nfa_t &nfa)
+void print_node_pointers(const amap_t &arc_map, nfa_t &nfa)
 {
     for(auto [id, target_pair]: arc_map)
         std::cout << id << " --> " << nfa.id(target_pair.first) << "-" << nfa.id(target_pair.second) << std::endl;

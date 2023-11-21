@@ -53,7 +53,7 @@ class CustomQueue
     private:
         CustomCompare ranker_;
         minheap_t minheap_;
-        uint64_t submask_;
+        uint64_t submask_{};
 
     public:
         comp_table_t comp_table_;
@@ -71,10 +71,12 @@ class CustomQueue
     void push(CollectorsItem &item)
     {
         uint64_t subhash = extract_hash(item);
+        // seqan3::debug_stream << "Subhash: " << subhash << std::endl;
         if(comp_table_[item.id_].find(subhash) == comp_table_[item.id_].end())
         {
             comp_table_[item.id_][subhash] = item;
             minheap_.push(item.id_);
+            // seqan3::debug_stream << "Adding: " << item.id_ << std::endl;
         }
         else
         {
