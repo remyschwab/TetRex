@@ -15,3 +15,7 @@
 [submodule "lib/lemon"]
 	path = lib/lemon
 	url = git@github.com:seqan/lemon.git
+[submodule "lib/hibf"]
+	path = lib/hibf
+	url = git@github.com:seqan/hibf.git
+	branch = master

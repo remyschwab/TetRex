@@ -15,7 +15,18 @@ target_compile_options ("${PROJECT_NAME}_interface" INTERFACE "-pedantic" "-Wall
 
 # An object library (without main) to be used in multiple targets.
 add_library ("${PROJECT_NAME}_lib" STATIC utils.cpp index.cpp query.cpp inspect_idx.cpp molecule_encodings.cpp otf_collector.cpp construct_nfa.cpp)
-target_link_libraries ("${PROJECT_NAME}_lib" PUBLIC "${PROJECT_NAME}_interface" re2::re2)
+target_link_libraries ("${PROJECT_NAME}_lib" PUBLIC "${PROJECT_NAME}_interface" re2::re2 seqan::hibf)
+
+# # Dependency: HIBF
+# include (FetchContent)
+# FetchContent_Declare (
+#     hibf_fetch_content
+#     GIT_REPOSITORY "https://github.com/seqan/hibf"
+#     GIT_TAG "main")
+# option (INSTALL_HIBF "" OFF)
+# FetchContent_MakeAvailable (hibf_fetch_content)
+
+# target_link_libraries ("${PROJECT_NAME}_lib" PUBLIC seqan::hibf)
 
 add_executable ("${PROJECT_NAME}" main.cpp)
 target_link_libraries ("${PROJECT_NAME}" PRIVATE "${PROJECT_NAME}_lib")

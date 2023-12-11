@@ -3,7 +3,7 @@ cmake_minimum_required (VERSION 3.8)
 ## CUSTOMISE
 
 # Define the application name and version.
-project (tetrix VERSION 1.0.0)
+project (tetrex VERSION 1.0.0)
 
 ## BUILD
 
@@ -32,13 +32,7 @@ option(RE2_BUILD_TESTING OFF)
 add_subdirectory(lib/re2)
 
 # Dependency: HIBF
-# include (FetchContent)
-# FetchContent_Declare (
-#     hibf_fetch_content
-#     GIT_REPOSITORY "https://github.com/seqan/Hierarchical_Interleaved_Bloomfilter"
-#     GIT_TAG "main")
-# option (INSTALL_HIBF "" OFF)
-# FetchContent_MakeAvailable (hibf_fetch_content)
+add_subdirectory(lib/hibf)
 
 # Allow to include CMake scripts from seqan3.
 list (APPEND CMAKE_MODULE_PATH "${SEQAN3_CLONE_DIR}/test/cmake/")
