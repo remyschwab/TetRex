@@ -9,7 +9,7 @@
 
 #include "kseq.h"
 #include "utils.h"
-#include "index.h"
+#include "index_base.h"
 #include "arg_parse.h"
 #include "otf_collector.h"
 #include "construct_nfa.h"

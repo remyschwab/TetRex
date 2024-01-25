@@ -1,6 +1,25 @@
 #include "otf_collector.h"
 
 
+void print_in_order(size_t &node_count, const std::vector<int> &ranks)
+{
+    CustomCompare ranker(ranks);
+    minheap_t minheap(ranker);
+    for(size_t i = 0; i < node_count; ++i)
+    {
+        std::cout << i << " ";
+        minheap.push(i);   
+    }
+    std::cout << std::endl;
+    while(!minheap.empty())
+    {
+        std::cout << minheap.top() << " ";
+        minheap.pop();
+    }
+    std::cout << std::endl;
+}
+
+
 void update_kmer(const int &symbol, kmer_t &kmer, IndexStructure &ibf)
 {
     if(ibf.molecule_ == "na")
@@ -12,8 +31,8 @@ void update_kmer(const int &symbol, kmer_t &kmer, IndexStructure &ibf)
     }
 }
 
-
-void update_path(auto &current_state, int &symbol, auto &agent, IndexStructure &ibf, cache_t &cache)
+template<index_structure::is_valid ibf_flavor>
+void update_path(auto &current_state, int &symbol, auto &agent, TetrexIndex<ibf_flavor> &ibf, cache_t &cache)
 {
     bitvector hits;
     uint64_t canonical_kmer = 0;
@@ -63,6 +82,7 @@ bool all_bits_zero(bitvector const & bitvector) noexcept
     return !result;
 }
 
+
 void split_procedure(const amap_t &arc_map, int &id, auto &top, CustomQueue &minheap, nfa_t &NFA)
 {
     node_t n1 = arc_map.at(id).first;
@@ -78,22 +98,18 @@ bitvector collect_Top(nfa_t &NFA, IndexStructure &ibf, lmap_t &nfa_map, const st
 {
     bitvector path_matrix{ibf.getBinCount()};
     CustomQueue minheap(rank_map, NFA, ibf.k_);
-    // minheap.print_ranks();
-    // seqan3::debug_stream << std::endl;
 
     cache_t kmer_cache;
-    auto && ibf_ref = ibf.getIBF();
+    auto ibf_ref = ibf.getIBF();
     auto agent = ibf_ref.membership_agent();
     bitvector hit_vector{ibf.getBinCount()};
     std::fill(hit_vector.begin(), hit_vector.end(), true);
     
     int id = 0;
     uint64_t kmer_init = 0;
-    node_t graph_head = NFA.nodeFromId(id);
-    CollectorsItem item = {graph_head, id, 0, kmer_init, hit_vector};
+    node_t next = NFA.nodeFromId(id);
+    CollectorsItem item = {next, id, 0, kmer_init, hit_vector};
     minheap.push(item);
-    
-    node_t next1;
 
     // size_t loop_count = 0;
     while(!minheap.empty())
@@ -110,8 +126,8 @@ bitvector collect_Top(nfa_t &NFA, IndexStructure &ibf, lmap_t &nfa_map, const st
                 path_matrix.raw_data() |= top.path_.raw_data();
                 break;
             case Ghost:
-                next1 = arc_map.at(id).first;
-                item = {next1, NFA.id(next1), top.shift_count_, top.kmer_, top.path_};
+                next = arc_map.at(id).first;
+                item = {next, NFA.id(next), top.shift_count_, top.kmer_, top.path_};
                 minheap.push(item);
                 break;
             case Split:
@@ -120,9 +136,8 @@ bitvector collect_Top(nfa_t &NFA, IndexStructure &ibf, lmap_t &nfa_map, const st
             default:
                 update_path(top, symbol, agent, ibf, kmer_cache);
                 if(all_bits_zero(top.path_)) break; // Immediately get rid of deadend paths
-                next1 = arc_map.at(id).first;
-                // seqan3::debug_stream << top.kmer_ << std::endl;
-                item = {next1, NFA.id(next1), top.shift_count_, top.kmer_, top.path_};
+                next = arc_map.at(id).first;
+                item = {next, NFA.id(next), top.shift_count_, top.kmer_, top.path_};
                 minheap.push(item);
                 break;
         }

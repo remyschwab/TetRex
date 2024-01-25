@@ -3,9 +3,11 @@
 #include <iostream>
 #include <vector>
 #include "custom_queue.h"
-#include "index.h"
+#include "index_base.h"
 #include "construct_nfa.h"
 
+
+void print_in_order(size_t &node_count, const std::vector<int> &ranks);
 
 void update_kmer(const int &symbol, kmer_t &kmer, IndexStructure &ibf);
 

@@ -1,0 +1,110 @@
+#pragma once
+
+
+#include <string>
+#include <simde/x86/ssse3.h>
+
+
+namespace molecules
+{
+    class NucleotideDecomposer
+    {
+        private:
+            uint64_t selection_mask_; // DNA Encoding
+            uint8_t k_;
+            int reduction_;
+
+        public:
+            uint8_t left_shift_{};
+            uint64_t selection_mask_{};
+
+            NucleotideDecomposer() = default;
+            NucleotideDecomposer(uint8_t &k, int &reduction) : k_{k}, reduction_{reduction}
+            {
+                create_selection_bitmask();
+                set_left_shift();
+            }
+
+            void set_left_shift()
+            {
+                left_shift_ = ((uint8_t)2 * k_)-2;
+            }
+
+            void create_selection_bitmask()
+            {
+                /*
+                Example with k=4 creates a bitmask like 
+                0b00000000-00000000-00000000-00000000-00000000-00000000-00000000-11111111
+                for the rolling hash
+                */
+                size_t countdown = k_;
+                while(countdown > 0)
+                {
+                    selection_mask_ = (selection_mask_<<2) | 0b11;
+                    countdown--;
+                }
+            }
+
+            uint64_t revComplement(const uint64_t kmer, const int k)
+            {
+                // broadcast 64bit to 128 bit
+                simde__m128i x = simde_mm_cvtsi64_si128(kmer);
+
+                // create lookup (set 16 bytes in 128 bit)
+                // a lookup entry at the index of two nucleotides (4 bit) describes the reverse
+                // complement of these two nucleotides in the higher 4 bits (lookup1) or in the
+                // lower 4 bits (lookup2)
+                simde__m128i lookup1 = simde_mm_set_epi8(0x50,0x10,0xD0,0x90,0x40,0x00,0xC0,0x80,0x70,
+                                                        0x30,0xF0,0xB0,0x60,0x20,0xE0,0xA0);
+                simde__m128i lookup2 = simde_mm_set_epi8(0x05,0x01,0x0D,0x09,0x04,0x00,0x0C,0x08,0x07,
+                                                        0x03,0x0F,0x0B,0x06,0x02,0x0E,0x0A);
+                // set upper 8 bytes to 0 and revert order of lower 8 bytes
+                simde__m128i upper = simde_mm_set_epi8(0xFF,0xFF,0xFF,0xFF,0xFF,0xFF,0xFF,0xFF,0,1,2,3,4,5,6,7);
+
+                simde__m128i kmer1 = simde_mm_and_si128(x, simde_mm_set1_epi8(0x0F)); // get lower 4 bits
+                simde__m128i kmer2 = simde_mm_and_si128(x, simde_mm_set1_epi8(0xF0)); // get higher 4 bits
+
+                // shift right by 2 nucleotides
+                kmer2 >>= 4;
+
+                // use _mm_shuffle_epi8 to look up reverse complement
+                kmer1 = simde_mm_shuffle_epi8(lookup1, kmer1);
+                kmer2 = simde_mm_shuffle_epi8(lookup2, kmer2);
+
+                // _mm_or_si128: bitwise OR
+                x = simde_mm_or_si128(kmer1, kmer2);
+
+                // set upper 8 bytes to 0 and revert order of lower 8 bytes
+                x = simde_mm_shuffle_epi8(x, upper);
+
+                // shift out the unused nucleotide positions (1 <= k <=32 )
+                // broadcast 128 bit to 64 bit
+                return (((uint64_t)simde_mm_cvtsi128_si64(x)) >> (uint64_t)(64-2*k));
+            }
+
+            uint64_t encode_dna(std::string_view kmer)
+            {
+                uint64_t codemer = 0;
+                for(auto && base: kmer)
+                {
+                    codemer = codemer << 2;
+                    codemer += (base>>1)&3;
+                }
+                return codemer;
+            }
+
+            template<index_structure::is_valid ibf_flavor>
+            void decompose()
+            {
+                uint64_t initial_encoding = encode_dna(record_seq.substr(0,ibf.k_)); // Encode forward
+                uint64_t reverse_complement = revComplement(initial_encoding, ibf.k_); // Compute the reverse compelement
+                ibf.set_stores(initial_encoding, reverse_complement); // Remember both strands
+                ibf.emplace((initial_encoding <= reverse_complement ? initial_encoding : reverse_complement), bin_id); // MinHash
+                for(size_t i = ibf.k_; i < record_seq.length(); ++i)
+                {
+                    auto symbol = record_seq[i];
+                    ibf.rollover_nuc_hash(symbol, bin_id);
+                }
+            }
+    };
+}

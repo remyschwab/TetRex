@@ -109,7 +109,7 @@ void drive_query(query_arguments &cmd_args, const bool &model)
 {
     // double t1, t2;
     omp_set_num_threads(cmd_args.t);
-    IndexStructure ibf;
+    TetrexIndex<index_structure::IBF> ibf;
     load_ibf(ibf, cmd_args.idx);
 
     if(ibf.molecule_ == "na") //TODO: Update the serializing logic
@@ -134,17 +134,20 @@ void drive_query(query_arguments &cmd_args, const bool &model)
     
     // t1 = omp_get_wtime();
     construct_kgraph(cmd_args.query, NFA, nfa_map, arc_map, ibf.k_);
-
-    // print_kgraph_arcs(NFA);
-    // seqan3::debug_stream << std::endl;
-    // print_node_pointers(arc_map, NFA);
-    // seqan3::debug_stream << std::endl;
-    // print_node_ids(NFA, nfa_map);
-    // seqan3::debug_stream << std::endl;
-
     std::vector<int> top_rank_map = run_top_sort(NFA);
+
+    print_kgraph_arcs(NFA);
+    seqan3::debug_stream << std::endl;
+    print_node_pointers(arc_map, NFA);
+    seqan3::debug_stream << std::endl;
+    print_node_ids(NFA, nfa_map);
+    seqan3::debug_stream << std::endl;
+    size_t node_count = NFA.nodeNum();
+    print_in_order(node_count, top_rank_map);
+    seqan3::debug_stream << std::endl;
+
     bitvector hit_vector = collect_Top(NFA, ibf, nfa_map, top_rank_map, arc_map);
-    if(!all_bits_zero(hit_vector)) iter_disk_search(hit_vector, rx, ibf);
+    // if(!all_bits_zero(hit_vector)) iter_disk_search(hit_vector, rx, ibf);
     // t2 = omp_get_wtime();
     // seqan3::debug_stream << "Query Time: " << (t2-t1) << std::endl;
 }

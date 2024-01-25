@@ -1,5 +1,5 @@
 # Search for Regular Expressions in large datasets
-Despite the many efficient tools implemented for finding Regular Expressions, the runtime needed to search for them is always dominated by the size of the text. This tool employs a novel algorithm for regular expression matching that leverages the Interleaved Bloom Filter. Regular Expressions are given as input in the command line and support the following operations:
+Despite the efficiency of modern day tools for Regular Expression search, their runtime is often dominated by the size of the text. We present TetRex, a novel algorithm for regular expression matching that leverages the (Hierarchical) Interleaved Bloom Filter as an index. Regular Expressions are given as input in the command line and support the following operations:
 
 1. **|** - Or
 2. __*__ - Zero or more repetitions

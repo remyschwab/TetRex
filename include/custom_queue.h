@@ -54,17 +54,20 @@ class CustomQueue
         CustomCompare ranker_;
         minheap_t minheap_;
         uint64_t submask_{};
+        uint8_t k_;
 
     public:
         comp_table_t comp_table_;
 
     CustomQueue() = default;
+    ~CustomQueue() = default;
 
     explicit CustomQueue(std::vector<int> ranks, nfa_t &NFA, uint8_t &k)
     {
         ranker_ = CustomCompare(ranks);
         minheap_ = minheap_t(ranker_);
         comp_table_.resize(NFA.nodeNum());
+        k_ = k;
         create_selection_bitmask(k);
     }
 
@@ -76,10 +79,11 @@ class CustomQueue
         {
             comp_table_[item.id_][subhash] = item;
             minheap_.push(item.id_);
-            // seqan3::debug_stream << "Adding: " << item.id_ << std::endl;
+            seqan3::debug_stream << "+SLOT " << item.id_  << "\t" << generate_kmer_seq(item.kmer_, k_) << "/" << subhash << std::endl;
         }
         else
         {
+            seqan3::debug_stream << "ABSORBING " << generate_kmer_seq(item.kmer_, k_) << " AT SLOT " << item.id_ << " WITH SUBHASH " << subhash << "\t";
             absorb(subhash, item);
         }
         // seqan3::debug_stream << minheap_.size() << std::endl;
@@ -87,7 +91,7 @@ class CustomQueue
 
     void absorb(uint64_t &subhash, CollectorsItem &item)
     {
-        // seqan3::debug_stream << "[-->" << item.id_ << "<--]" << std::endl;
+        seqan3::debug_stream << "[-->" << item.id_ << "<--]" << std::endl;
         comp_table_[item.id_][subhash].path_.raw_data() |= item.path_.raw_data();
     }
 
@@ -95,6 +99,8 @@ class CustomQueue
     {
         int topid = minheap_.top();
         auto it = comp_table_[topid].begin(); // This creates some randomization
+        seqan3::debug_stream << "\t-SLOT " << topid  << "\t" << it->second.kmer_ << "/" << it->first << std::endl;
+        // seqan3::debug_stream << std::endl;
         comp_table_[topid].erase(it);
         minheap_.pop();
     }

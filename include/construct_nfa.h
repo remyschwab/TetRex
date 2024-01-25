@@ -1,6 +1,7 @@
 #pragma once
 
 #include <stack>
+#include <algorithm>
 
 #include "robin_hood.h"
 #include "lemon/smart_graph.h"
@@ -47,6 +48,8 @@ enum
     Ghost = 257,
     Split = 258
 };
+
+std::string generate_kmer_seq(uint64_t &kmer, uint8_t &k);
 
 void update_arc_map(nfa_t &NFA, lmap_t &node_map, amap_t &arc_map, node_t &source, node_t &target);
 
