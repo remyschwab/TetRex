@@ -1,9 +1,6 @@
 #pragma once
 
 
-#include <vector>
-
-
 enum {
     Base = 0,
     Murphy = 1,
@@ -18,7 +15,8 @@ namespace molecules
             uint8_t ksize_{};
             uint8_t reduction_{};
             uint8_t alphabet_size_;
-            size_t * powers_;
+            uint64_t *access_masks_;
+            uint64_t selection_mask_;
 
         public:
             std::vector<uint8_t> aamap_;
@@ -27,17 +25,34 @@ namespace molecules
             PeptideDecomposer(uint8_t &k, uint8_t &reduction) : ksize_{k}, reduction_{reduction}
             {
                 create_residue_maps(reduction_, aamap_);
-                compute_powers();
+                create_selection_bitmask();
+                // compute_access_masks();
             }
 
-            void compute_powers()
+            void compute_access_masks()
             {
-                powers_ = new size_t[ksize_];
-                size_t pow = 1;
-                for(size_t i = 0; i < ksize_; ++i)
+                access_masks_ = new uint64_t[ksize_];
+                uint64_t mask = 0b11111;
+                access_masks_[0] = mask;
+                for(size_t i = 1; i < ksize_; ++i)
                 {
-                    powers_[i] = pow;
-                    pow *= alphabet_size_;
+                    mask = (mask << 5);
+                    access_masks_[i] = mask;
+                }
+            }
+
+            void create_selection_bitmask()
+            {
+                /*
+                Example with k=4 creates a bitmask like 
+                0b00000000-00000000-00000000-00000000-00000000-00000000-00000000-11111111
+                for the rolling hash
+                */
+                size_t countdown = ksize_;
+                while(countdown > 0)
+                {
+                    selection_mask_ = (selection_mask_<<5) | 0b11111;
+                    countdown--;
                 }
             }
 
@@ -133,68 +148,86 @@ namespace molecules
                 }
             }
 
-            template<index_structure::is_valid ibf_flavor>
-            void decompose(const std::vector<unsigned char> &int_seq, const size_t &begin, TetrexIndex<ibf_flavor, molecules::peptide> &ibf)
+            uint64_t compute_hash(const uint64_t &kmer)
             {
+                uint64_t hash;
                 size_t res1, res2, res3, res4;
-                size_t numbElements = ibf.k_;
-                size_t end = begin+ibf.k_;
+                size_t numbElements = ksize_;
                 switch(numbElements)
                 {
                     case 6:
-                        res1 = int_seq[begin+0]*ibf.powers_[0];
-                        res2 = int_seq[begin+1]*ibf.powers_[1];
-                        res3 = int_seq[begin+2]*ibf.powers_[2];
-                        res4 = int_seq[begin+3]*ibf.powers_[3];
-                        res1 += int_seq[begin+4]*ibf.powers_[4];
-                        res2 += int_seq[begin+5]*ibf.powers_[5];
-                        ibf.forward_store_ = res1 + res2 + res3 + res4;
+                        res1 = (kmer&access_masks_[0]);
+                        res2 = (kmer&access_masks_[1]);
+                        res3 = (kmer&access_masks_[2]);
+                        res4 = (kmer&access_masks_[3]);
+                        res1 += (kmer&access_masks_[4]);
+                        res2 += (kmer&access_masks_[5]);
+                        hash = res1 + res2 + res3 + res4;
                         break;
                     case 7:
-                        res1 = int_seq[begin+0]*ibf.powers_[0];
-                        res2 = int_seq[begin+1]*ibf.powers_[1];
-                        res3 = int_seq[begin+2]*ibf.powers_[2];
-                        res4 = int_seq[begin+3]*ibf.powers_[3];
-                        res1 += int_seq[begin+4]*ibf.powers_[4];
-                        res2 += int_seq[begin+5]*ibf.powers_[5];
-                        res3 += int_seq[begin+6]*ibf.powers_[6];
-                        ibf.forward_store_ = res1 + res2 + res3 + res4;
+                        res1 = (kmer&access_masks_[0]);
+                        res2 = (kmer&access_masks_[1]);
+                        res3 = (kmer&access_masks_[2]);
+                        res4 = (kmer&access_masks_[3]);
+                        res1 += (kmer&access_masks_[4]);
+                        res2 += (kmer&access_masks_[5]);
+                        res3 += (kmer&access_masks_[6]);
+                        hash = res1 + res2 + res3 + res4;
                         break;
                     case 10:
-                        res1 = int_seq[begin+0]*ibf.powers_[0];
-                        res2 = int_seq[begin+1]*ibf.powers_[1];
-                        res3 = int_seq[begin+2]*ibf.powers_[2];
-                        res4 = int_seq[begin+3]*ibf.powers_[3];
-                        res1 += int_seq[begin+4]*ibf.powers_[4];
-                        res2 += int_seq[begin+5]*ibf.powers_[5];
-                        res3 += int_seq[begin+6]*ibf.powers_[6];
-                        res4 += int_seq[begin+7]*ibf.powers_[7];
-                        res1 += int_seq[begin+8]*ibf.powers_[8];
-                        res2 += int_seq[begin+9]*ibf.powers_[9];
-                        ibf.forward_store_ = res1 + res2 + res3 + res4;
-                        break;
-                    case 14:
-                        res1 = int_seq[begin+0]*ibf.powers_[0];
-                        res2 = int_seq[begin+1]*ibf.powers_[1];
-                        res3 = int_seq[begin+2]*ibf.powers_[2];
-                        res4 = int_seq[begin+3]*ibf.powers_[3];
-                        res1 += int_seq[begin+4]*ibf.powers_[4];
-                        res2 += int_seq[begin+5]*ibf.powers_[5];
-                        res3 += int_seq[begin+6]*ibf.powers_[6];
-                        res4 += int_seq[begin+7]*ibf.powers_[7];
-                        res1 += int_seq[begin+8]*ibf.powers_[8];
-                        res2 += int_seq[begin+9]*ibf.powers_[9];
-                        res3 += int_seq[begin+10]*ibf.powers_[10];
-                        res4 += int_seq[begin+11]*ibf.powers_[11];
-                        res1 += int_seq[begin+12]*ibf.powers_[12];
-                        res2 += int_seq[begin+13]*ibf.powers_[13];
-                        ibf.forward_store_ = res1 + res2 + res3 + res4;
+                        res1 = (kmer&access_masks_[0]);
+                        res2 = (kmer&access_masks_[1]);
+                        res3 = (kmer&access_masks_[2]);
+                        res4 = (kmer&access_masks_[3]);
+                        res1 += (kmer&access_masks_[4]);
+                        res2 += (kmer&access_masks_[5]);
+                        res3 += (kmer&access_masks_[6]);
+                        res4 += (kmer&access_masks_[7]);
+                        res1 += (kmer&access_masks_[8]);
+                        res2 += (kmer&access_masks_[9]);
+                        hash = res1 + res2 + res3 + res4;
                         break;
                     default:
-                        for(size_t i = begin; i < end; i++)
-                            ibf.forward_store_ += int_seq[i]*ibf.powers_[i-begin];
+                        hash = kmer;
                         break;
                 }
+                return hash;
+            }
+
+            uint64_t encode_peptide(std::string_view kmer)
+            {
+                uint64_t codemer = 0;
+                for(auto && base: kmer)
+                {
+                    codemer = codemer << 5;
+                    codemer += aamap_[base];
+                }
+                return codemer;
+            }
+
+            void rollover_peptide_hash(const char residue, const seqan::hibf::bin_index &bin_id, auto &ibf, auto &base_ref)
+            {
+                auto encoded_residue = aamap_[residue];
+                base_ref.forward_store_ = ((base_ref.forward_store_<<5)&selection_mask_) | encoded_residue;
+                base_ref.emplace(base_ref.forward_store_, bin_id);
+            }
+
+            void decompose_record(std::string_view record_seq, auto &ibf, seqan::hibf::bin_index &tech_bin_id, auto &base_ref)
+            {
+                uint64_t initial_encoding = encode_peptide(record_seq.substr(0, ksize_));
+                base_ref.forward_store_ = initial_encoding;
+                ibf.emplace(initial_encoding, tech_bin_id);
+                for(size_t i = ksize_; i < record_seq.length(); ++i)
+                {
+                    auto symbol = record_seq[i];
+                    rollover_peptide_hash(symbol, tech_bin_id, ibf, base_ref);
+                }
+            }
+
+            template<class Archive>
+            void serialize(Archive &archive)
+            {
+                archive(ksize_, reduction_, alphabet_size_, access_masks_, aamap_);
             }
     };
 

@@ -1,25 +1,21 @@
 #pragma once
 
-
-#include <string>
 #include <simde/x86/ssse3.h>
-
 
 namespace molecules
 {
     class NucleotideDecomposer
     {
         private:
-            uint64_t selection_mask_; // DNA Encoding
             uint8_t k_;
-            int reduction_;
+            uint8_t reduction_{};
 
         public:
             uint8_t left_shift_{};
             uint64_t selection_mask_{};
 
             NucleotideDecomposer() = default;
-            NucleotideDecomposer(uint8_t &k, int &reduction) : k_{k}, reduction_{reduction}
+            NucleotideDecomposer(uint8_t &k, uint8_t &reduction) : k_{k}, reduction_{reduction}
             {
                 create_selection_bitmask();
                 set_left_shift();
@@ -93,18 +89,34 @@ namespace molecules
                 return codemer;
             }
 
-            template<index_structure::is_valid ibf_flavor>
-            void decompose()
+            template<typename T>
+            void rollover_nuc_hash(const char base , const seqan::hibf::bin_index &bin_id, T &ibf, auto &base_ref)
             {
-                uint64_t initial_encoding = encode_dna(record_seq.substr(0,ibf.k_)); // Encode forward
-                uint64_t reverse_complement = revComplement(initial_encoding, ibf.k_); // Compute the reverse compelement
-                ibf.set_stores(initial_encoding, reverse_complement); // Remember both strands
-                ibf.emplace((initial_encoding <= reverse_complement ? initial_encoding : reverse_complement), bin_id); // MinHash
-                for(size_t i = ibf.k_; i < record_seq.length(); ++i)
+                auto fb = (base>>1)&3; // Encode the new base
+                auto cb = (fb^0b10)<<left_shift_; // Get its complement and shift it to the big end of the uint64
+                base_ref.forward_store_ = ((base_ref.forward_store_<<2)&selection_mask_) | fb; // Update forward store 
+                base_ref.reverse_store_ = ((base_ref.reverse_store_>>2)&selection_mask_) | cb; // Update reverse store
+                ibf.emplace(( base_ref.forward_store_ <= base_ref.reverse_store_ ? base_ref.forward_store_ : base_ref.reverse_store_ ), bin_id);
+            }
+
+            template<typename T>
+            void decompose_record(std::string_view record_seq, T &ibf, seqan::hibf::bin_index &tech_bin_id, auto &base_ref)
+            {
+                uint64_t initial_encoding = encode_dna(record_seq.substr(0, k_)); // Encode forward
+                uint64_t reverse_complement = revComplement(initial_encoding, k_); // Compute the reverse compelement
+                base_ref.set_stores(initial_encoding, reverse_complement); // Remember both strands
+                ibf.emplace((initial_encoding <= reverse_complement ? initial_encoding : reverse_complement), tech_bin_id); // MinHash
+                for(size_t i = k_; i < record_seq.length(); ++i)
                 {
                     auto symbol = record_seq[i];
-                    ibf.rollover_nuc_hash(symbol, bin_id);
+                    rollover_nuc_hash(symbol, tech_bin_id, ibf, base_ref);
                 }
+            }
+    
+            template<class Archive>
+            void serialize(Archive &archive)
+            {
+                archive(selection_mask_, k_, reduction_, left_shift_);
             }
     };
 }

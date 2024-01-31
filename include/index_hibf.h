@@ -1,21 +1,22 @@
 #pragma once
 
-#include "index_includes.h"
+#include "hibf/hierarchical_interleaved_bloom_filter.hpp"
 
 
 class HIBFIndex
 {
 
 private:
+    uint8_t ksize_;
     size_t bin_count_;
     size_t max_bin_size_;
     uint8_t hash_count_;
     std::vector<std::string> user_bins_;
-    index_structure::HIBF hibf_;
+    seqan::hibf::hierarchical_interleaved_bloom_filter hibf_; 
 
 
 public:
-    index_structure::HIBF_Agent agent_{};
+    seqan::hibf::hierarchical_interleaved_bloom_filter::membership_agent_type agent_{};
 
     HIBFIndex() = default;
 
@@ -35,7 +36,7 @@ public:
                     };
 
                     seqan::hibf::config config{.input_fn = get_user_bin_data, .number_of_user_bins = bin_count_, .maximum_fpr = 0.05};
-                    return index_structure::HIBF{config};
+                    return seqan::hibf::hierarchical_interleaved_bloom_filter{config};
                 }()
             },
             agent_{hibf_.membership_agent()}
@@ -60,34 +61,29 @@ public:
         return hash_count_;
     }
 
-    // void spawn_agent()
-    // {
-    //     agent_ = hibf_.membership_agent();
-    // }
-
-    index_structure::HIBF& getIBF()
+    auto & getIBF()
     {
         return hibf_;
     }
 
-    // void emplace(uint64_t &val, size_t &idx)
-    // {
-    //     hibf_.emplace(val, seqan::hibf::bin_index{idx});
-    // }
-
-    void populate_index(uint8_t &k)
+    void emplace(uint64_t &val, const seqan::hibf::bin_index &idx)
     {
+        return;
+    }
 
+    void populate_index(uint8_t &k, auto &decomposer, auto &base_ref)
+    {
+        return;
     }
 
     bitvector &populate_bitvector(auto membership_results)
     {
-        bitvector bits{bin_count_};
+        bitvector hits{bin_count_};
         for(auto && id: membership_results)
         {
-            bits[id] = 0b1;
+            hits[id] = 0b1;
         }
-        return bits;
+        return hits;
     }
 
     const bitvector & query(uint64_t &kmer)
@@ -100,6 +96,6 @@ public:
     template<class Archive>
     void serialize(Archive &archive)
     {
-        archive(bin_count_, bin_size_, hash_count_, hibf_);
+        archive(bin_count_, max_bin_size_, hash_count_, hibf_);
     }
 };

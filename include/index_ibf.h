@@ -4,12 +4,11 @@
 
 #pragma once
 
-#include "index_includes.h"
+#include "hibf/interleaved_bloom_filter.hpp"
 
 KSEQ_INIT(gzFile, gzread)
 
 
-template<molecules::is_molecule molecule_t>
 class IBFIndex
 {
 
@@ -18,11 +17,11 @@ private:
     size_t bin_size_;
     uint8_t hash_count_;
     std::vector<std::string> tech_bins_;
-    index_structure::IBF ibf_;
+    seqan::hibf::interleaved_bloom_filter ibf_;
 
 
 public:
-    index_structure::IBF_Agent agent_{};
+    seqan::hibf::interleaved_bloom_filter::membership_agent_type agent_{};
 
     IBFIndex() = default;
 
@@ -35,7 +34,7 @@ public:
              seqan::hibf::bin_size {bin_size_},
               seqan::hibf::hash_function_count{hash_count_})
     {
-        
+        agent_ = ibf_.membership_agent();
     }
 
     auto getBinCount() const
@@ -56,23 +55,17 @@ public:
         return hash_count_;
     }
 
-    index_structure::IBF& getIBF()
+    auto & getIBF()
     {
         return ibf_;
     }
 
-    void spawn_agent()
-    {
-        agent_ = ibf_.membership_agent();
-    }
-
-    void emplace(uint64_t &val, size_t &idx)
+    void emplace(uint64_t &val, const seqan::hibf::bin_index &idx)
     {
         ibf_.emplace(val, seqan::hibf::bin_index{idx});
     }
 
-    template<molecules::is_molecule molecule_t>
-    void populate_index(uint8_t &k, MoleculeDecomposer<molecule_t> &decomposer)
+    void populate_index(uint8_t &k, auto &decomposer, auto &base_ref)
     {
         gzFile handle;
         kseq_t *record;
@@ -80,6 +73,7 @@ public:
         size_t seq_count = 0;
         for(size_t i = 0; i < tech_bins_.size(); ++i) // Iterate over bins
         {
+            seqan::hibf::bin_index idx{i};
             handle = gzopen(tech_bins_[i].c_str(), "r");
             record = kseq_init(handle);
             while ((status = kseq_read(record)) >= 0) // Iterate over bin records
@@ -91,19 +85,7 @@ public:
                     continue;
                 }
                 seq_count++;
-
-                decomposer.decompose_record(record_view, ibf_, i);
-
-                // std::vector<uint8_t> peptide_nums(record_view.length());
-                // for(size_t o = 0; o < record_view.length(); ++o)
-                // {
-                //     peptide_nums[o] = ibf.aamap_[record_view[o]];
-                // }
-                // for(size_t o = 0; o < peptide_nums.size()-ibf.k_+1; ++o)
-                // {
-                //     decompose_peptide_record(peptide_nums, o, ibf);
-                //     ibf.emplace(ibf.forward_store_, i);
-                // }
+                decomposer.decompose_record(record_view, ibf_, idx, base_ref);
             }
             kseq_destroy(record);
             gzclose(handle);

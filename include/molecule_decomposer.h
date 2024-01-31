@@ -8,6 +8,20 @@
 #include "nucleotide_decomposer.h"
 #include "peptide_decomposer.h"
 
+namespace molecules
+{
+    using nucleotide = molecules::NucleotideDecomposer;
+    using peptide = molecules::PeptideDecomposer;
+
+    template<typename molecule_t>
+    concept is_dna = std::same_as<molecule_t, molecules::nucleotide>;
+
+    template<typename molecule_t>
+    concept is_peptide = std::same_as<molecule_t, molecules::peptide>;
+
+    template<typename molecule_t>
+    concept is_molecule = is_dna<molecule_t> || is_peptide<molecule_t>;
+}
 
 /*
     ASCII TABLE
@@ -49,37 +63,21 @@
 */
 
 
-namespace molecules
-{
-    using nucleotide = molecules::NucleotideDecomposer;
-    using peptide = molecules::PeptideDecomposer;
-
-    template<typename molecule_t>
-    concept is_dna = std::same_as<molecule_t, molecules::nucleotide>;
-
-    template<typename molecule_t>
-    concept is_peptide = std::same_as<molecule_t, molecules::peptide>;
-
-    template<typename molecule_t>
-    concept is_molecule = is_dna<molecule_t> || is_peptide<molecule_t>;
-}
-
-
 template<molecules::is_molecule DecomposerType>
 class MoleculeDecomposer
 {
     private:
         uint8_t ksize_;
         DecomposerType decomposer_;
-        bool constexpr is_nucleotide{molecules::is_dna<DecomposerType>};
+        bool is_nucleotide{molecules::is_dna<DecomposerType>};
 
     public:
         MoleculeDecomposer() = default;
         explicit MoleculeDecomposer(uint8_t &ksize, uint8_t &reduction) : ksize_{ksize}
         {
-            if constexpr(is_nucleotide)
+            if (is_nucleotide)
             {
-                molecules::NucleotideDecomposer decomposer_(ksize_);
+                molecules::NucleotideDecomposer decomposer_(ksize_, reduction);
             }
             else
             {
@@ -87,8 +85,14 @@ class MoleculeDecomposer
             }
         }
 
-    void decompose_record(std::string_view record, TetrexIndex &ibf, size_t &tech_bin_id)
+    void decompose_record(std::string_view record, auto &ibf, seqan::hibf::bin_index &tech_bin_id, auto &base_ref)
     {
-        decomposer_.decompose();
+        decomposer_.decompose_record(record, ibf, tech_bin_id, base_ref);
+    }
+
+    template<class Archive>
+    void serialize(Archive &archive)
+    {
+        archive(ksize_, decomposer_, is_nucleotide);
     }
 };
