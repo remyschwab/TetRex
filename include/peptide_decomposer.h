@@ -1,5 +1,7 @@
 #pragma once
 
+#include <cereal/types/array.hpp>
+
 
 enum {
     Base = 0,
@@ -205,23 +207,30 @@ namespace molecules
                 return codemer;
             }
 
-            void rollover_peptide_hash(const char residue, const seqan::hibf::bin_index &bin_id, auto &ibf, auto &base_ref)
+            void rollover_peptide_hash(const char residue, const seqan::hibf::bin_index &bin_id, auto &base_ref)
             {
                 auto encoded_residue = aamap_[residue];
                 base_ref.forward_store_ = ((base_ref.forward_store_<<5)&selection_mask_) | encoded_residue;
                 base_ref.emplace(base_ref.forward_store_, bin_id);
             }
 
-            void decompose_record(std::string_view record_seq, auto &ibf, seqan::hibf::bin_index &tech_bin_id, auto &base_ref)
+            void decompose_record(std::string_view record_seq, seqan::hibf::bin_index &tech_bin_id, auto &base_ref)
             {
                 uint64_t initial_encoding = encode_peptide(record_seq.substr(0, ksize_));
                 base_ref.forward_store_ = initial_encoding;
-                ibf.emplace(initial_encoding, tech_bin_id);
+                base_ref.emplace(initial_encoding, tech_bin_id);
                 for(size_t i = ksize_; i < record_seq.length(); ++i)
                 {
                     auto symbol = record_seq[i];
-                    rollover_peptide_hash(symbol, tech_bin_id, ibf, base_ref);
+                    rollover_peptide_hash(symbol, tech_bin_id, base_ref);
                 }
+            }
+
+            void update_kmer(const int &symbol, uint64_t &kmer)
+            {
+                uint64_t fb = aamap_[symbol];
+                uint64_t forward = ((kmer<<5)&selection_mask_) | fb;
+                kmer = forward;
             }
 
             template<class Archive>

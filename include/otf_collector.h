@@ -9,12 +9,15 @@
 
 void print_in_order(size_t &node_count, const std::vector<int> &ranks);
 
-void update_kmer(const int &symbol, kmer_t &kmer, IndexStructure &ibf);
+template<index_structure::is_valid flavor, molecules::is_molecule mol_t>
+void update_kmer(const int &symbol, kmer_t &kmer, TetrexIndex<flavor, mol_t> &ibf);
 
-void update_path(auto &current_state, int &symbol, auto &agent, IndexStructure &ibf, cache_t &cache);
+template<index_structure::is_valid flavor, molecules::is_molecule mol_t>
+void update_path(auto &current_state, int &symbol, auto &agent, TetrexIndex<flavor, mol_t> &ibf, cache_t &cache);
 
 bool all_bits_zero(bitvector const & bitvector) noexcept;
 
 void split_procedure(const amap_t &arc_map, int &id, auto &top, CustomQueue &minheap, nfa_t &NFA);
 
-bitvector collect_Top(nfa_t &NFA, IndexStructure &ibf, lmap_t &nfa_map, const std::vector<int> &rank_map, const amap_t &arc_map);
+template<index_structure::is_valid flavor, molecules::is_molecule mol_t>
+bitvector collect_Top(nfa_t &NFA, TetrexIndex<flavor, mol_t> &ibf, lmap_t &nfa_map, const std::vector<int> &rank_map, const amap_t &arc_map);

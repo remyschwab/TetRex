@@ -85,9 +85,14 @@ class MoleculeDecomposer
             }
         }
 
-    void decompose_record(std::string_view record, auto &ibf, seqan::hibf::bin_index &tech_bin_id, auto &base_ref)
+    void decompose_record(std::string_view record, seqan::hibf::bin_index &tech_bin_id, auto &base_ref)
     {
-        decomposer_.decompose_record(record, ibf, tech_bin_id, base_ref);
+        decomposer_.decompose_record(record, tech_bin_id, base_ref);
+    }
+
+    void update_kmer(const int &symbol, uint64_t &kmer)
+    {
+        decomposer_.update_kmer(symbol, kmer);
     }
 
     template<class Archive>

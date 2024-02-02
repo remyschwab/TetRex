@@ -92,7 +92,7 @@ class CustomQueue
     void absorb(uint64_t &subhash, CollectorsItem &item)
     {
         seqan3::debug_stream << "[-->" << item.id_ << "<--]" << std::endl;
-        comp_table_[item.id_][subhash].path_.raw_data() |= item.path_.raw_data();
+        comp_table_[item.id_][subhash].path_.data() |= item.path_.data();
     }
 
     void pop()

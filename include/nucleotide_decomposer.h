@@ -89,34 +89,39 @@ namespace molecules
                 return codemer;
             }
 
-            template<typename T>
-            void rollover_nuc_hash(const char base , const seqan::hibf::bin_index &bin_id, T &ibf, auto &base_ref)
+            void rollover_nuc_hash(const char base , const seqan::hibf::bin_index &bin_id, auto &base_ref)
             {
                 auto fb = (base>>1)&3; // Encode the new base
                 auto cb = (fb^0b10)<<left_shift_; // Get its complement and shift it to the big end of the uint64
                 base_ref.forward_store_ = ((base_ref.forward_store_<<2)&selection_mask_) | fb; // Update forward store 
                 base_ref.reverse_store_ = ((base_ref.reverse_store_>>2)&selection_mask_) | cb; // Update reverse store
-                ibf.emplace(( base_ref.forward_store_ <= base_ref.reverse_store_ ? base_ref.forward_store_ : base_ref.reverse_store_ ), bin_id);
+                base_ref.emplace(( base_ref.forward_store_ <= base_ref.reverse_store_ ? base_ref.forward_store_ : base_ref.reverse_store_ ), bin_id);
             }
 
-            template<typename T>
-            void decompose_record(std::string_view record_seq, T &ibf, seqan::hibf::bin_index &tech_bin_id, auto &base_ref)
+            void decompose_record(std::string_view record_seq, seqan::hibf::bin_index &tech_bin_id, auto &base_ref)
             {
                 uint64_t initial_encoding = encode_dna(record_seq.substr(0, k_)); // Encode forward
                 uint64_t reverse_complement = revComplement(initial_encoding, k_); // Compute the reverse compelement
                 base_ref.set_stores(initial_encoding, reverse_complement); // Remember both strands
-                ibf.emplace((initial_encoding <= reverse_complement ? initial_encoding : reverse_complement), tech_bin_id); // MinHash
+                base_ref.emplace((initial_encoding <= reverse_complement ? initial_encoding : reverse_complement), tech_bin_id); // MinHash
                 for(size_t i = k_; i < record_seq.length(); ++i)
                 {
                     auto symbol = record_seq[i];
-                    rollover_nuc_hash(symbol, tech_bin_id, ibf, base_ref);
+                    rollover_nuc_hash(symbol, tech_bin_id, base_ref);
                 }
+            }
+
+            void update_kmer(const int &symbol, uint64_t &kmer)
+            {
+                uint64_t fb = (symbol>>1)&3;
+                uint64_t forward = ((kmer<<2)&selection_mask_) | fb;
+                kmer = forward;
             }
     
             template<class Archive>
             void serialize(Archive &archive)
             {
-                archive(selection_mask_, k_, reduction_, left_shift_);
+                archive(k_, reduction_, left_shift_, selection_mask_);
             }
     };
 }

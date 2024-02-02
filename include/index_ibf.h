@@ -85,7 +85,7 @@ public:
                     continue;
                 }
                 seq_count++;
-                decomposer.decompose_record(record_view, ibf_, idx, base_ref);
+                decomposer.decompose_record(record_view, idx, base_ref);
             }
             kseq_destroy(record);
             gzclose(handle);

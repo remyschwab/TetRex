@@ -20,31 +20,32 @@ void print_in_order(size_t &node_count, const std::vector<int> &ranks)
 }
 
 
-void update_kmer(const int &symbol, kmer_t &kmer, IndexStructure &ibf)
-{
-    if(ibf.molecule_ == "na")
-    {
-        uint64_t fb = (symbol>>1)&3;
-        uint64_t forward = ((kmer<<2)&ibf.selection_mask_) | fb;
-        kmer = forward;
-        return;
-    }
-}
+// template<index_structure::is_valid flavor, molecules::is_molecule mol_t>
+// void update_kmer(const int &symbol, kmer_t &kmer, TetrexIndex<flavor, mol_t> &ibf)
+// {
+//     if(ibf.molecule_ == "na")
+//     {
+//         uint64_t fb = (symbol>>1)&3;
+//         uint64_t forward = ((kmer<<2)&ibf.selection_mask_) | fb;
+//         kmer = forward;
+//         return;
+//     }
+// }
 
-template<index_structure::is_valid ibf_flavor>
-void update_path(auto &current_state, int &symbol, auto &agent, TetrexIndex<ibf_flavor> &ibf, cache_t &cache)
+template<index_structure::is_valid flavor, molecules::is_molecule mol_t>
+void update_path(auto &current_state, int &symbol, auto &agent, TetrexIndex<flavor, mol_t> &ibf, cache_t &cache)
 {
     bitvector hits;
     uint64_t canonical_kmer = 0;
     uint64_t reverse = 0;
     if(current_state.shift_count_ < (ibf.k_-1)) // Corresponds to a new kmer < threshold size (--A)
     {
-        update_kmer(symbol, current_state.kmer_, ibf);
+        ibf.update_kmer(symbol, current_state.kmer_, ibf);
         current_state.shift_count_++;
     }
     else if(current_state.shift_count_ == (ibf.k_-1)) // If the kmer just needs to be updated one more time to be a valid kmer (-AC)
     {
-        update_kmer(symbol, current_state.kmer_, ibf);
+        ibf.update_kmer(symbol, current_state.kmer_, ibf);
         reverse = revComplement(current_state.kmer_, ibf.k_);
         canonical_kmer = current_state.kmer_ <= reverse ? current_state.kmer_ : reverse;
         if(cache.find(current_state.kmer_) == cache.end())
@@ -52,12 +53,12 @@ void update_path(auto &current_state, int &symbol, auto &agent, TetrexIndex<ibf_
             cache[current_state.kmer_] = agent.bulk_contains(canonical_kmer);
         }
         hits = cache[current_state.kmer_];
-        current_state.path_.raw_data() &= hits.raw_data();
+        current_state.path_.data() &= hits.data();
         current_state.shift_count_++;
     }
     else if(current_state.shift_count_ == (ibf.k_)) // (ACG) Next kmer will be valid
     {
-        update_kmer(symbol, current_state.kmer_, ibf);
+        ibf.update_kmer(symbol, current_state.kmer_, ibf);
         reverse = revComplement(current_state.kmer_, ibf.k_);
         canonical_kmer = current_state.kmer_ <= reverse ? current_state.kmer_ : reverse;
         if(cache.find(current_state.kmer_) == cache.end())
@@ -65,22 +66,22 @@ void update_path(auto &current_state, int &symbol, auto &agent, TetrexIndex<ibf_
             cache[current_state.kmer_] = agent.bulk_contains(canonical_kmer);
         }
         hits = cache[current_state.kmer_];
-        current_state.path_.raw_data() &= hits.raw_data();
+        current_state.path_.data() &= hits.data();
     }
 }
 
 
-bool all_bits_zero(bitvector const & bitvector) noexcept
-{
-    uint64_t const * const ptr = bitvector.raw_data().data();
-    size_t const number_of_words{(bitvector.size() + 63u) >> 6};
-    bool result{false};
+// bool all_bits_zero(bitvector const & bitvector) noexcept
+// {
+//     uint64_t const * const ptr = bitvector.raw_data().data();
+//     size_t const number_of_words{(bitvector.size() + 63u) >> 6};
+//     bool result{false};
 
-    for (size_t i{}; !result && i < number_of_words; ++i)
-        result |= ptr[i];
+//     for (size_t i{}; !result && i < number_of_words; ++i)
+//         result |= ptr[i];
 
-    return !result;
-}
+//     return !result;
+// }
 
 
 void split_procedure(const amap_t &arc_map, int &id, auto &top, CustomQueue &minheap, nfa_t &NFA)
@@ -94,7 +95,8 @@ void split_procedure(const amap_t &arc_map, int &id, auto &top, CustomQueue &min
 }
 
 
-bitvector collect_Top(nfa_t &NFA, IndexStructure &ibf, lmap_t &nfa_map, const std::vector<int> &rank_map, const amap_t &arc_map)
+template<index_structure::is_valid flavor, molecules::is_molecule mol_t>
+bitvector collect_Top(nfa_t &NFA, TetrexIndex<flavor, mol_t> &ibf, lmap_t &nfa_map, const std::vector<int> &rank_map, const amap_t &arc_map)
 {
     bitvector path_matrix{ibf.getBinCount()};
     CustomQueue minheap(rank_map, NFA, ibf.k_);
@@ -102,7 +104,7 @@ bitvector collect_Top(nfa_t &NFA, IndexStructure &ibf, lmap_t &nfa_map, const st
     cache_t kmer_cache;
     auto ibf_ref = ibf.getIBF();
     auto agent = ibf_ref.membership_agent();
-    bitvector hit_vector{ibf.getBinCount()};
+    bitvector hit_vector(ibf.getBinCount(), true);
     std::fill(hit_vector.begin(), hit_vector.end(), true);
     
     int id = 0;
@@ -123,7 +125,7 @@ bitvector collect_Top(nfa_t &NFA, IndexStructure &ibf, lmap_t &nfa_map, const st
         switch(symbol)
         {
             case Match:
-                path_matrix.raw_data() |= top.path_.raw_data();
+                path_matrix.data() |= top.path_.data();
                 break;
             case Ghost:
                 next = arc_map.at(id).first;
@@ -135,7 +137,7 @@ bitvector collect_Top(nfa_t &NFA, IndexStructure &ibf, lmap_t &nfa_map, const st
                 break;
             default:
                 update_path(top, symbol, agent, ibf, kmer_cache);
-                if(all_bits_zero(top.path_)) break; // Immediately get rid of deadend paths
+                if(top.path_.none()) break; // Immediately get rid of deadend paths
                 next = arc_map.at(id).first;
                 item = {next, NFA.id(next), top.shift_count_, top.kmer_, top.path_};
                 minheap.push(item);

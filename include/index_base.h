@@ -86,6 +86,11 @@ class TetrexIndex
             return {forward_store_, reverse_store_};
         }
 
+        void update_kmer(const int &symbol, uint64_t &kmer)
+        {
+            decomposer_.update_kmer(symbol, kmer);
+        }
+
         template<class Archive>
         void serialize(Archive &archive)
         {
@@ -105,16 +110,16 @@ void create_hibf_aa_index(const index_arguments &cmd_args, const std::vector<std
 
 void drive_index(const index_arguments &cmd_args);
 
-template <class IndexStructure>
-void store_ibf(IndexStructure const & ibf, std::filesystem::path opath)
+template <class TetrexIndex>
+void store_ibf(TetrexIndex const & ibf, std::filesystem::path opath)
 {
     std::ofstream os{opath, std::ios::binary};
     cereal::BinaryOutputArchive oarchive{os};
     oarchive(ibf);
 }
 
-template <class IndexStructure>
-void load_ibf(IndexStructure & ibf, std::filesystem::path ipath)
+template <class TetrexIndex>
+void load_ibf(TetrexIndex &ibf, std::filesystem::path ipath)
 {
     std::ifstream is{ipath, std::ios::binary};
     cereal::BinaryInputArchive iarchive{is};
