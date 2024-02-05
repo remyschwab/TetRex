@@ -76,7 +76,7 @@ public:
         return;
     }
 
-    bitvector &populate_bitvector(auto membership_results)
+    bitvector populate_bitvector(auto membership_results)
     {
         bitvector hits{bin_count_};
         for(auto && id: membership_results)
@@ -86,7 +86,7 @@ public:
         return hits;
     }
 
-    const bitvector & query(uint64_t &kmer)
+    const bitvector query(uint64_t &kmer)
     {
         std::vector<uint64_t> stupid_vector{kmer};
         auto &results = agent_.membership_for(stupid_vector, 1u);
@@ -96,6 +96,6 @@ public:
     template<class Archive>
     void serialize(Archive &archive)
     {
-        archive(bin_count_, max_bin_size_, hash_count_, hibf_);
+        archive(ksize_, bin_count_, max_bin_size_, hash_count_, user_bins_, hibf_);
     }
 };

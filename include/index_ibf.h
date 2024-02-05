@@ -101,6 +101,6 @@ public:
     template<class Archive>
     void serialize(Archive &archive)
     {
-        archive(bin_count_, bin_size_, hash_count_, ibf_);
+        archive(bin_count_, bin_size_, hash_count_, tech_bins_, ibf_);
     }
 };

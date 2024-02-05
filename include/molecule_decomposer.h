@@ -10,8 +10,8 @@
 
 namespace molecules
 {
-    using nucleotide = molecules::NucleotideDecomposer;
-    using peptide = molecules::PeptideDecomposer;
+    using nucleotide = NucleotideDecomposer;
+    using peptide = PeptideDecomposer;
 
     template<typename molecule_t>
     concept is_dna = std::same_as<molecule_t, molecules::nucleotide>;

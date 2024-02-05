@@ -17,7 +17,7 @@ namespace molecules
             uint8_t ksize_{};
             uint8_t reduction_{};
             uint8_t alphabet_size_;
-            uint64_t *access_masks_;
+            // uint64_t *access_masks_;
             uint64_t selection_mask_;
 
         public:
@@ -31,17 +31,17 @@ namespace molecules
                 // compute_access_masks();
             }
 
-            void compute_access_masks()
-            {
-                access_masks_ = new uint64_t[ksize_];
-                uint64_t mask = 0b11111;
-                access_masks_[0] = mask;
-                for(size_t i = 1; i < ksize_; ++i)
-                {
-                    mask = (mask << 5);
-                    access_masks_[i] = mask;
-                }
-            }
+            // void compute_access_masks()
+            // {
+            //     access_masks_ = new uint64_t[ksize_];
+            //     uint64_t mask = 0b11111;
+            //     access_masks_[0] = mask;
+            //     for(size_t i = 1; i < ksize_; ++i)
+            //     {
+            //         mask = (mask << 5);
+            //         access_masks_[i] = mask;
+            //     }
+            // }
 
             void create_selection_bitmask()
             {
@@ -150,51 +150,51 @@ namespace molecules
                 }
             }
 
-            uint64_t compute_hash(const uint64_t &kmer)
-            {
-                uint64_t hash;
-                size_t res1, res2, res3, res4;
-                size_t numbElements = ksize_;
-                switch(numbElements)
-                {
-                    case 6:
-                        res1 = (kmer&access_masks_[0]);
-                        res2 = (kmer&access_masks_[1]);
-                        res3 = (kmer&access_masks_[2]);
-                        res4 = (kmer&access_masks_[3]);
-                        res1 += (kmer&access_masks_[4]);
-                        res2 += (kmer&access_masks_[5]);
-                        hash = res1 + res2 + res3 + res4;
-                        break;
-                    case 7:
-                        res1 = (kmer&access_masks_[0]);
-                        res2 = (kmer&access_masks_[1]);
-                        res3 = (kmer&access_masks_[2]);
-                        res4 = (kmer&access_masks_[3]);
-                        res1 += (kmer&access_masks_[4]);
-                        res2 += (kmer&access_masks_[5]);
-                        res3 += (kmer&access_masks_[6]);
-                        hash = res1 + res2 + res3 + res4;
-                        break;
-                    case 10:
-                        res1 = (kmer&access_masks_[0]);
-                        res2 = (kmer&access_masks_[1]);
-                        res3 = (kmer&access_masks_[2]);
-                        res4 = (kmer&access_masks_[3]);
-                        res1 += (kmer&access_masks_[4]);
-                        res2 += (kmer&access_masks_[5]);
-                        res3 += (kmer&access_masks_[6]);
-                        res4 += (kmer&access_masks_[7]);
-                        res1 += (kmer&access_masks_[8]);
-                        res2 += (kmer&access_masks_[9]);
-                        hash = res1 + res2 + res3 + res4;
-                        break;
-                    default:
-                        hash = kmer;
-                        break;
-                }
-                return hash;
-            }
+            // uint64_t compute_hash(const uint64_t &kmer)
+            // {
+            //     uint64_t hash;
+            //     size_t res1, res2, res3, res4;
+            //     size_t numbElements = ksize_;
+            //     switch(numbElements)
+            //     {
+            //         case 6:
+            //             res1 = (kmer&access_masks_[0]);
+            //             res2 = (kmer&access_masks_[1]);
+            //             res3 = (kmer&access_masks_[2]);
+            //             res4 = (kmer&access_masks_[3]);
+            //             res1 += (kmer&access_masks_[4]);
+            //             res2 += (kmer&access_masks_[5]);
+            //             hash = res1 + res2 + res3 + res4;
+            //             break;
+            //         case 7:
+            //             res1 = (kmer&access_masks_[0]);
+            //             res2 = (kmer&access_masks_[1]);
+            //             res3 = (kmer&access_masks_[2]);
+            //             res4 = (kmer&access_masks_[3]);
+            //             res1 += (kmer&access_masks_[4]);
+            //             res2 += (kmer&access_masks_[5]);
+            //             res3 += (kmer&access_masks_[6]);
+            //             hash = res1 + res2 + res3 + res4;
+            //             break;
+            //         case 10:
+            //             res1 = (kmer&access_masks_[0]);
+            //             res2 = (kmer&access_masks_[1]);
+            //             res3 = (kmer&access_masks_[2]);
+            //             res4 = (kmer&access_masks_[3]);
+            //             res1 += (kmer&access_masks_[4]);
+            //             res2 += (kmer&access_masks_[5]);
+            //             res3 += (kmer&access_masks_[6]);
+            //             res4 += (kmer&access_masks_[7]);
+            //             res1 += (kmer&access_masks_[8]);
+            //             res2 += (kmer&access_masks_[9]);
+            //             hash = res1 + res2 + res3 + res4;
+            //             break;
+            //         default:
+            //             hash = kmer;
+            //             break;
+            //     }
+            //     return hash;
+            // }
 
             uint64_t encode_peptide(std::string_view kmer)
             {
@@ -236,7 +236,7 @@ namespace molecules
             template<class Archive>
             void serialize(Archive &archive)
             {
-                archive(ksize_, reduction_, alphabet_size_, access_masks_, aamap_);
+                archive(ksize_, reduction_, alphabet_size_, aamap_);
             }
     };
 
