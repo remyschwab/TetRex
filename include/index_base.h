@@ -2,7 +2,6 @@
 
 #include "index_includes.h"
 
-
 template <index_structure::is_valid ibf_flavor, molecules::is_molecule molecule_t>
 class TetrexIndex
 {
@@ -28,11 +27,11 @@ class TetrexIndex
                             uint8_t hc,
                             std::string molecule,
                             std::vector<std::string> acid_libs,
-                            std::string reduction) :
+                            uint8_t reduction) :
             k_{k},
             molecule_{molecule},
             acid_libs_{acid_libs},
-            reduction_{index_structure::reduction_map[reduction]},
+            reduction_{reduction},
             decomposer_(k, reduction_)
         {
             if (!is_hibf_)
@@ -106,13 +105,13 @@ class TetrexIndex
 
 void read_input_file_list(std::vector<std::filesystem::path> & sequence_files, std::filesystem::path input_file);
 
-void create_ibf_dna_index(const index_arguments &cmd_args, const std::vector<std::string> &input_bin_files);
+void create_ibf_dna_index(const index_arguments &cmd_args, const std::vector<std::string> &input_bin_files, uint8_t &reduction);
 
-void create_hibf_dna_index(const index_arguments &cmd_args, const std::vector<std::string> &input_bin_files);
+void create_hibf_dna_index(const index_arguments &cmd_args, const std::vector<std::string> &input_bin_files, uint8_t &reduction);
 
-void create_ibf_aa_index(const index_arguments &cmd_args, const std::vector<std::string> &input_bin_files);
+void create_ibf_aa_index(const index_arguments &cmd_args, const std::vector<std::string> &input_bin_files, uint8_t &reduction);
 
-void create_hibf_aa_index(const index_arguments &cmd_args, const std::vector<std::string> &input_bin_files);
+void create_hibf_aa_index(const index_arguments &cmd_args, const std::vector<std::string> &input_bin_files, uint8_t &reduction);
 
 void drive_index(const index_arguments &cmd_args);
 

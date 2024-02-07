@@ -22,10 +22,10 @@ std::vector<std::string> read_input_file_list(std::filesystem::path input_file)
 }
 
 
-void create_ibf_dna_index(const index_arguments &cmd_args, const std::vector<std::string> &input_bin_files)
+void create_ibf_dna_index(const index_arguments &cmd_args, const std::vector<std::string> &input_bin_files, uint8_t &reduction)
 {
     std::string molecule = cmd_args.molecule;
-    TetrexIndex<index_structure::IBF, molecules::nucleotide> ibf(cmd_args.k, cmd_args.bin_size, cmd_args.hash_count, molecule, input_bin_files, cmd_args.reduction);
+    TetrexIndex<index_structure::IBF, molecules::nucleotide> ibf(cmd_args.k, cmd_args.bin_size, cmd_args.hash_count, molecule, input_bin_files, reduction);
     ibf.populate_index();
     seqan3::debug_stream << "Writing to disk... ";
     std::filesystem::path output_path{cmd_args.ofile+".ibf"};
@@ -34,10 +34,10 @@ void create_ibf_dna_index(const index_arguments &cmd_args, const std::vector<std
 }
 
 
-void create_hibf_dna_index(const index_arguments &cmd_args, const std::vector<std::string> &input_bin_files)
+void create_hibf_dna_index(const index_arguments &cmd_args, const std::vector<std::string> &input_bin_files, uint8_t &reduction)
 {
     std::string molecule = cmd_args.molecule;
-    TetrexIndex<index_structure::HIBF, molecules::nucleotide> ibf(cmd_args.k, cmd_args.bin_size, cmd_args.hash_count, molecule, input_bin_files, cmd_args.reduction);
+    TetrexIndex<index_structure::HIBF, molecules::nucleotide> ibf(cmd_args.k, cmd_args.bin_size, cmd_args.hash_count, molecule, input_bin_files, reduction);
     ibf.populate_index();
     seqan3::debug_stream << "Writing to disk... ";
     std::filesystem::path output_path{cmd_args.ofile+".ibf"};
@@ -46,10 +46,10 @@ void create_hibf_dna_index(const index_arguments &cmd_args, const std::vector<st
 }
 
 
-void create_ibf_aa_index(const index_arguments &cmd_args, const std::vector<std::string> &input_bin_files)
+void create_ibf_aa_index(const index_arguments &cmd_args, const std::vector<std::string> &input_bin_files, uint8_t &reduction)
 {
     std::string molecule = cmd_args.molecule;
-    TetrexIndex<index_structure::IBF, molecules::peptide> ibf(cmd_args.k, cmd_args.bin_size, cmd_args.hash_count, molecule, input_bin_files, cmd_args.reduction);
+    TetrexIndex<index_structure::IBF, molecules::peptide> ibf(cmd_args.k, cmd_args.bin_size, cmd_args.hash_count, molecule, input_bin_files, reduction);
     ibf.populate_index();
     seqan3::debug_stream << "Writing to disk... ";
     std::filesystem::path output_path{cmd_args.ofile+".ibf"};
@@ -58,10 +58,10 @@ void create_ibf_aa_index(const index_arguments &cmd_args, const std::vector<std:
 }
 
 
-void create_hibf_aa_index(const index_arguments &cmd_args, const std::vector<std::string> &input_bin_files)
+void create_hibf_aa_index(const index_arguments &cmd_args, const std::vector<std::string> &input_bin_files, uint8_t &reduction)
 {
     std::string molecule = cmd_args.molecule;
-    TetrexIndex<index_structure::HIBF, molecules::peptide> ibf(cmd_args.k, cmd_args.bin_size, cmd_args.hash_count, molecule, input_bin_files, cmd_args.reduction);
+    TetrexIndex<index_structure::HIBF, molecules::peptide> ibf(cmd_args.k, cmd_args.bin_size, cmd_args.hash_count, molecule, input_bin_files, reduction);
     ibf.populate_index();
     seqan3::debug_stream << "Writing to disk... ";
     std::filesystem::path output_path{cmd_args.ofile+".ibf"};
@@ -89,26 +89,29 @@ void drive_index(const index_arguments &cmd_args)
     bool flavor_test = (cmd_args.ibf == "ibf");
     bool alpha_test = cmd_args.molecule == "dna";
 
+    robin_hood::unordered_map<std::string, uint8_t> reduction_map = {{"murphy", 1u},{"li", 2u},{"None", 0u}};
+    uint8_t reduction = reduction_map[cmd_args.reduction];
+
     if(flavor_test)
     {
         if(alpha_test)
         {
-            create_ibf_dna_index(cmd_args, input_bin_files);
+            create_ibf_dna_index(cmd_args, input_bin_files, reduction);
         }
         else
         {
-            create_ibf_aa_index(cmd_args, input_bin_files);
+            create_ibf_aa_index(cmd_args, input_bin_files, reduction);
         }
     }
     else
     {
         if(alpha_test)
         {
-            create_hibf_dna_index(cmd_args, input_bin_files);
+            create_hibf_dna_index(cmd_args, input_bin_files, reduction);
         }
         else
         {
-            create_hibf_aa_index(cmd_args, input_bin_files);
+            create_hibf_aa_index(cmd_args, input_bin_files, reduction);
         }
     }
 }

@@ -1,4 +1,5 @@
-#pragma once
+#ifndef index_includes_h
+#define index_includes_h
 
 #include <zlib.h>
 #include <cereal/types/vector.hpp>
@@ -13,6 +14,7 @@
 #include "index_ibf.h"
 #include "index_hibf.h"
 
+
 namespace index_structure
 {
     using SeqAnIBF = seqan::hibf::interleaved_bloom_filter;
@@ -21,8 +23,6 @@ namespace index_structure
     using SeqAnHIBF = seqan::hibf::hierarchical_interleaved_bloom_filter;
     using HIBF = HIBFIndex;
     using HIBF_Agent = seqan::hibf::hierarchical_interleaved_bloom_filter::membership_agent_type;
-
-    robin_hood::unordered_map<std::string, uint8_t> reduction_map = {{"murphy", 1u},{"li", 2u},{"None", 0u}};
 
     template <typename index_t>
     concept is_ibf = std::same_as<index_t, IBF>;
@@ -33,3 +33,5 @@ namespace index_structure
     template <typename index_t>
     concept is_valid = is_ibf<index_t> || is_hibf<index_t>;
 } // namespace index_structure
+
+#endif

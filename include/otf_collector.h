@@ -7,7 +7,7 @@
 #include "construct_nfa.h"
 
 
-void print_in_order(size_t &node_count, const std::vector<int> &ranks)
+inline void print_in_order(size_t &node_count, const std::vector<int> &ranks)
 {
     CustomCompare ranker(ranks);
     minheap_t minheap(ranker);
