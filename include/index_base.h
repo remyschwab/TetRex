@@ -36,7 +36,8 @@ class TetrexIndex
         {
             if (!is_hibf_)
             {
-                IBFIndex ibf_(bin_size, hc, acid_libs_);
+                size_t bin_count = acid_libs.size();
+                IBFIndex ibf_(bin_size, hc, acid_libs_, bin_count);
             }
             else
             {

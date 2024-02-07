@@ -25,19 +25,19 @@ public:
 
     IBFIndex() = default;
 
-    explicit IBFIndex(size_t bin_size, uint8_t hc, std::vector<std::string> tech_bins) :
-            bin_count_{tech_bins.size()},
+    explicit IBFIndex(size_t bin_size, uint8_t hc, std::vector<std::string> tech_bins, size_t &bc) :
+            bin_count_{bc},
             bin_size_{bin_size},
             hash_count_{hc},
             tech_bins_{tech_bins},
-            ibf_(seqan::hibf::bin_count {bin_count_},
-             seqan::hibf::bin_size {bin_size_},
+            ibf_(seqan::hibf::bin_count{bc},
+             seqan::hibf::bin_size{bin_size_},
               seqan::hibf::hash_function_count{hash_count_})
     {
         agent_ = ibf_.membership_agent();
     }
 
-    auto getBinCount() const
+    size_t getBinCount()
     {
         assert(ibf_.bin_count() == bin_count_);
         return bin_count_;
@@ -67,6 +67,7 @@ public:
 
     void populate_index(uint8_t &k, auto &decomposer, auto &base_ref)
     {
+        std::cout << bin_count_ << " " << ibf_.bin_count() << std::endl;
         gzFile handle;
         kseq_t *record;
         int status;
