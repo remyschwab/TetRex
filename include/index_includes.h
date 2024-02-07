@@ -2,6 +2,7 @@
 
 #include <zlib.h>
 #include <cereal/types/vector.hpp>
+#include "cereal/types/string.hpp"
 
 #include "utils.h"
 #include "arg_parse.h"

@@ -1,12 +1,10 @@
 #pragma once
 
-#include <cereal/types/array.hpp>
-
 
 enum {
-    Base = 0,
-    Murphy = 1,
-    Li = 2
+    Base = 0u,
+    Murphy = 1u,
+    Li = 2u
 };
 
 namespace molecules
@@ -226,11 +224,12 @@ namespace molecules
                 }
             }
 
-            void update_kmer(const int &symbol, uint64_t &kmer)
+            uint64_t update_kmer(const int &symbol, uint64_t &kmer)
             {
                 uint64_t fb = aamap_[symbol];
                 uint64_t forward = ((kmer<<5)&selection_mask_) | fb;
                 kmer = forward;
+                return forward;
             }
 
             template<class Archive>

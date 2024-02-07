@@ -33,19 +33,6 @@ double compute_knut_model(const size_t &query_length, const uint8_t &k, const in
 }
 
 
-// bitvector query_ibf(size_t &bin_count, robin_hood::unordered_map<uint64_t, bitvector> &hash_to_bits, std::vector<uint64_t> &path)
-// {
-//     seqan3::interleaved_bloom_filter<seqan3::data_layout::uncompressed>::membership_agent_type::binning_bitvector hit_vector{bin_count};
-//     std::fill(hit_vector.begin(), hit_vector.end(), true);
-//     for (auto && kmer : path)
-//     {
-//         auto & result = hash_to_bits[kmer];
-//         hit_vector.raw_data() &= result.raw_data();
-//     }
-//     return hit_vector;
-// }
-
-
 void preprocess_query(std::string &rx_query, std::string &postfix_query)
 {
     // We don't want to generate kmers from something with anchors
@@ -114,7 +101,8 @@ void query_hibf_aa(query_arguments &cmd_args, const bool &model)
     run_collection(cmd_args, model, ibf);
 }
 
-void drive()
+void drive_query(query_arguments &cmd_args, const bool &model)
 {
-
+    //TODO: Implement query
+    return;
 }

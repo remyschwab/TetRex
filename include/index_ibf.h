@@ -93,7 +93,7 @@ public:
         seqan3::debug_stream << "Indexed " << seq_count << " sequences across " << bin_count_ << " bins." << std::endl;
     }
 
-    const bitvector & query(uint64_t &kmer)
+    bitvector query(uint64_t &kmer)
     {
         return agent_.bulk_contains(kmer);
     }

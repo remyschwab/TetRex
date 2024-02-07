@@ -1,6 +1,6 @@
 #include "utils.h"
 #include "arg_parse.h"
-#include "index.h"
+#include "index_base.h"
 #include "query.h"
 #include "inspect_idx.h"
 #include <fstream>

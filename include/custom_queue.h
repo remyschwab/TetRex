@@ -45,6 +45,7 @@ class CustomCompare
     }
 };
 
+
 using minheap_t = std::priority_queue<int, std::vector<int>, CustomCompare>;
 
 
@@ -92,7 +93,7 @@ class CustomQueue
     void absorb(uint64_t &subhash, CollectorsItem &item)
     {
         seqan3::debug_stream << "[-->" << item.id_ << "<--]" << std::endl;
-        comp_table_[item.id_][subhash].path_.data() |= item.path_.data();
+        comp_table_[item.id_][subhash].path_ |= item.path_; // TODO: Hmmmm
     }
 
     void pop()

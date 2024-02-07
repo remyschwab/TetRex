@@ -21,11 +21,19 @@ double compute_k_probability(const uint8_t &k);
 
 double compute_knut_model(const size_t &query_length, const uint8_t &k, const int &m, const size_t &multiplyer);
 
+void query_ibf_dna(query_arguments &cmd_args, const bool &model);
+
+void query_ibf_aa(query_arguments &cmd_args, const bool &model);
+
+void query_hibf_dna(query_arguments &cmd_args, const bool &model);
+
+void query_hibf_aa(query_arguments &cmd_args, const bool &model);
+
 void drive_query(query_arguments &cmd_args, const bool &model);
 
 void preprocess_query(std::string &rx_query, std::string &postfix_query);
 
-void verify_fasta_hit(const std::filesystem::path &bin_path, re2::RE2 &crx);
+void verify_fasta_hit(const gzFile &fasta_handle, kseq_t *record, re2::RE2 &crx);
 
 template<index_structure::is_valid flavor, molecules::is_molecule mol_type>
 void iter_disk_search(const bitvector &hits, const std::string &query, TetrexIndex<flavor, mol_type> &ibf)

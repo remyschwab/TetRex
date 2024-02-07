@@ -86,7 +86,7 @@ public:
         return hits;
     }
 
-    const bitvector query(uint64_t &kmer)
+    bitvector query(uint64_t &kmer)
     {
         std::vector<uint64_t> stupid_vector{kmer};
         auto &results = agent_.membership_for(stupid_vector, 1u);

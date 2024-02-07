@@ -111,11 +111,14 @@ namespace molecules
                 }
             }
 
-            void update_kmer(const int &symbol, uint64_t &kmer)
+            uint64_t update_kmer(const int &symbol, uint64_t &kmer)
             {
                 uint64_t fb = (symbol>>1)&3;
                 uint64_t forward = ((kmer<<2)&selection_mask_) | fb;
                 kmer = forward;
+                uint64_t reverse = revComplement(forward, k_);
+                uint64_t canon_kmer = forward <= reverse ? forward : reverse;
+                return canon_kmer;
             }
     
             template<class Archive>

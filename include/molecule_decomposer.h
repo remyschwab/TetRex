@@ -90,9 +90,9 @@ class MoleculeDecomposer
         decomposer_.decompose_record(record, tech_bin_id, base_ref);
     }
 
-    void update_kmer(const int &symbol, uint64_t &kmer)
+    uint64_t update_kmer(const int &symbol, uint64_t &kmer)
     {
-        decomposer_.update_kmer(symbol, kmer);
+        return decomposer_.update_kmer(symbol, kmer);
     }
 
     template<class Archive>
