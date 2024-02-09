@@ -61,7 +61,7 @@ template<index_structure::is_valid flavor, molecules::is_molecule mol_t>
 void run_collection(query_arguments &cmd_args, const bool &model, TetrexIndex<flavor, mol_t> &ibf)
 {
     // double t1, t2;
-    uint8_t &qlength = ibf.k_;
+    // uint8_t &qlength = ibf.k_;
     std::string &rx = cmd_args.regex;
     std::string &query = cmd_args.query;
     preprocess_query(rx, query);

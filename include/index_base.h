@@ -5,17 +5,14 @@
 template <index_structure::is_valid ibf_flavor, molecules::is_molecule molecule_t>
 class TetrexIndex
 {
-    private:
-        double fpr_;
-        bool is_hibf_{index_structure::is_hibf<ibf_flavor>};
-        ibf_flavor ibf_;
-        MoleculeDecomposer<molecule_t> decomposer_;
-
     public:
         uint8_t k_;
         std::string molecule_;
         std::vector<std::string> acid_libs_;
         uint8_t reduction_;
+        static bool constexpr is_hibf_{index_structure::is_hibf<ibf_flavor>};
+        ibf_flavor ibf_;
+        MoleculeDecomposer<molecule_t> decomposer_;
         uint64_t forward_store_{};
         uint64_t reverse_store_{};
 
@@ -34,20 +31,21 @@ class TetrexIndex
             reduction_{reduction},
             decomposer_(k, reduction_)
         {
-            if (!is_hibf_)
+            if constexpr(!is_hibf_)
             {
                 size_t bin_count = acid_libs.size();
-                IBFIndex ibf_(bin_size, hc, acid_libs_, bin_count);
+                ibf_ = IBFIndex(bin_size, hc, acid_libs_, bin_count);
             }
             else
             {
-                HIBFIndex ibf_(bin_size, hc, acid_libs_);
+                // ibf_ = HIBFIndex(bin_size, hc, acid_libs_);
             }
         }
 
         size_t getBinCount()
         {
-            return ibf_.getBinCount();
+            size_t bc = ibf_.getBinCount();
+            return bc;
         }
 
         void populate_index()
@@ -100,7 +98,7 @@ class TetrexIndex
         void serialize(Archive &archive)
         {
             // archive(ibf_, decomposer_, k_, molecule_, acid_libs_, reduction_);
-            archive(fpr_, is_hibf_, ibf_, decomposer_);
+            archive(ibf_, decomposer_);
         }
 }; // TetrexIndex
 

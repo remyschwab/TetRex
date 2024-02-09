@@ -75,12 +75,12 @@ void split_procedure(const amap_t &arc_map, int &id, auto &top, CustomQueue &min
 template<index_structure::is_valid flavor, molecules::is_molecule mol_t>
 bitvector collect_Top(nfa_t &NFA, TetrexIndex<flavor, mol_t> &ibf, lmap_t &nfa_map, const std::vector<int> &rank_map, const amap_t &arc_map)
 {
-    bitvector path_matrix{ibf.getBinCount()};
+    bitvector path_matrix(ibf.getBinCount());
     CustomQueue minheap(rank_map, NFA, ibf.k_);
-
+    seqan3::debug_stream << path_matrix << std::endl;
     cache_t kmer_cache;
     bitvector hit_vector(ibf.getBinCount(), true);
-    std::fill(hit_vector.begin(), hit_vector.end(), true);
+    // std::fill(hit_vector.begin(), hit_vector.end(), true);
     
     int id = 0;
     uint64_t kmer_init = 0;

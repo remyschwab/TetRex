@@ -119,27 +119,27 @@ namespace molecules
                         aamap['Z'] = aamap['B'];
                     default: // Base
                         alphabet_size_ = 20;
-                        aamap['A'] = 0;
-                        aamap['C'] = 1;
-                        aamap['D'] = 2;
-                        aamap['E'] = 3;
-                        aamap['F'] = 4;
-                        aamap['G'] = 5;
-                        aamap['H'] = 6;
-                        aamap['I'] = 7;
-                        aamap['K'] = 8;
-                        aamap['L'] = 9;
-                        aamap['M'] = 10;
-                        aamap['N'] = 11;
-                        aamap['P'] = 12;
-                        aamap['Q'] = 13;
-                        aamap['R'] = 14;
-                        aamap['S'] = 15;
-                        aamap['T'] = 16;
-                        aamap['V'] = 17;
-                        aamap['W'] = 18;
-                        aamap['Y'] = 19;
-                        aamap['X'] = 20;
+                        aamap['A'] = 0u;
+                        aamap['C'] = 1u;
+                        aamap['D'] = 2u;
+                        aamap['E'] = 3u;
+                        aamap['F'] = 4u;
+                        aamap['G'] = 5u;
+                        aamap['H'] = 6u;
+                        aamap['I'] = 7u;
+                        aamap['K'] = 8u;
+                        aamap['L'] = 9u;
+                        aamap['M'] = 10u;
+                        aamap['N'] = 11u;
+                        aamap['P'] = 12u;
+                        aamap['Q'] = 13u;
+                        aamap['R'] = 14u;
+                        aamap['S'] = 15u;
+                        aamap['T'] = 16u;
+                        aamap['V'] = 17u;
+                        aamap['W'] = 18u;
+                        aamap['Y'] = 19u;
+                        aamap['X'] = 20u;
                         aamap['B'] = aamap['D'];
                         aamap['J'] = aamap['L'];
                         aamap['O'] = aamap['X'];
@@ -205,7 +205,7 @@ namespace molecules
                 return codemer;
             }
 
-            void rollover_peptide_hash(const char residue, const seqan::hibf::bin_index &bin_id, auto &base_ref)
+            void rollover_peptide_hash(const unsigned char residue, const seqan::hibf::bin_index &bin_id, auto &base_ref)
             {
                 auto encoded_residue = aamap_[residue];
                 base_ref.forward_store_ = ((base_ref.forward_store_<<5)&selection_mask_) | encoded_residue;

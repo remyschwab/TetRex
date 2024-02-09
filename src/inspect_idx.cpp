@@ -4,6 +4,7 @@
 
 void drive_inspection(const inspection_arguments &cmd_args)
 {
+    (void)cmd_args;
     return;
     // double t1, t2;
     // // Load index from disk

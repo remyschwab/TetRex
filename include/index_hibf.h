@@ -7,7 +7,6 @@ class HIBFIndex
 {
 
 private:
-    uint8_t ksize_;
     size_t bin_count_;
     size_t max_bin_size_;
     uint8_t hash_count_;
@@ -40,9 +39,7 @@ public:
                 }()
             },
             agent_{hibf_.membership_agent()}
-    {
-        
-    }
+    {}
 
     auto getBinCount() const
     {
@@ -68,17 +65,22 @@ public:
 
     void emplace(uint64_t &val, const seqan::hibf::bin_index &idx)
     {
+        (void)val;
+        (void)idx;
         return;
     }
 
     void populate_index(uint8_t &k, auto &decomposer, auto &base_ref)
     {
+        (void)k;
+        (void)decomposer;
+        (void)base_ref;
         return;
     }
 
     bitvector populate_bitvector(auto membership_results)
     {
-        bitvector hits{bin_count_};
+        bitvector hits(bin_count_);
         for(auto && id: membership_results)
         {
             hits[id] = 0b1;
@@ -96,6 +98,6 @@ public:
     template<class Archive>
     void serialize(Archive &archive)
     {
-        archive(ksize_, bin_count_, max_bin_size_, hash_count_, user_bins_, hibf_);
+        archive(bin_count_, max_bin_size_, hash_count_, user_bins_, hibf_);
     }
 };

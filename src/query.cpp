@@ -103,6 +103,8 @@ void query_hibf_aa(query_arguments &cmd_args, const bool &model)
 
 void drive_query(query_arguments &cmd_args, const bool &model)
 {
+    (void)cmd_args;
+    (void)model;
     //TODO: Implement query
     return;
 }

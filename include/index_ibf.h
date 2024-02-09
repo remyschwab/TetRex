@@ -25,7 +25,7 @@ public:
 
     IBFIndex() = default;
 
-    explicit IBFIndex(size_t bin_size, uint8_t hc, std::vector<std::string> tech_bins, size_t &bc) :
+    explicit IBFIndex(size_t bin_size, uint8_t hc, std::vector<std::string> tech_bins, size_t bc) :
             bin_count_{bc},
             bin_size_{bin_size},
             hash_count_{hc},
@@ -67,7 +67,6 @@ public:
 
     void populate_index(uint8_t &k, auto &decomposer, auto &base_ref)
     {
-        std::cout << bin_count_ << " " << ibf_.bin_count() << std::endl;
         gzFile handle;
         kseq_t *record;
         int status;

@@ -69,19 +69,19 @@ class MoleculeDecomposer
     private:
         uint8_t ksize_;
         DecomposerType decomposer_;
-        bool is_nucleotide{molecules::is_dna<DecomposerType>};
+        static bool constexpr is_nucleotide{molecules::is_dna<DecomposerType>};
 
     public:
         MoleculeDecomposer() = default;
         explicit MoleculeDecomposer(uint8_t &ksize, uint8_t &reduction) : ksize_{ksize}
         {
-            if (is_nucleotide)
+            if constexpr(is_nucleotide)
             {
-                molecules::NucleotideDecomposer decomposer_(ksize_, reduction);
+                decomposer_ = molecules::NucleotideDecomposer(ksize_, reduction);
             }
             else
             {
-                molecules::PeptideDecomposer decomposer_(ksize_, reduction);
+                decomposer_ = molecules::PeptideDecomposer(ksize_, reduction);
             }
         }
 
@@ -98,6 +98,6 @@ class MoleculeDecomposer
     template<class Archive>
     void serialize(Archive &archive)
     {
-        archive(ksize_, decomposer_, is_nucleotide);
+        archive(ksize_, decomposer_);
     }
 };
