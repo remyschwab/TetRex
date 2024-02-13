@@ -2,6 +2,20 @@
 
 #include "index_includes.h"
 
+struct index_params
+{
+    std::string molecule_;
+    bool is_hibf_;
+
+    template<class Archive>
+    void serialize(Archive &archive)
+    {
+        // archive(ibf_, decomposer_, k_, molecule_, acid_libs_, reduction_);
+        archive(molecule_, is_hibf_);
+    }
+};
+
+
 template <index_structure::is_valid ibf_flavor, molecules::is_molecule molecule_t>
 class TetrexIndex
 {
@@ -11,6 +25,7 @@ class TetrexIndex
         std::vector<std::string> acid_libs_;
         uint8_t reduction_;
         static bool constexpr is_hibf_{index_structure::is_hibf<ibf_flavor>};
+        bool permanent_hibf_status_;
         ibf_flavor ibf_;
         MoleculeDecomposer<molecule_t> decomposer_;
         uint64_t forward_store_{};
@@ -33,11 +48,13 @@ class TetrexIndex
         {
             if constexpr(!is_hibf_)
             {
+                permanent_hibf_status_ = false;
                 size_t bin_count = acid_libs.size();
                 ibf_ = IBFIndex(bin_size, hc, acid_libs_, bin_count);
             }
             else
             {
+                permanent_hibf_status_ = true;
                 // ibf_ = HIBFIndex(bin_size, hc, acid_libs_);
             }
         }
@@ -98,8 +115,9 @@ class TetrexIndex
         void serialize(Archive &archive)
         {
             // archive(ibf_, decomposer_, k_, molecule_, acid_libs_, reduction_);
-            archive(ibf_, decomposer_);
+            archive(molecule_, permanent_hibf_status_, ibf_, decomposer_);
         }
+        
 }; // TetrexIndex
 
 void read_input_file_list(std::vector<std::filesystem::path> & sequence_files, std::filesystem::path input_file);
@@ -128,4 +146,12 @@ void load_ibf(TetrexIndex &ibf, std::filesystem::path ipath)
     std::ifstream is{ipath, std::ios::binary};
     cereal::BinaryInputArchive iarchive{is};
     iarchive(ibf);
+}
+
+template<typename index_params>
+void load_params(index_params &params, std::filesystem::path ipath)
+{
+    std::ifstream is{ipath, std::ios::binary};
+    cereal::BinaryInputArchive iarchive{is};
+    iarchive(params);
 }

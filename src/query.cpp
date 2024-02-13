@@ -103,8 +103,23 @@ void query_hibf_aa(query_arguments &cmd_args, const bool &model)
 
 void drive_query(query_arguments &cmd_args, const bool &model)
 {
-    (void)cmd_args;
-    (void)model;
-    //TODO: Implement query
+    index_params params;
+    load_params(params, cmd_args.idx);
+    if(!params.is_hibf_ && params.molecule_ == "na")
+    {
+        query_ibf_dna(cmd_args, model);
+    }
+    else if(params.is_hibf_ && params.molecule_ == "na")
+    {
+        query_hibf_dna(cmd_args, model);
+    }
+    else if(!params.is_hibf_ && params.molecule_ == "aa")
+    {
+        query_ibf_aa(cmd_args, model);
+    }
+    else if(params.is_hibf_ && params.molecule_ == "aa")
+    {
+        query_hibf_aa(cmd_args, model);
+    }
     return;
 }
