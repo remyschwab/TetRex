@@ -41,6 +41,11 @@ namespace molecules
                 }
             }
 
+            void print_mask()
+            {
+                std::cout << selection_mask_ << std::endl;
+            }
+
             uint64_t revComplement(const uint64_t kmer, const int k)
             {
                 // broadcast 64bit to 128 bit
@@ -95,7 +100,8 @@ namespace molecules
                 auto cb = (fb^0b10)<<left_shift_; // Get its complement and shift it to the big end of the uint64
                 base_ref.forward_store_ = ((base_ref.forward_store_<<2)&selection_mask_) | fb; // Update forward store 
                 base_ref.reverse_store_ = ((base_ref.reverse_store_>>2)&selection_mask_) | cb; // Update reverse store
-                base_ref.emplace(( base_ref.forward_store_ <= base_ref.reverse_store_ ? base_ref.forward_store_ : base_ref.reverse_store_ ), bin_id);
+                uint64_t canon_kmer = ( base_ref.forward_store_ <= base_ref.reverse_store_ ? base_ref.forward_store_ : base_ref.reverse_store_ );
+                base_ref.emplace(canon_kmer, bin_id);
             }
 
             void decompose_record(std::string_view record_seq, seqan::hibf::bin_index &tech_bin_id, auto &base_ref)

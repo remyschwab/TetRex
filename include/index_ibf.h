@@ -43,7 +43,7 @@ public:
         return bin_count_;
     }
 
-    size_t getBinSize() const
+    size_t getBinSize()
     {
         assert(ibf_.bin_size() == bin_size_);
         return bin_size_;
@@ -93,9 +93,15 @@ public:
         seqan3::debug_stream << "Indexed " << seq_count << " sequences across " << bin_count_ << " bins." << std::endl;
     }
 
+    void spawn_agent()
+    {
+        agent_ = ibf_.membership_agent();
+    }
+
     bitvector query(uint64_t &kmer)
     {
-        return agent_.bulk_contains(kmer);
+        bitvector hits = agent_.bulk_contains(kmer);
+        return hits;
     }
 
     template<class Archive>

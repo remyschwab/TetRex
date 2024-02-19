@@ -87,7 +87,7 @@ void drive_index(const index_arguments &cmd_args)
     }
 
     bool flavor_test = (cmd_args.ibf == "ibf");
-    bool alpha_test = cmd_args.molecule == "dna";
+    bool alpha_test = cmd_args.molecule == "na";
 
     robin_hood::unordered_map<std::string, uint8_t> reduction_map = {{"murphy", 1u},{"li", 2u},{"None", 0u}};
     uint8_t reduction = reduction_map[cmd_args.reduction];

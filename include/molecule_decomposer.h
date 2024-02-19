@@ -68,20 +68,26 @@ class MoleculeDecomposer
 {
     private:
         uint8_t ksize_;
-        DecomposerType decomposer_;
-        static bool constexpr is_nucleotide{molecules::is_dna<DecomposerType>};
 
     public:
+        uint8_t lshift_;
+        uint8_t rmask_;
+        DecomposerType decomposer_;
+        static bool constexpr is_nucleotide{molecules::is_dna<DecomposerType>};
         MoleculeDecomposer() = default;
         explicit MoleculeDecomposer(uint8_t &ksize, uint8_t &reduction) : ksize_{ksize}
         {
             if constexpr(is_nucleotide)
             {
                 decomposer_ = molecules::NucleotideDecomposer(ksize_, reduction);
+                lshift_ = 2;
+                rmask_ = 0b11;
             }
             else
             {
                 decomposer_ = molecules::PeptideDecomposer(ksize_, reduction);
+                lshift_ = 5;
+                rmask_ = 0b11111;
             }
         }
 
@@ -95,9 +101,19 @@ class MoleculeDecomposer
         return decomposer_.update_kmer(symbol, kmer);
     }
 
+    void create_selection_bitmask()
+    {
+        decomposer_.create_selection_bitmask();
+    }
+
+    void print_mask()
+    {
+        decomposer_.print_mask();
+    }
+
     template<class Archive>
     void serialize(Archive &archive)
     {
-        archive(ksize_, decomposer_);
+        archive(ksize_, lshift_, rmask_, decomposer_);
     }
 };

@@ -63,13 +63,13 @@ class CustomQueue
     CustomQueue() = default;
     ~CustomQueue() = default;
 
-    explicit CustomQueue(std::vector<int> ranks, nfa_t &NFA, uint8_t &k)
+    explicit CustomQueue(std::vector<int> ranks, nfa_t &NFA, uint8_t &k, uint8_t &left_shift, uint8_t &resmask) :
+    k_{k}
     {
         ranker_ = CustomCompare(ranks);
         minheap_ = minheap_t(ranker_);
         comp_table_.resize(NFA.nodeNum());
-        k_ = k;
-        create_selection_bitmask(k);
+        create_selection_bitmask(k, left_shift, resmask);
     }
 
     void push(CollectorsItem &item)
@@ -80,11 +80,11 @@ class CustomQueue
         {
             comp_table_[item.id_][subhash] = item;
             minheap_.push(item.id_);
-            seqan3::debug_stream << "+SLOT " << item.id_  << "\t" << generate_kmer_seq(item.kmer_, k_) << "/" << subhash << std::endl;
+            // seqan3::debug_stream << "+SLOT " << item.id_  << "\t" << generate_kmer_seq(item.kmer_, k_) << "/" << subhash << std::endl;
         }
         else
         {
-            seqan3::debug_stream << "ABSORBING " << generate_kmer_seq(item.kmer_, k_) << " AT SLOT " << item.id_ << " WITH SUBHASH " << subhash << "\t";
+            // seqan3::debug_stream << "ABSORBING " << generate_kmer_seq(item.kmer_, k_) << " AT SLOT " << item.id_ << " WITH SUBHASH " << subhash << "\t";
             absorb(subhash, item);
         }
         // seqan3::debug_stream << minheap_.size() << std::endl;
@@ -92,7 +92,7 @@ class CustomQueue
 
     void absorb(uint64_t &subhash, CollectorsItem &item)
     {
-        seqan3::debug_stream << "[-->" << item.id_ << "<--]" << std::endl;
+        // seqan3::debug_stream << "[-->" << item.id_ << "<--]" << std::endl;
         comp_table_[item.id_][subhash].path_ |= item.path_; // TODO: Hmmmm
     }
 
@@ -100,7 +100,7 @@ class CustomQueue
     {
         int topid = minheap_.top();
         auto it = comp_table_[topid].begin(); // This creates some randomization
-        seqan3::debug_stream << "\t-SLOT " << topid  << "\t" << it->second.kmer_ << "/" << it->first << std::endl;
+        // seqan3::debug_stream << "\t-SLOT " << topid  << "\t" << it->second.kmer_ << "/" << it->first << std::endl;
         // seqan3::debug_stream << std::endl;
         comp_table_[topid].erase(it);
         minheap_.pop();
@@ -123,7 +123,7 @@ class CustomQueue
         return subhash;
     }
 
-    void create_selection_bitmask(uint8_t &k)
+    void create_selection_bitmask(uint8_t &k, uint8_t &lshift, uint8_t &rmask)
     {
         /*
         Example with k=4 creates a bitmask like 
@@ -133,9 +133,10 @@ class CustomQueue
         size_t countdown = (k-1);
         while(countdown > 0)
         {
-            submask_ = (submask_<<2) | 0b11;
+            submask_ = (submask_<<lshift) | rmask;
             countdown--;
         }
+        // seqan3::debug_stream << submask_ << std::endl;
     }
 
     void print_ranks()

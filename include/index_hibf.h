@@ -95,6 +95,11 @@ public:
         return populate_bitvector(results);
     }
 
+    void spawn_agent()
+    {
+        return;
+    }
+
     template<class Archive>
     void serialize(Archive &archive)
     {

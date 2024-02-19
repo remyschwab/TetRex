@@ -4,14 +4,14 @@
 
 struct index_params
 {
+    uint8_t k_;
     std::string molecule_;
     bool is_hibf_;
 
     template<class Archive>
     void serialize(Archive &archive)
     {
-        // archive(ibf_, decomposer_, k_, molecule_, acid_libs_, reduction_);
-        archive(molecule_, is_hibf_);
+        archive(k_, molecule_, is_hibf_);
     }
 };
 
@@ -77,7 +77,8 @@ class TetrexIndex
 
         bitvector query(uint64_t &kmer)
         {
-            return ibf_.query(kmer);
+            bitvector hits = ibf_.query(kmer);
+            return hits;
         }
 
         bool is_hibf() const
@@ -111,11 +112,26 @@ class TetrexIndex
             return decomposer_.update_kmer(symbol, kmer);
         }
 
+        void spawn_agent()
+        {
+            ibf_.spawn_agent();
+        }
+
+        void create_selection_bitmask()
+        {
+            decomposer_.create_selection_bitmask();
+        }
+
+        void print_mask()
+        {
+            decomposer_.print_mask();
+        }
+
         template<class Archive>
         void serialize(Archive &archive)
         {
-            // archive(ibf_, decomposer_, k_, molecule_, acid_libs_, reduction_);
-            archive(molecule_, permanent_hibf_status_, ibf_, decomposer_);
+            archive(k_, molecule_, permanent_hibf_status_);
+            archive(acid_libs_, reduction_, ibf_, decomposer_);
         }
         
 }; // TetrexIndex
@@ -148,8 +164,7 @@ void load_ibf(TetrexIndex &ibf, std::filesystem::path ipath)
     iarchive(ibf);
 }
 
-template<typename index_params>
-void load_params(index_params &params, std::filesystem::path ipath)
+inline void load_params(index_params &params, std::filesystem::path ipath)
 {
     std::ifstream is{ipath, std::ios::binary};
     cereal::BinaryInputArchive iarchive{is};

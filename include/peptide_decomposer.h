@@ -15,8 +15,7 @@ namespace molecules
             uint8_t ksize_{};
             uint8_t reduction_{};
             uint8_t alphabet_size_;
-            // uint64_t *access_masks_;
-            uint64_t selection_mask_;
+            uint64_t selection_mask_{};
 
         public:
             std::vector<uint8_t> aamap_;
@@ -26,7 +25,6 @@ namespace molecules
             {
                 create_residue_maps(reduction_, aamap_);
                 create_selection_bitmask();
-                // compute_access_masks();
             }
 
             // void compute_access_masks()
@@ -54,6 +52,11 @@ namespace molecules
                     selection_mask_ = (selection_mask_<<5) | 0b11111;
                     countdown--;
                 }
+            }
+
+            void print_mask()
+            {
+                std::cout << selection_mask_ << std::endl;
             }
 
             void create_residue_maps(uint8_t &alphabet, std::vector<uint8_t> &aamap)
@@ -235,7 +238,7 @@ namespace molecules
             template<class Archive>
             void serialize(Archive &archive)
             {
-                archive(ksize_, reduction_, alphabet_size_, aamap_);
+                archive(ksize_, reduction_, alphabet_size_, selection_mask_, aamap_);
             }
     };
 
