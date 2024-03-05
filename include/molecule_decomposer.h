@@ -96,7 +96,7 @@ class MoleculeDecomposer
         decomposer_.decompose_record(record, tech_bin_id, base_ref);
     }
 
-    uint64_t update_kmer(const int &symbol, uint64_t &kmer)
+    uint64_t update_kmer(int const symbol, uint64_t &kmer)
     {
         return decomposer_.update_kmer(symbol, kmer);
     }
@@ -106,7 +106,7 @@ class MoleculeDecomposer
         decomposer_.create_selection_bitmask();
     }
 
-    void print_mask()
+    void print_mask() const
     {
         decomposer_.print_mask();
     }

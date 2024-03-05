@@ -2,124 +2,207 @@
 
 #include <iostream>
 #include <vector>
-#include "custom_queue.h"
+#include "robin_hood.h"
 #include "index_base.h"
 #include "construct_nfa.h"
+#include "lemon/core.h"
 
 
-inline void print_in_order(size_t &node_count, const std::vector<int> &ranks)
+namespace CollectionUtils
 {
-    CustomCompare ranker(ranks);
-    minheap_t minheap(ranker);
-    for(size_t i = 0; i < node_count; ++i)
+    using kmer_t = uint64_t;
+    using path_t = bitvector;
+    using cache_t = robin_hood::unordered_map<uint64_t, bitvector>;
+    using rank_t = std::vector<int>;
+    struct CollectorsItem
     {
-        std::cout << i << " ";
-        minheap.push(i);   
-    }
-    std::cout << std::endl;
-    while(!minheap.empty())
-    {
-        std::cout << minheap.top() << " ";
-        minheap.pop();
-    }
-    std::cout << std::endl;
+        node_t node;
+        int id_;
+        uint8_t shift_count_;
+        kmer_t kmer_;
+        path_t path_;
+    };
+    using comp_table_t = std::vector<robin_hood::unordered_map<uint64_t, CollectorsItem>>;
 }
-
 
 template<index_structure::is_valid flavor, molecules::is_molecule mol_t>
-void update_path(auto &current_state, int &symbol, TetrexIndex<flavor, mol_t> &ibf, cache_t &cache)
+class OTFCollector
 {
-    bitvector hits;
-    uint64_t canonical_kmer = 0;
-    if(current_state.shift_count_ < (ibf.k_-1)) // Corresponds to a new kmer < threshold size (--A)
-    {
-        ibf.update_kmer(symbol, current_state.kmer_);
-        current_state.shift_count_++;
-    }
-    else if(current_state.shift_count_ == (ibf.k_-1)) // If the kmer just needs to be updated one more time to be a valid kmer (-AC)
-    {
-        // The canonical kmer is returned but the reference kmer is also updated!!!
-        canonical_kmer = ibf.update_kmer(symbol, current_state.kmer_);
-        if(cache.find(current_state.kmer_) == cache.end())
+    private:
+        size_t node_count_{};
+        TetrexIndex<flavor, mol_t> ibf_{};
+        amap_t arc_map_{};
+        CollectionUtils::comp_table_t comp_table_{};
+        CollectionUtils::rank_t rank_map_{};
+        nfa_t NFA_{};
+        lmap_t nfa_map_;
+        uint64_t submask_{};
+        CollectionUtils::cache_t kmer_cache_{};
+    
+    public:
+        OTFCollector() = default;
+
+        explicit OTFCollector(nfa_t NFA,
+                            lmap_t nfa_map,
+                            TetrexIndex<flavor, mol_t> &&ibf,
+                            CollectionUtils::rank_t &&rank_map,
+                            amap_t const &&arc_map) :
+                    node_count_{NFA.nodeNum()},
+                    ibf_{std::move(ibf)},
+                    arc_map_{std::move(arc_map)},
+                    comp_table_{node_count_},
+                    rank_map_{std::move(rank_map)}
         {
-            cache[current_state.kmer_] = ibf.query(canonical_kmer);
+            // lemon::digraphCopy(NFA, NFA_).nodeMap(nfa_map, nfa_map_).run(); // I hate that I have to do it this way...
+            lemon::DigraphCopy<nfa_t, nfa_t> cg(NFA, NFA_);
+            cg.nodeMap(nfa_map, nfa_map_);
+            cg.run();
+            create_selection_bitmask();
+            ibf_.spawn_agent(); // Not done by the IBFIndex constructor during deserialization
         }
-        hits = cache[current_state.kmer_];
-        current_state.path_ &= hits;
-        current_state.shift_count_++;
-    }
-    else if(current_state.shift_count_ == (ibf.k_)) // (ACG) Next kmer will be valid
+
+    uint64_t extract_hash(CollectionUtils::CollectorsItem &item)
     {
-        canonical_kmer = ibf.update_kmer(symbol, current_state.kmer_);
-        if(cache.find(current_state.kmer_) == cache.end())
+        uint64_t subhash = (item.kmer_ & submask_);
+        return subhash;
+    }
+
+    void create_selection_bitmask()
+    {
+        /*
+        Example with k=4 creates a bitmask like 
+        0b00000000-00000000-00000000-00000000-00000000-00000000-00000000-00111111
+        to detect collisions for absorption
+        */
+        size_t countdown = ibf_.k_-1;
+        while(countdown > 0)
         {
-            cache[current_state.kmer_] = ibf.query(canonical_kmer);
+            submask_ <<= ibf_.decomposer_.lshift_;
+            submask_ |= ibf_.decomposer_.rmask_;
+            --countdown;
         }
-        hits = cache[current_state.kmer_];
-        current_state.path_ &= hits;
+        // seqan3::debug_stream << submask_ << std::endl;
     }
-}
 
-
-void split_procedure(const amap_t &arc_map, int &id, auto &top, CustomQueue &minheap, nfa_t &NFA)
-{
-    node_t n1 = arc_map.at(id).first;
-    CollectorsItem item1 = {n1, NFA.id(n1), top.shift_count_, top.kmer_, top.path_};
-    minheap.push(item1);
-    node_t n2 = arc_map.at(id).second;
-    CollectorsItem item2 = {n2, NFA.id(n2), top.shift_count_, top.kmer_, top.path_};
-    minheap.push(item2);
-}
-
-
-template<index_structure::is_valid flavor, molecules::is_molecule mol_t>
-bitvector collect_Top(nfa_t &NFA, TetrexIndex<flavor, mol_t> &ibf, lmap_t &nfa_map, const std::vector<int> &rank_map, const amap_t &arc_map)
-{
-    bitvector path_matrix(ibf.getBinCount());
-    CustomQueue minheap(rank_map, NFA, ibf.k_, ibf.decomposer_.lshift_, ibf.decomposer_.rmask_);
-
-    // seqan3::debug_stream << path_matrix << std::endl;
-    cache_t kmer_cache;
-    bitvector hit_vector(ibf.getBinCount(), true);
-
-    int id = 0;
-    uint64_t kmer_init = 0;
-    node_t next = NFA.nodeFromId(id);
-    CollectorsItem item = {next, id, 0, kmer_init, hit_vector};
-    minheap.push(item);
-
-    // size_t loop_count = 0;
-    while(!minheap.empty())
+    void print_ranks() const
     {
-        // loop_count++;
-        auto top = minheap.top();
-        minheap.pop();
-        id = top.id_;
-        int symbol = nfa_map[top.node];
-        // seqan3::debug_stream << symbol << std::endl;
-        switch(symbol)
+        seqan3::debug_stream << rank_map_ << std::endl;
+    }
+
+    void push(CollectionUtils::CollectorsItem &item)
+    {
+        uint64_t subhash = extract_hash(item);
+        if(comp_table_[item.id_].find(subhash) == comp_table_[item.id_].end())
         {
-            case Match:
-                path_matrix |= top.path_;
-                break;
-            case Ghost:
-                next = arc_map.at(id).first;
-                item = {next, NFA.id(next), top.shift_count_, top.kmer_, top.path_};
-                minheap.push(item);
-                break;
-            case Split:
-                split_procedure(arc_map, id, top, minheap, NFA);
-                break;
-            default:
-                update_path(top, symbol, ibf, kmer_cache);
-                if(top.path_.none()) break; // Immediately get rid of deadend paths
-                next = arc_map.at(id).first;
-                item = {next, NFA.id(next), top.shift_count_, top.kmer_, top.path_};
-                minheap.push(item);
-                break;
+            comp_table_[item.id_][subhash] = item;
+        }
+        else
+        {
+            absorb(subhash, item);
         }
     }
-    // seqan3::debug_stream << path_matrix << std::endl;
-    // seqan3::debug_stream << loop_count << std::endl;
-    return path_matrix;
-}
+
+    void absorb(uint64_t &subhash, CollectionUtils::CollectorsItem &item)
+    {
+        // seqan3::debug_stream << "[-->" << item.id_ << "<--]" << std::endl;
+        comp_table_[item.id_][subhash].path_ |= item.path_; // TODO: Hmmmm
+    }
+
+    void pop(int const topid)
+    {
+        auto it = comp_table_[topid].begin();
+        comp_table_[topid].erase(it);
+    }
+
+    void update_path(auto &current_state, int &symbol)
+    {
+        bitvector hits;
+        CollectionUtils::kmer_t canonical_kmer = 0;
+        if(current_state.shift_count_ < (ibf_.k_-1)) // Corresponds to a new kmer < threshold size (--A)
+        {
+            ibf_.update_kmer(symbol, current_state.kmer_);
+            current_state.shift_count_++;
+        }
+        else if(current_state.shift_count_ == (ibf_.k_-1)) // If the kmer just needs to be updated one more time to be a valid kmer (-AC)
+        {
+            // The canonical kmer is returned but the reference kmer is also updated!!!
+            canonical_kmer = ibf_.update_kmer(symbol, current_state.kmer_);
+            if(kmer_cache_.find(current_state.kmer_) == kmer_cache_.end())
+            {
+                kmer_cache_[current_state.kmer_] = ibf_.query(canonical_kmer);
+            }
+            hits = kmer_cache_[current_state.kmer_];
+            current_state.path_ &= hits;
+            current_state.shift_count_++;
+        }
+        else if(current_state.shift_count_ == (ibf_.k_)) // (ACG) Next kmer will be valid
+        {
+            canonical_kmer = ibf_.update_kmer(symbol, current_state.kmer_);
+            if(kmer_cache_.find(current_state.kmer_) == kmer_cache_.end())
+            {
+                kmer_cache_[current_state.kmer_] = ibf_.query(canonical_kmer);
+            }
+            hits = kmer_cache_[current_state.kmer_];
+            current_state.path_ &= hits;
+        }
+    }
+
+    void split_procedure(int &id, auto &top)
+    {
+        node_t n1 = arc_map_.at(id).first;
+        CollectionUtils::CollectorsItem item1 = {n1, NFA_.id(n1), top.shift_count_, top.kmer_, top.path_};
+        push(item1);
+        node_t n2 = arc_map_.at(id).second;
+        CollectionUtils::CollectorsItem item2 = {n2, NFA_.id(n2), top.shift_count_, top.kmer_, top.path_};
+        push(item2);
+    }
+
+    bitvector collect()
+    {
+        bitvector path_matrix(ibf_.getBinCount());
+        bitvector hit_vector(ibf_.getBinCount(), true);
+
+        int id = 0;
+        CollectionUtils::kmer_t kmer_init = 0;
+        node_t next = NFA_.nodeFromId(id);
+        CollectionUtils::CollectorsItem item = {next, id, 0, kmer_init, hit_vector};
+        push(item);
+
+        for(size_t i = 0; i < node_count_; ++i)
+        {
+            for(auto const &pair: comp_table_[i]) // [hash, itm]
+            {
+                auto top = pair.second;
+                pop(i);
+                id = top.id_;
+                // int symbol = nfa_map_[top.node];
+                int symbol = 0;
+                seqan3::debug_stream << symbol << std::endl;
+                switch(symbol)
+                {
+                    case Match:
+                        path_matrix |= top.path_;
+                        break;
+                    case Ghost:
+                        next = arc_map_.at(id).first;
+                        item = {next, NFA_.id(next), top.shift_count_, top.kmer_, top.path_};
+                        push(item);
+                        break;
+                    case Split:
+                        split_procedure(id, top);
+                        break;
+                    default:
+                        update_path(top, symbol);
+                        if(top.path_.none()) break; // Immediately get rid of deadend paths
+                        next = arc_map_.at(id).first;
+                        item = {next, NFA_.id(next), top.shift_count_, top.kmer_, top.path_};
+                        push(item);
+                        break;
+                }
+            }
+        }
+        // seqan3::debug_stream << path_matrix << std::endl;
+        // seqan3::debug_stream << loop_count << std::endl;
+        return path_matrix;
+    }
+};

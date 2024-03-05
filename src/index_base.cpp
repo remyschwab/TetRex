@@ -5,7 +5,7 @@
 #include "index_base.h"
 
 
-std::vector<std::string> read_input_file_list(std::filesystem::path input_file)
+std::vector<std::string> read_input_file_list(const std::filesystem::path &input_file)
 {
     std::vector<std::string> sequence_files;
     std::ifstream fin{input_file};

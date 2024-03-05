@@ -41,7 +41,7 @@ namespace molecules
                 }
             }
 
-            void print_mask()
+            void print_mask() const
             {
                 std::cout << selection_mask_ << std::endl;
             }

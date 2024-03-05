@@ -63,7 +63,7 @@ public:
         return hibf_;
     }
 
-    void emplace(uint64_t &val, const seqan::hibf::bin_index &idx)
+    void emplace(uint64_t const val, seqan::hibf::bin_index const idx)
     {
         (void)val;
         (void)idx;
@@ -88,7 +88,7 @@ public:
         return hits;
     }
 
-    bitvector query(uint64_t &kmer)
+    bitvector query(uint64_t const kmer)
     {
         std::vector<uint64_t> stupid_vector{kmer};
         auto &results = agent_.membership_for(stupid_vector, 1u);

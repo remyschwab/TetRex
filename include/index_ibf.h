@@ -34,16 +34,16 @@ public:
              seqan::hibf::bin_size{bin_size_},
               seqan::hibf::hash_function_count{hash_count_})
     {
-        agent_ = ibf_.membership_agent();
+        agent_ = ibf_.membership_agent(); // I think I can get rid of this...
     }
 
-    size_t getBinCount()
+    size_t getBinCount() const
     {
         assert(ibf_.bin_count() == bin_count_);
         return bin_count_;
     }
 
-    size_t getBinSize()
+    size_t getBinSize() const
     {
         assert(ibf_.bin_size() == bin_size_);
         return bin_size_;
@@ -60,7 +60,7 @@ public:
         return ibf_;
     }
 
-    void emplace(uint64_t &val, const seqan::hibf::bin_index &idx)
+    void emplace(uint64_t const val, seqan::hibf::bin_index const idx)
     {
         ibf_.emplace(val, seqan::hibf::bin_index{idx});
     }
@@ -98,7 +98,7 @@ public:
         agent_ = ibf_.membership_agent();
     }
 
-    bitvector query(uint64_t &kmer)
+    bitvector query(uint64_t const kmer)
     {
         bitvector hits = agent_.bulk_contains(kmer);
         return hits;

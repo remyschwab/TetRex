@@ -55,7 +55,7 @@ class CustomQueue
         CustomCompare ranker_;
         minheap_t minheap_;
         uint64_t submask_{};
-        uint8_t k_;
+        uint8_t k_{};
 
     public:
         comp_table_t comp_table_;
@@ -63,10 +63,10 @@ class CustomQueue
     CustomQueue() = default;
     ~CustomQueue() = default;
 
-    explicit CustomQueue(std::vector<int> ranks, nfa_t &NFA, uint8_t &k, uint8_t &left_shift, uint8_t &resmask) :
+    explicit CustomQueue(std::vector<int> ranks, nfa_t &NFA, uint8_t k, uint8_t left_shift, uint8_t resmask) :
     k_{k}
     {
-        ranker_ = CustomCompare(ranks);
+        ranker_ = CustomCompare(std::move(ranks));
         minheap_ = minheap_t(ranker_);
         comp_table_.resize(NFA.nodeNum());
         create_selection_bitmask(k, left_shift, resmask);
@@ -133,8 +133,10 @@ class CustomQueue
         size_t countdown = (k-1);
         while(countdown > 0)
         {
-            submask_ = (submask_<<lshift) | rmask;
-            countdown--;
+            // submask_ = (submask_<<lshift) | rmask;
+            submask_ <<= lshift;
+            submask_ |= rmask;
+            --countdown;
         }
         // seqan3::debug_stream << submask_ << std::endl;
     }

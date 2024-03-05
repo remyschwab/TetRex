@@ -61,7 +61,6 @@ template<index_structure::is_valid flavor, molecules::is_molecule mol_t>
 void run_collection(query_arguments &cmd_args, const bool &model, TetrexIndex<flavor, mol_t> &ibf)
 {
     // double t1, t2;
-    // uint8_t &qlength = ibf.k_;
     std::string &rx = cmd_args.regex;
     std::string &query = cmd_args.query;
     preprocess_query(rx, query);
@@ -84,10 +83,10 @@ void run_collection(query_arguments &cmd_args, const bool &model, TetrexIndex<fl
     // print_in_order(node_count, top_rank_map);
     // seqan3::debug_stream << std::endl;
 
-    ibf.spawn_agent(); // Not done by the constructor during deserialization
-
-    bitvector hit_vector = collect_Top(NFA, ibf, nfa_map, top_rank_map, arc_map);
-    if(!hit_vector.none()) iter_disk_search(hit_vector, rx, ibf);
+    OTFCollector<flavor, mol_t> collector(NFA, nfa_map, std::move(ibf), std::move(top_rank_map), std::move(arc_map));
+    // bitvector hit_vector = collector.collect();
+    collector.collect();
+    // if(!hit_vector.none()) iter_disk_search(hit_vector, rx, ibf);
     // t2 = omp_get_wtime();
     // seqan3::debug_stream << "Query Time: " << (t2-t1) << std::endl;
 }
