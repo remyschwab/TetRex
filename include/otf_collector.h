@@ -34,29 +34,27 @@ class OTFCollector
         amap_t arc_map_{};
         CollectionUtils::comp_table_t comp_table_{};
         CollectionUtils::rank_t rank_map_{};
-        nfa_t NFA_{};
-        lmap_t nfa_map_;
+        std::unique_ptr<nfa_t> NFA_{};
+        std::unique_ptr<lmap_t> nfa_map_;
         uint64_t submask_{};
         CollectionUtils::cache_t kmer_cache_{};
     
     public:
         OTFCollector() = default;
 
-        explicit OTFCollector(nfa_t NFA,
-                            lmap_t nfa_map,
+        explicit OTFCollector(std::unique_ptr<nfa_t> nfa,
+                            std::unique_ptr<lmap_t> nfa_map,
                             TetrexIndex<flavor, mol_t> &&ibf,
                             CollectionUtils::rank_t &&rank_map,
                             amap_t const &&arc_map) :
-                    node_count_{NFA.nodeNum()},
+                    node_count_{nfa->nodeNum()},
                     ibf_{std::move(ibf)},
                     arc_map_{std::move(arc_map)},
                     comp_table_{node_count_},
-                    rank_map_{std::move(rank_map)}
+                    rank_map_{std::move(rank_map)},
+                    NFA_(std::move(nfa)),
+                    nfa_map_(std::move(nfa_map))
         {
-            // lemon::digraphCopy(NFA, NFA_).nodeMap(nfa_map, nfa_map_).run(); // I hate that I have to do it this way...
-            lemon::DigraphCopy<nfa_t, nfa_t> cg(NFA, NFA_);
-            cg.nodeMap(nfa_map, nfa_map_);
-            cg.run();
             create_selection_bitmask();
             ibf_.spawn_agent(); // Not done by the IBFIndex constructor during deserialization
         }
@@ -150,10 +148,10 @@ class OTFCollector
     void split_procedure(int &id, auto &top)
     {
         node_t n1 = arc_map_.at(id).first;
-        CollectionUtils::CollectorsItem item1 = {n1, NFA_.id(n1), top.shift_count_, top.kmer_, top.path_};
+        CollectionUtils::CollectorsItem item1 = {n1, NFA_->id(n1), top.shift_count_, top.kmer_, top.path_};
         push(item1);
         node_t n2 = arc_map_.at(id).second;
-        CollectionUtils::CollectorsItem item2 = {n2, NFA_.id(n2), top.shift_count_, top.kmer_, top.path_};
+        CollectionUtils::CollectorsItem item2 = {n2, NFA_->id(n2), top.shift_count_, top.kmer_, top.path_};
         push(item2);
     }
 
@@ -164,7 +162,7 @@ class OTFCollector
 
         int id = 0;
         CollectionUtils::kmer_t kmer_init = 0;
-        node_t next = NFA_.nodeFromId(id);
+        node_t next = NFA_->nodeFromId(id);
         CollectionUtils::CollectorsItem item = {next, id, 0, kmer_init, hit_vector};
         push(item);
 
@@ -185,7 +183,7 @@ class OTFCollector
                         break;
                     case Ghost:
                         next = arc_map_.at(id).first;
-                        item = {next, NFA_.id(next), top.shift_count_, top.kmer_, top.path_};
+                        item = {next, NFA_->id(next), top.shift_count_, top.kmer_, top.path_};
                         push(item);
                         break;
                     case Split:
@@ -195,7 +193,7 @@ class OTFCollector
                         update_path(top, symbol);
                         if(top.path_.none()) break; // Immediately get rid of deadend paths
                         next = arc_map_.at(id).first;
-                        item = {next, NFA_.id(next), top.shift_count_, top.kmer_, top.path_};
+                        item = {next, NFA_->id(next), top.shift_count_, top.kmer_, top.path_};
                         push(item);
                         break;
                 }

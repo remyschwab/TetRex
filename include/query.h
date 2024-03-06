@@ -83,7 +83,10 @@ void run_collection(query_arguments &cmd_args, const bool &model, TetrexIndex<fl
     // print_in_order(node_count, top_rank_map);
     // seqan3::debug_stream << std::endl;
 
-    OTFCollector<flavor, mol_t> collector(NFA, nfa_map, std::move(ibf), std::move(top_rank_map), std::move(arc_map));
+    std::unique_ptr<nfa_t> nfa_ptr = std::make_unique<nfa_t>(NFA);
+    std::unique_ptr<lmap_t> map_ptr =  std::make_unique<lmap_t>(nfa_map);
+    OTFCollector<flavor, mol_t> collector(std::move(nfa_ptr), std::move(map_ptr), std::move(ibf), std::move(top_rank_map), std::move(arc_map));
+    
     // bitvector hit_vector = collector.collect();
     collector.collect();
     // if(!hit_vector.none()) iter_disk_search(hit_vector, rx, ibf);
