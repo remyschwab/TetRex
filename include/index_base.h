@@ -108,7 +108,7 @@ class TetrexIndex
             return {forward_store_, reverse_store_};
         }
 
-        uint64_t update_kmer(int const symbol, uint64_t kmer)
+        uint64_t update_kmer(int const symbol, uint64_t &kmer)
         {
             return decomposer_.update_kmer(symbol, kmer);
         }

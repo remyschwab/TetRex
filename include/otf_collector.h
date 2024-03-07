@@ -29,13 +29,13 @@ template<index_structure::is_valid flavor, molecules::is_molecule mol_t>
 class OTFCollector
 {
     private:
+        std::unique_ptr<nfa_t> NFA_{};
+        std::unique_ptr<lmap_t> nfa_map_{};
         size_t node_count_{};
         TetrexIndex<flavor, mol_t> ibf_{};
         amap_t arc_map_{};
         CollectionUtils::comp_table_t comp_table_{};
         CollectionUtils::rank_t rank_map_{};
-        std::unique_ptr<nfa_t> NFA_{};
-        std::unique_ptr<lmap_t> nfa_map_;
         uint64_t submask_{};
         CollectionUtils::cache_t kmer_cache_{};
     
@@ -47,13 +47,13 @@ class OTFCollector
                             TetrexIndex<flavor, mol_t> &&ibf,
                             CollectionUtils::rank_t &&rank_map,
                             amap_t const &&arc_map) :
-                    node_count_{nfa->nodeNum()},
+                    NFA_(std::move(nfa)),
+                    nfa_map_(std::move(nfa_map)),
+                    node_count_{NFA_->nodeNum()},
                     ibf_{std::move(ibf)},
                     arc_map_{std::move(arc_map)},
                     comp_table_{node_count_},
-                    rank_map_{std::move(rank_map)},
-                    NFA_(std::move(nfa)),
-                    nfa_map_(std::move(nfa_map))
+                    rank_map_{std::move(rank_map)}
         {
             create_selection_bitmask();
             ibf_.spawn_agent(); // Not done by the IBFIndex constructor during deserialization
@@ -90,23 +90,25 @@ class OTFCollector
     void push(CollectionUtils::CollectorsItem &item)
     {
         uint64_t subhash = extract_hash(item);
-        if(comp_table_[item.id_].find(subhash) == comp_table_[item.id_].end())
+        int idx = rank_map_[item.id_];
+        if(comp_table_[idx].find(subhash) == comp_table_[idx].end())
         {
-            comp_table_[item.id_][subhash] = item;
+            comp_table_[idx][subhash] = item;
         }
         else
         {
+            seqan3::debug_stream << "ABSORBING" << std::endl;
             absorb(subhash, item);
         }
+        seqan3::debug_stream << idx << "-" << comp_table_[idx].size() << std::endl;
     }
 
     void absorb(uint64_t &subhash, CollectionUtils::CollectorsItem &item)
     {
-        // seqan3::debug_stream << "[-->" << item.id_ << "<--]" << std::endl;
         comp_table_[item.id_][subhash].path_ |= item.path_; // TODO: Hmmmm
     }
 
-    void pop(int const topid)
+    void scrub(int const topid)
     {
         auto it = comp_table_[topid].begin();
         comp_table_[topid].erase(it);
@@ -168,14 +170,13 @@ class OTFCollector
 
         for(size_t i = 0; i < node_count_; ++i)
         {
+            seqan3::debug_stream << "ITERATION " << i << std::endl;
             for(auto const &pair: comp_table_[i]) // [hash, itm]
             {
                 auto top = pair.second;
-                pop(i);
+                scrub(i);
                 id = top.id_;
-                // int symbol = nfa_map_[top.node];
-                int symbol = 0;
-                seqan3::debug_stream << symbol << std::endl;
+                int symbol = (*nfa_map_)[top.node];
                 switch(symbol)
                 {
                     case Match:
@@ -199,8 +200,7 @@ class OTFCollector
                 }
             }
         }
-        // seqan3::debug_stream << path_matrix << std::endl;
-        // seqan3::debug_stream << loop_count << std::endl;
+        seqan3::debug_stream << path_matrix << std::endl;
         return path_matrix;
     }
 };
