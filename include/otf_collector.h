@@ -44,13 +44,13 @@ class OTFCollector
 
         explicit OTFCollector(std::unique_ptr<nfa_t> nfa,
                             std::unique_ptr<lmap_t> nfa_map,
-                            TetrexIndex<flavor, mol_t> &&ibf,
+                            TetrexIndex<flavor, mol_t> &ibf,
                             CollectionUtils::rank_t &&rank_map,
                             amap_t const &&arc_map) :
                     NFA_(std::move(nfa)),
                     nfa_map_(std::move(nfa_map)),
                     node_count_{NFA_->nodeNum()},
-                    ibf_{std::move(ibf)},
+                    ibf_{ibf},
                     arc_map_{std::move(arc_map)},
                     comp_table_{node_count_},
                     rank_map_{std::move(rank_map)}
@@ -97,10 +97,10 @@ class OTFCollector
         }
         else
         {
-            seqan3::debug_stream << "ABSORBING" << std::endl;
+            // seqan3::debug_stream << "ABSORBING" << std::endl;
             absorb(subhash, item);
         }
-        seqan3::debug_stream << idx << "-" << comp_table_[idx].size() << std::endl;
+        // seqan3::debug_stream << idx << "-" << comp_table_[idx].size() << std::endl;
     }
 
     void absorb(uint64_t &subhash, CollectionUtils::CollectorsItem &item)
@@ -170,10 +170,10 @@ class OTFCollector
 
         for(size_t i = 0; i < node_count_; ++i)
         {
-            seqan3::debug_stream << "ITERATION " << i << std::endl;
-            for(auto const &pair: comp_table_[i]) // [hash, itm]
+            // seqan3::debug_stream << "ITERATION " << i << std::endl;
+            while(!comp_table_[i].empty()) // [hash, itm]
             {
-                auto top = pair.second;
+                auto top = comp_table_[i].begin()->second;
                 scrub(i);
                 id = top.id_;
                 int symbol = (*nfa_map_)[top.node];
@@ -200,7 +200,7 @@ class OTFCollector
                 }
             }
         }
-        seqan3::debug_stream << path_matrix << std::endl;
+        // seqan3::debug_stream << path_matrix << std::endl;
         return path_matrix;
     }
 };

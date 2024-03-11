@@ -25,7 +25,7 @@ std::vector<std::string> read_input_file_list(const std::filesystem::path &input
 void create_ibf_dna_index(const index_arguments &cmd_args, const std::vector<std::string> &input_bin_files, uint8_t &reduction)
 {
     std::string molecule = cmd_args.molecule;
-    TetrexIndex<index_structure::IBF, molecules::nucleotide> ibf(cmd_args.k, cmd_args.bin_size, cmd_args.hash_count, molecule, input_bin_files, reduction);
+    TetrexIndex<index_structure::IBF, molecules::nucleotide> ibf(cmd_args.k, cmd_args.bin_size, cmd_args.hash_count, molecule, std::move(input_bin_files), reduction);
     ibf.populate_index();
     seqan3::debug_stream << "Writing to disk... ";
     std::filesystem::path output_path{cmd_args.ofile+".ibf"};

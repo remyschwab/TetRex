@@ -22,12 +22,12 @@ class TetrexIndex
     public:
         uint8_t k_{};
         std::string molecule_{};
+        bool permanent_hibf_status_{};
         std::vector<std::string> acid_libs_{};
         uint8_t reduction_{};
-        static bool constexpr is_hibf_{index_structure::is_hibf<ibf_flavor>};
-        bool permanent_hibf_status_{};
         ibf_flavor ibf_{};
         MoleculeDecomposer<molecule_t> decomposer_{};
+        static bool constexpr is_hibf_{index_structure::is_hibf<ibf_flavor>};
         uint64_t forward_store_{};
         uint64_t reverse_store_{};
 
@@ -163,7 +163,6 @@ void load_ibf(TetrexIndex &ibf, std::filesystem::path ipath)
     std::ifstream is{ipath, std::ios::binary};
     cereal::BinaryInputArchive iarchive{is};
     iarchive(ibf);
-    // ibf.spawn_agent();
 }
 
 inline void load_params(index_params &params, std::filesystem::path ipath)
