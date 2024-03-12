@@ -10,7 +10,7 @@ Despite the many efficient tools implemented for finding Regular Expressions, th
 ## Installation
 
 1. Clone the repository with
-```git clone --recurse-submodules git@github.com:remyschwab/kBioReg.git```
+```git clone --recurse-submodules git@github.com:remyschwab/TetRex.git```
 2. Descend into the home directory and input:
 ```mkdir build && cd build```
 3. Configure with cmake ```cmake -DCMAKE_CXX_COMPILER=/path/to/g++-11 ..```
