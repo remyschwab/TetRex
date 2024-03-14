@@ -59,6 +59,20 @@ class OTFCollector
             ibf_.spawn_agent(); // Not done by the IBFIndex constructor during deserialization
         }
 
+    std::string kmer2string(uint64_t kmer, uint8_t ksize)
+    {
+        robin_hood::unordered_map<uint64_t, char> nucleotide_map{{0x0ULL,'A'}, {0x1ULL,'C'}, {0x3ULL,'G'}, {0x2ULL,'T'}};
+        std::string kmer_seq = "";
+        for(size_t i = 0; i < ksize; ++i)
+        {
+            uint64_t base = kmer&3;
+            kmer_seq += nucleotide_map[base];
+            kmer = kmer>>2;
+        }
+        std::reverse(kmer_seq.begin(), kmer_seq.end());
+        return kmer_seq;
+    }
+
     uint64_t extract_hash(CollectionUtils::CollectorsItem &item)
     {
         uint64_t subhash = (item.kmer_ & submask_);
@@ -93,19 +107,22 @@ class OTFCollector
         int idx = rank_map_[item.id_];
         if(comp_table_[idx].find(subhash) == comp_table_[idx].end())
         {
+            // seqan3::debug_stream << "On Push: " << kmer2string(item.kmer_, 3) << " to slot " << idx << " " << item.path_ << std::endl;
             comp_table_[idx][subhash] = item;
         }
         else
         {
-            // seqan3::debug_stream << "ABSORBING" << std::endl;
-            absorb(subhash, item);
+            // seqan3::debug_stream << "ABSORBING: ";
+            absorb(subhash, item, idx);
+            // seqan3::debug_stream << comp_table_[idx][subhash].path_ << std::endl;
         }
         // seqan3::debug_stream << idx << "-" << comp_table_[idx].size() << std::endl;
     }
 
-    void absorb(uint64_t &subhash, CollectionUtils::CollectorsItem &item)
+    void absorb(uint64_t &subhash, CollectionUtils::CollectorsItem &item, int idx)
     {
-        comp_table_[item.id_][subhash].path_ |= item.path_; // TODO: Hmmmm
+        // seqan3::debug_stream << comp_table_[idx][subhash].path_ << " | " << item.path_ << " --> ";
+        comp_table_[idx][subhash].path_ |= item.path_; // TODO: Hmmmm
     }
 
     void scrub(int const topid)
@@ -167,7 +184,6 @@ class OTFCollector
         node_t next = NFA_->nodeFromId(id);
         CollectionUtils::CollectorsItem item = {next, id, 0, kmer_init, hit_vector};
         push(item);
-
         for(size_t i = 0; i < node_count_; ++i)
         {
             // seqan3::debug_stream << "ITERATION " << i << std::endl;

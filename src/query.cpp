@@ -63,7 +63,7 @@ void verify_fasta_hit(const gzFile &fasta_handle, kseq_t *record, re2::RE2 &crx)
         while (RE2::FindAndConsume(&bin_content, crx, &match))
         {
             std::cout << ">" << record->name.s << "\t" << match << "\t" << start << "-" << start+match.length()-1 << std::endl;
-            start++;
+            ++start;
         }
     }
 }
