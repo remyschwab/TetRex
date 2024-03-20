@@ -7,11 +7,11 @@ class HIBFIndex
 {
 
 private:
-    size_t bin_count_;
-    size_t max_bin_size_;
-    uint8_t hash_count_;
-    std::vector<std::string> user_bins_;
-    seqan::hibf::hierarchical_interleaved_bloom_filter hibf_; 
+    size_t bin_count_{};
+    size_t max_bin_size_{};
+    uint8_t hash_count_{};
+    std::vector<std::string> user_bins_{};
+    seqan::hibf::hierarchical_interleaved_bloom_filter hibf_{};
 
 
 public:
@@ -23,14 +23,14 @@ public:
             bin_count_{user_bins.size()},
             max_bin_size_{bs},
             hash_count_{hc},
-            user_bins_{user_bins},
+            user_bins_{std::move(user_bins)},
             hibf_
             {
                 [&]()
                 {
                     auto get_user_bin_data = [&](size_t const user_bin_id, seqan::hibf::insert_iterator it)
                     {
-                        for (auto value : user_bins[user_bin_id])
+                        for (auto & value : user_bins_[user_bin_id])
                             it = value;
                     };
 

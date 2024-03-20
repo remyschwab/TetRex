@@ -107,22 +107,17 @@ class OTFCollector
         int idx = rank_map_[item.id_];
         if(comp_table_[idx].find(subhash) == comp_table_[idx].end())
         {
-            // seqan3::debug_stream << "On Push: " << kmer2string(item.kmer_, 3) << " to slot " << idx << " " << item.path_ << std::endl;
             comp_table_[idx][subhash] = item;
         }
         else
         {
-            // seqan3::debug_stream << "ABSORBING: ";
             absorb(subhash, item, idx);
-            // seqan3::debug_stream << comp_table_[idx][subhash].path_ << std::endl;
         }
-        // seqan3::debug_stream << idx << "-" << comp_table_[idx].size() << std::endl;
     }
 
     void absorb(uint64_t &subhash, CollectionUtils::CollectorsItem &item, int idx)
     {
-        // seqan3::debug_stream << comp_table_[idx][subhash].path_ << " | " << item.path_ << " --> ";
-        comp_table_[idx][subhash].path_ |= item.path_; // TODO: Hmmmm
+        comp_table_[idx][subhash].path_ |= item.path_;
     }
 
     void scrub(int const topid)
@@ -186,7 +181,6 @@ class OTFCollector
         push(item);
         for(size_t i = 0; i < node_count_; ++i)
         {
-            // seqan3::debug_stream << "ITERATION " << i << std::endl;
             while(!comp_table_[i].empty()) // [hash, itm]
             {
                 auto top = comp_table_[i].begin()->second;

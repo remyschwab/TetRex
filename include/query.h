@@ -72,11 +72,9 @@ void run_collection(query_arguments &cmd_args, const bool &model, TetrexIndex<fl
     t1 = omp_get_wtime();
     construct_kgraph(cmd_args.query, *NFA, *nfa_map, arc_map, ibf.k_);
     std::vector<int> top_rank_map = run_top_sort(*NFA);
-    OTFCollector<flavor, mol_t> collector(std::move(NFA),
-                                          std::move(nfa_map),
+    OTFCollector<flavor, mol_t> collector(std::move(NFA), std::move(nfa_map),
                                           ibf,
-                                          std::move(top_rank_map),
-                                          std::move(arc_map));
+                                          std::move(top_rank_map), std::move(arc_map));
     
     bitvector hit_vector = collector.collect();
     if(!hit_vector.none()) iter_disk_search(hit_vector, rx, ibf);

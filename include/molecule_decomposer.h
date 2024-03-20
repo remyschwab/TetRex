@@ -67,31 +67,29 @@ template<molecules::is_molecule DecomposerType>
 class MoleculeDecomposer
 {
     private:
-        uint8_t ksize_;
+        uint8_t ksize_{};
 
     public:
-        uint8_t lshift_;
-        uint8_t rmask_;
-        DecomposerType decomposer_;
+        uint8_t lshift_{};
+        uint8_t rmask_{};
+        DecomposerType decomposer_{};
         static bool constexpr is_nucleotide{molecules::is_dna<DecomposerType>};
         MoleculeDecomposer() = default;
-        explicit MoleculeDecomposer(uint8_t &ksize, uint8_t &reduction) : ksize_{ksize}
-        {
-            if constexpr(is_nucleotide)
-            {
-                decomposer_ = molecules::NucleotideDecomposer(ksize_, reduction);
-                lshift_ = 2;
-                rmask_ = 0b11;
-            }
-            else
-            {
-                decomposer_ = molecules::PeptideDecomposer(ksize_, reduction);
-                lshift_ = 5;
-                rmask_ = 0b11111;
-            }
-        }
+        explicit MoleculeDecomposer(uint8_t const ksize, uint8_t const reduction) requires is_nucleotide :
+            ksize_{ksize},
+            lshift_{2},
+            rmask_{0b11},
+            decomposer_{molecules::NucleotideDecomposer{ksize_, reduction}}
+        {}
 
-    void decompose_record(std::string_view record, seqan::hibf::bin_index &tech_bin_id, auto &base_ref)
+        explicit MoleculeDecomposer(uint8_t const ksize, uint8_t const reduction) requires (!is_nucleotide) :
+            ksize_{ksize},
+            lshift_{5},
+            rmask_{0b11111},
+            decomposer_{molecules::PeptideDecomposer{ksize_, reduction}}
+        {}
+
+    void decompose_record(std::string_view const record, seqan::hibf::bin_index const &tech_bin_id, auto &base_ref)
     {
         decomposer_.decompose_record(record, tech_bin_id, base_ref);
     }

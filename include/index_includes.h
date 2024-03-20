@@ -2,6 +2,7 @@
 #define index_includes_h
 
 #include <zlib.h>
+#include <cereal/types/array.hpp>
 #include <cereal/types/vector.hpp>
 #include "cereal/types/string.hpp"
 

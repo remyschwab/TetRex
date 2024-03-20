@@ -7,7 +7,7 @@ namespace molecules
     class NucleotideDecomposer
     {
         private:
-            uint8_t k_;
+            uint8_t k_{};
             uint8_t reduction_{};
 
         public:
@@ -15,7 +15,7 @@ namespace molecules
             uint64_t selection_mask_{};
 
             NucleotideDecomposer() = default;
-            NucleotideDecomposer(uint8_t &k, uint8_t &reduction) : k_{k}, reduction_{reduction}
+            NucleotideDecomposer(uint8_t const k, uint8_t const reduction) : k_{k}, reduction_{reduction}
             {
                 create_selection_bitmask();
                 set_left_shift();
@@ -33,12 +33,7 @@ namespace molecules
                 0b00000000-00000000-00000000-00000000-00000000-00000000-00000000-11111111
                 for the rolling hash
                 */
-                size_t countdown = k_;
-                while(countdown > 0)
-                {
-                    selection_mask_ = (selection_mask_<<2) | 0b11;
-                    countdown--;
-                }
+                selection_mask_ = (k_ >= 32) ? static_cast<uint64_t>(-1) : (1ULL << (2*(k_))) - 1u;
             }
 
             void print_mask() const
@@ -83,18 +78,18 @@ namespace molecules
                 return (((uint64_t)simde_mm_cvtsi128_si64(x)) >> (uint64_t)(64-2*k));
             }
 
-            uint64_t encode_dna(std::string_view kmer)
+            uint64_t encode_dna(std::string_view const kmer) const
             {
-                uint64_t codemer = 0;
+                uint64_t codemer{};
                 for(auto && base: kmer)
                 {
-                    codemer = codemer << 2;
-                    codemer += (base>>1)&3;
+                    codemer <<= 2;
+                    codemer |= (base>>1)&3;
                 }
                 return codemer;
             }
 
-            void rollover_nuc_hash(const char base , const seqan::hibf::bin_index &bin_id, auto &base_ref)
+            void rollover_nuc_hash(const char base , seqan::hibf::bin_index const bin_id, auto &base_ref) const
             {
                 auto fb = (base>>1)&3; // Encode the new base
                 auto cb = (fb^0b10)<<left_shift_; // Get its complement and shift it to the big end of the uint64
@@ -104,15 +99,14 @@ namespace molecules
                 base_ref.emplace(canon_kmer, bin_id);
             }
 
-            void decompose_record(std::string_view record_seq, seqan::hibf::bin_index &tech_bin_id, auto &base_ref)
+            void decompose_record(std::string_view const record_seq, seqan::hibf::bin_index const tech_bin_id, auto &base_ref)
             {
                 uint64_t initial_encoding = encode_dna(record_seq.substr(0, k_)); // Encode forward
                 uint64_t reverse_complement = revComplement(initial_encoding, k_); // Compute the reverse compelement
                 base_ref.set_stores(initial_encoding, reverse_complement); // Remember both strands
                 base_ref.emplace((initial_encoding <= reverse_complement ? initial_encoding : reverse_complement), tech_bin_id); // MinHash
-                for(size_t i = k_; i < record_seq.length(); ++i)
+                for(auto symbol : record_seq)
                 {
-                    auto symbol = record_seq[i];
                     rollover_nuc_hash(symbol, tech_bin_id, base_ref);
                 }
             }

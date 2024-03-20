@@ -76,10 +76,9 @@ class TetrexIndex
             ibf_.emplace(val, idx);
         }
 
-        bitvector query(uint64_t const kmer)
+        const bitvector & query(uint64_t const kmer)
         {
-            bitvector hits = ibf_.query(kmer);
-            return hits;
+            return ibf_.query(kmer);
         }
 
         bool is_hibf() const
@@ -139,18 +138,18 @@ class TetrexIndex
 
 std::vector<std::string> read_input_file_list(const std::filesystem::path &input_file);
 
-void create_ibf_dna_index(const index_arguments &cmd_args, const std::vector<std::string> &input_bin_files, uint8_t &reduction);
+void create_ibf_dna_index(const index_arguments &cmd_args, const std::vector<std::string> &input_bin_files, uint8_t const reduction);
 
-void create_hibf_dna_index(const index_arguments &cmd_args, const std::vector<std::string> &input_bin_files, uint8_t &reduction);
+void create_hibf_dna_index(const index_arguments &cmd_args, const std::vector<std::string> &input_bin_files, uint8_t const reduction);
 
-void create_ibf_aa_index(const index_arguments &cmd_args, const std::vector<std::string> &input_bin_files, uint8_t &reduction);
+void create_ibf_aa_index(const index_arguments &cmd_args, const std::vector<std::string> &input_bin_files, uint8_t const reduction);
 
-void create_hibf_aa_index(const index_arguments &cmd_args, const std::vector<std::string> &input_bin_files, uint8_t &reduction);
+void create_hibf_aa_index(const index_arguments &cmd_args, const std::vector<std::string> &input_bin_files, uint8_t const reduction);
 
 void drive_index(const index_arguments &cmd_args);
 
 template <class TetrexIndex>
-void store_ibf(TetrexIndex &ibf, std::filesystem::path opath)
+void store_ibf(TetrexIndex const &ibf, std::filesystem::path const &opath)
 {
     std::ofstream os{opath, std::ios::binary};
     cereal::BinaryOutputArchive oarchive{os};
@@ -158,14 +157,14 @@ void store_ibf(TetrexIndex &ibf, std::filesystem::path opath)
 }
 
 template <class TetrexIndex>
-void load_ibf(TetrexIndex &ibf, std::filesystem::path ipath)
+void load_ibf(TetrexIndex &ibf, const std::filesystem::path &ipath)
 {
     std::ifstream is{ipath, std::ios::binary};
     cereal::BinaryInputArchive iarchive{is};
     iarchive(ibf);
 }
 
-inline void load_params(index_params &params, std::filesystem::path ipath)
+inline void load_params(index_params &params, const std::filesystem::path &ipath)
 {
     std::ifstream is{ipath, std::ios::binary};
     cereal::BinaryInputArchive iarchive{is};

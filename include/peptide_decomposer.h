@@ -18,12 +18,12 @@ namespace molecules
             uint64_t selection_mask_{};
 
         public:
-            std::vector<uint8_t> aamap_;
+            std::array<uint8_t, 256> aamap_{};
 
             PeptideDecomposer() = default;
-            PeptideDecomposer(uint8_t &k, uint8_t &reduction) : ksize_{k}, reduction_{reduction}
+            PeptideDecomposer(uint8_t const k, uint8_t const reduction) : ksize_{k}, reduction_{reduction}
             {
-                create_residue_maps(reduction_, aamap_);
+                create_residue_maps();
                 create_selection_bitmask();
             }
 
@@ -46,12 +46,7 @@ namespace molecules
                 0b00000000-00000000-00000000-00000000-00000000-00000000-00000000-11111111
                 for the rolling hash
                 */
-                size_t countdown = ksize_;
-                while(countdown > 0)
-                {
-                    selection_mask_ = (selection_mask_<<5) | 0b11111;
-                    countdown--;
-                }
+                selection_mask_ = (ksize_ >= 32) ? static_cast<uint64_t>(-1) : (1ULL << (5*(ksize_))) - 1u;
             }
 
             void print_mask() const
@@ -59,95 +54,94 @@ namespace molecules
                 std::cout << selection_mask_ << std::endl;
             }
 
-            void create_residue_maps(uint8_t &alphabet, std::vector<uint8_t> &aamap)
+            void create_residue_maps()
             {
-                aamap.resize(UCHAR_MAX+1, UCHAR_MAX);
-                switch(alphabet)
+                switch(reduction_)
                 {
                     case Murphy:
                         alphabet_size_ = 10;
-                        aamap['A'] = 0;
-                        aamap['B'] = 1;
-                        aamap['C'] = 2;
-                        aamap['F'] = 3;
-                        aamap['G'] = 4;
-                        aamap['H'] = 5;
-                        aamap['I'] = 6;
-                        aamap['K'] = 7;
-                        aamap['P'] = 8;
-                        aamap['S'] = 9;
-                        aamap['D'] = aamap['B'];
-                        aamap['E'] = aamap['B'];
-                        aamap['L'] = aamap['I'];
-                        aamap['M'] = aamap['I'];
-                        aamap['N'] = aamap['B'];
-                        aamap['Q'] = aamap['B'];
-                        aamap['R'] = aamap['K'];
-                        aamap['T'] = aamap['S'];
-                        aamap['V'] = aamap['I'];
-                        aamap['W'] = aamap['F'];
-                        aamap['Y'] = aamap['F'];
-                        aamap['J'] = aamap['I'];
-                        aamap['O'] = aamap['K'];
-                        aamap['U'] = aamap['C'];
-                        aamap['X'] = aamap['S'];
-                        aamap['Z'] = aamap['B'];
+                        aamap_['A'] = 0;
+                        aamap_['B'] = 1;
+                        aamap_['C'] = 2;
+                        aamap_['F'] = 3;
+                        aamap_['G'] = 4;
+                        aamap_['H'] = 5;
+                        aamap_['I'] = 6;
+                        aamap_['K'] = 7;
+                        aamap_['P'] = 8;
+                        aamap_['S'] = 9;
+                        aamap_['D'] = aamap_['B'];
+                        aamap_['E'] = aamap_['B'];
+                        aamap_['L'] = aamap_['I'];
+                        aamap_['M'] = aamap_['I'];
+                        aamap_['N'] = aamap_['B'];
+                        aamap_['Q'] = aamap_['B'];
+                        aamap_['R'] = aamap_['K'];
+                        aamap_['T'] = aamap_['S'];
+                        aamap_['V'] = aamap_['I'];
+                        aamap_['W'] = aamap_['F'];
+                        aamap_['Y'] = aamap_['F'];
+                        aamap_['J'] = aamap_['I'];
+                        aamap_['O'] = aamap_['K'];
+                        aamap_['U'] = aamap_['C'];
+                        aamap_['X'] = aamap_['S'];
+                        aamap_['Z'] = aamap_['B'];
                     case Li:
                         alphabet_size_ = 10;
-                        aamap['A'] = 0;
-                        aamap['B'] = 1;
-                        aamap['C'] = 2;
-                        aamap['F'] = 3;
-                        aamap['G'] = 4;
-                        aamap['H'] = 5;
-                        aamap['I'] = 6;
-                        aamap['J'] = 7;
-                        aamap['K'] = 8;
-                        aamap['P'] = 9;
-                        aamap['D'] = aamap['B'];
-                        aamap['E'] = aamap['B'];
-                        aamap['L'] = aamap['J'];
-                        aamap['M'] = aamap['J'];
-                        aamap['N'] = aamap['H'];
-                        aamap['Q'] = aamap['B'];
-                        aamap['R'] = aamap['K'];
-                        aamap['T'] = aamap['A'];
-                        aamap['V'] = aamap['I'];
-                        aamap['W'] = aamap['F'];
-                        aamap['Y'] = aamap['F'];
-                        aamap['S'] = aamap['A'];
-                        aamap['O'] = aamap['K'];
-                        aamap['U'] = aamap['C'];
-                        aamap['X'] = aamap['A'];
-                        aamap['Z'] = aamap['B'];
+                        aamap_['A'] = 0;
+                        aamap_['B'] = 1;
+                        aamap_['C'] = 2;
+                        aamap_['F'] = 3;
+                        aamap_['G'] = 4;
+                        aamap_['H'] = 5;
+                        aamap_['I'] = 6;
+                        aamap_['J'] = 7;
+                        aamap_['K'] = 8;
+                        aamap_['P'] = 9;
+                        aamap_['D'] = aamap_['B'];
+                        aamap_['E'] = aamap_['B'];
+                        aamap_['L'] = aamap_['J'];
+                        aamap_['M'] = aamap_['J'];
+                        aamap_['N'] = aamap_['H'];
+                        aamap_['Q'] = aamap_['B'];
+                        aamap_['R'] = aamap_['K'];
+                        aamap_['T'] = aamap_['A'];
+                        aamap_['V'] = aamap_['I'];
+                        aamap_['W'] = aamap_['F'];
+                        aamap_['Y'] = aamap_['F'];
+                        aamap_['S'] = aamap_['A'];
+                        aamap_['O'] = aamap_['K'];
+                        aamap_['U'] = aamap_['C'];
+                        aamap_['X'] = aamap_['A'];
+                        aamap_['Z'] = aamap_['B'];
                     default: // Base
                         alphabet_size_ = 20;
-                        aamap['A'] = 0u;
-                        aamap['C'] = 1u;
-                        aamap['D'] = 2u;
-                        aamap['E'] = 3u;
-                        aamap['F'] = 4u;
-                        aamap['G'] = 5u;
-                        aamap['H'] = 6u;
-                        aamap['I'] = 7u;
-                        aamap['K'] = 8u;
-                        aamap['L'] = 9u;
-                        aamap['M'] = 10u;
-                        aamap['N'] = 11u;
-                        aamap['P'] = 12u;
-                        aamap['Q'] = 13u;
-                        aamap['R'] = 14u;
-                        aamap['S'] = 15u;
-                        aamap['T'] = 16u;
-                        aamap['V'] = 17u;
-                        aamap['W'] = 18u;
-                        aamap['Y'] = 19u;
-                        aamap['X'] = 20u;
-                        aamap['B'] = aamap['D'];
-                        aamap['J'] = aamap['L'];
-                        aamap['O'] = aamap['X'];
-                        aamap['U'] = aamap['X'];
-                        aamap['Z'] = aamap['E'];
+                        aamap_['A'] = 0u;
+                        aamap_['C'] = 1u;
+                        aamap_['D'] = 2u;
+                        aamap_['E'] = 3u;
+                        aamap_['F'] = 4u;
+                        aamap_['G'] = 5u;
+                        aamap_['H'] = 6u;
+                        aamap_['I'] = 7u;
+                        aamap_['K'] = 8u;
+                        aamap_['L'] = 9u;
+                        aamap_['M'] = 10u;
+                        aamap_['N'] = 11u;
+                        aamap_['P'] = 12u;
+                        aamap_['Q'] = 13u;
+                        aamap_['R'] = 14u;
+                        aamap_['S'] = 15u;
+                        aamap_['T'] = 16u;
+                        aamap_['V'] = 17u;
+                        aamap_['W'] = 18u;
+                        aamap_['Y'] = 19u;
+                        aamap_['X'] = 20u;
+                        aamap_['B'] = aamap_['D'];
+                        aamap_['J'] = aamap_['L'];
+                        aamap_['O'] = aamap_['X'];
+                        aamap_['U'] = aamap_['X'];
+                        aamap_['Z'] = aamap_['E'];
                 }
             }
 
@@ -197,25 +191,25 @@ namespace molecules
             //     return hash;
             // }
 
-            uint64_t encode_peptide(std::string_view kmer)
+            uint64_t encode_peptide(std::string_view const kmer) const
             {
-                uint64_t codemer = 0;
+                uint64_t codemer{};
                 for(auto && base: kmer)
                 {
-                    codemer = codemer << 5;
-                    codemer += aamap_[base];
+                    codemer <<= 5;
+                    codemer |= aamap_[base];
                 }
                 return codemer;
             }
 
-            void rollover_peptide_hash(const unsigned char residue, const seqan::hibf::bin_index &bin_id, auto &base_ref)
+            void rollover_peptide_hash(const unsigned char residue, seqan::hibf::bin_index const bin_id, auto &base_ref) const
             {
                 auto encoded_residue = aamap_[residue];
                 base_ref.forward_store_ = ((base_ref.forward_store_<<5)&selection_mask_) | encoded_residue;
                 base_ref.emplace(base_ref.forward_store_, bin_id);
             }
 
-            void decompose_record(std::string_view record_seq, seqan::hibf::bin_index &tech_bin_id, auto &base_ref)
+            void decompose_record(std::string_view const record_seq, seqan::hibf::bin_index const tech_bin_id, auto &base_ref)
             {
                 uint64_t initial_encoding = encode_peptide(record_seq.substr(0, ksize_));
                 base_ref.forward_store_ = initial_encoding;

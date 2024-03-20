@@ -13,14 +13,15 @@ class IBFIndex
 {
 
 private:
-    size_t bin_count_;
-    size_t bin_size_;
-    uint8_t hash_count_;
-    std::vector<std::string> tech_bins_;
-    seqan::hibf::interleaved_bloom_filter ibf_;
+    size_t bin_count_{};
+    size_t bin_size_{};
+    uint8_t hash_count_{};
+    std::vector<std::string> tech_bins_{};
+    seqan::hibf::interleaved_bloom_filter ibf_{};
 
 
 public:
+    bitvector hits_{};
     seqan::hibf::interleaved_bloom_filter::membership_agent_type agent_{};
 
     IBFIndex() = default;
@@ -29,13 +30,13 @@ public:
             bin_count_{bc},
             bin_size_{bin_size},
             hash_count_{hc},
-            tech_bins_{tech_bins},
-            ibf_(seqan::hibf::bin_count{bc},
+            tech_bins_{std::move(tech_bins)},
+            ibf_(seqan::hibf::bin_count{bin_count_},
              seqan::hibf::bin_size{bin_size_},
-              seqan::hibf::hash_function_count{hash_count_})
-    {
-        agent_ = ibf_.membership_agent(); // I think I can get rid of this...
-    }
+              seqan::hibf::hash_function_count{hash_count_}),
+            hits_(bin_count_, true),
+            agent_{ibf_.membership_agent()}
+    { }
 
     size_t getBinCount() const
     {
@@ -62,15 +63,15 @@ public:
 
     void emplace(uint64_t const val, seqan::hibf::bin_index const idx)
     {
-        ibf_.emplace(val, seqan::hibf::bin_index{idx});
+        ibf_.emplace(val, idx);
     }
 
-    void populate_index(uint8_t &k, auto &decomposer, auto &base_ref)
+    void populate_index(uint8_t const ksize, auto &decomposer, auto &base_ref)
     {
-        gzFile handle;
-        kseq_t *record;
-        int status;
-        size_t seq_count = 0;
+        gzFile handle{};
+        kseq_t *record{};
+        int status{};
+        size_t seq_count{};
         for(size_t i = 0; i < tech_bins_.size(); ++i) // Iterate over bins
         {
             seqan::hibf::bin_index idx{i};
@@ -79,7 +80,7 @@ public:
             while ((status = kseq_read(record)) >= 0) // Iterate over bin records
             {
                 std::string_view record_view = record->seq.s;
-                if(record_view.length() < k)
+                if(record_view.length() < ksize)
                 {
                     seqan3::debug_stream << "RECORD TOO SHORT " << record->comment.s << std::endl;
                     continue;
@@ -98,10 +99,10 @@ public:
         agent_ = ibf_.membership_agent();
     }
 
-    bitvector query(uint64_t const kmer)
+    bitvector & query(uint64_t const kmer)
     {
-        bitvector hits = agent_.bulk_contains(kmer);
-        return hits;
+        hits_ = agent_.bulk_contains(kmer);
+        return hits_;
     }
 
     template<class Archive>
