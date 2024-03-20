@@ -9,22 +9,75 @@
 
 #include "kseq.h"
 #include "utils.h"
-#include "index.h"
+#include "index_base.h"
 #include "arg_parse.h"
 #include "otf_collector.h"
 #include "construct_nfa.h"
 
 
-bitvector query_ibf(uint32_t &bin_count, robin_hood::unordered_map<uint64_t, bitvector> &hash_to_bits, std::vector<std::pair<std::string, uint64_t>> &path);
+// bitvector query_ibf(uint32_t &bin_count, robin_hood::unordered_map<uint64_t, bitvector> &hash_to_bits, std::vector<std::pair<std::string, uint64_t>> &path);
 
 double compute_k_probability(const uint8_t &k);
 
 double compute_knut_model(const size_t &query_length, const uint8_t &k, const int &m, const size_t &multiplyer);
 
+void query_ibf_dna(query_arguments &cmd_args, const bool &model);
+
+void query_ibf_aa(query_arguments &cmd_args, const bool &model);
+
+void query_hibf_dna(query_arguments &cmd_args, const bool &model);
+
+void query_hibf_aa(query_arguments &cmd_args, const bool &model);
+
 void drive_query(query_arguments &cmd_args, const bool &model);
 
 void preprocess_query(std::string &rx_query, std::string &postfix_query);
 
-void verify_fasta_hit(const std::filesystem::path &bin_path, re2::RE2 &crx);
+void verify_fasta_hit(const gzFile &fasta_handle, kseq_t *record, re2::RE2 &crx);
 
-void iter_disk_search(const bitvector &hits, const std::string &query, IndexStructure &ibf);
+template<index_structure::is_valid flavor, molecules::is_molecule mol_type>
+void iter_disk_search(const bitvector &hits, const std::string &query, TetrexIndex<flavor, mol_type> &ibf)
+{
+    size_t bins = hits.size();
+    gzFile lib_path;
+    kseq_t *record;
+
+    re2::RE2 compiled_regex(query);
+    assert(compiled_regex.ok());
+    #pragma omp parallel for
+    for(size_t i = 0; i < bins; i++)
+    {
+        if(hits[i])
+        {
+            lib_path = gzopen(ibf.acid_libs_[i].c_str(), "r");
+            verify_fasta_hit(lib_path, record, compiled_regex);
+        }
+    }
+    kseq_destroy(record);
+    gzclose(lib_path);
+}
+
+template<index_structure::is_valid flavor, molecules::is_molecule mol_t>
+void run_collection(query_arguments &cmd_args, const bool &model, TetrexIndex<flavor, mol_t> &ibf)
+{
+    double t1, t2;
+    std::string &rx = cmd_args.regex;
+    std::string &query = cmd_args.query;
+    preprocess_query(rx, query);
+
+    std::unique_ptr<nfa_t> NFA = std::make_unique<nfa_t>();
+    std::unique_ptr<lmap_t> nfa_map =  std::make_unique<lmap_t>(*NFA);
+    amap_t arc_map;
+    
+    t1 = omp_get_wtime();
+    construct_kgraph(cmd_args.query, *NFA, *nfa_map, arc_map, ibf.k_);
+    std::vector<int> top_rank_map = run_top_sort(*NFA);
+    OTFCollector<flavor, mol_t> collector(std::move(NFA), std::move(nfa_map),
+                                          ibf,
+                                          std::move(top_rank_map), std::move(arc_map));
+    
+    bitvector hit_vector = collector.collect();
+    if(!hit_vector.none()) iter_disk_search(hit_vector, rx, ibf);
+    t2 = omp_get_wtime();
+    seqan3::debug_stream << "Query Time: " << (t2-t1) << std::endl;
+}

@@ -1,6 +1,7 @@
 #pragma once
 
 #include <iostream>
+#include <type_traits>
 #include <string>
 #include <vector>
 #include <algorithm>
@@ -13,15 +14,16 @@
 #include <unistd.h>
 #include <cstring>
 
-
+#include "hibf/interleaved_bloom_filter.hpp"
+#include "hibf/hierarchical_interleaved_bloom_filter.hpp"
+#include "hibf/misc/bit_vector.hpp"
 #include <seqan3/core/debug_stream.hpp>
-#include <seqan3/search/dream_index/interleaved_bloom_filter.hpp>
 
 
 
 
 /////////////// Type Declarations ///////////////
-using bitvector = seqan3::interleaved_bloom_filter<seqan3::data_layout::uncompressed>::membership_agent_type::binning_bitvector;
+using bitvector = seqan::hibf::bit_vector;
 /////////////// ****** END ****** ///////////////
 
 char* re2post(char *re);

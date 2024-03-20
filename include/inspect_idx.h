@@ -4,8 +4,7 @@
 
 #include <omp.h>
 
-#include "index.h"
+#include "index_base.h"
 #include "arg_parse.h"
 
 void drive_inspection(const inspection_arguments &args);
-

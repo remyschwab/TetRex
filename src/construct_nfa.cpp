@@ -23,6 +23,26 @@
 //     }
 // }
 
+std::string generate_kmer_seq(uint64_t &kmer, uint8_t &k)
+{
+    robin_hood::unordered_map<uint64_t, char> nucleotides = {
+        {0, 'A'},
+        {1, 'C'},
+        {2, 'T'},
+        {3, 'G'}
+    };
+    std::string kmer_seq = "";
+    size_t countdown = k;
+    while(countdown != 0)
+    {
+        kmer_seq += nucleotides[(kmer & 0b11)];
+        kmer = (kmer>>2);
+        --countdown;
+    }
+    std::reverse(kmer_seq.begin(), kmer_seq.end());
+    return kmer_seq;
+}
+
 
 void print_node_pointers(const amap_t &arc_map, nfa_t &nfa)
 {
@@ -67,9 +87,10 @@ void update_arc_map(nfa_t &NFA, lmap_t &node_map, amap_t &arc_map, node_t &sourc
 {
     int source_id = NFA.id(source);
     int symbol = node_map[source];
-    if(symbol < 258) // If the node is not a split just place the target in the first slot
+    if(symbol < 258) // If the node is not a split just place the same target in both slots
     {
         arc_map[source_id].first = target;
+        arc_map[source_id].second = target; // I don't know if this is the best approach but fine for now
     }
     else // If it's a split
     {

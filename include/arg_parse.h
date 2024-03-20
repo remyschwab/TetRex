@@ -12,6 +12,7 @@ struct index_arguments
 {
     uint8_t k = 3;
     uint8_t t = 1;
+    std::string ibf = "ibf";
     std::string ofile;
     std::vector<std::filesystem::path> acid_libs{};
     size_t bin_size = 10000;
@@ -25,6 +26,7 @@ inline void initialise_index_parser(seqan3::argument_parser &parser, index_argum
 {
     parser.info.author = "Remy Schwab";
     parser.info.version = "1.0.0";
+    parser.add_option(args.ibf, 'i', "idx_struct", "IBF or HIBF", seqan3::option_spec::required, seqan3::value_list_validator{"ibf", "hibf"});
     parser.add_option(args.k, 'k', "ksize", "size of kmers");
     parser.add_option(args.bin_size, 's', "bin_size", "Size of bins");
     parser.add_option(args.dbin_size, 'd', "dbin_size", "Size of bins for dibf");
