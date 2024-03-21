@@ -121,5 +121,4 @@ void drive_query(query_arguments &cmd_args, const bool &model)
     {
         query_hibf_aa(cmd_args, model);
     }
-    return;
 }

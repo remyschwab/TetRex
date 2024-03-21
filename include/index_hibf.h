@@ -41,6 +41,12 @@ public:
             agent_{hibf_.membership_agent()}
     {}
 
+    std::pair<size_t, size_t> getShape() const
+    {
+        std::pair<size_t, size_t> shape = std::make_pair(1ULL, 1ULL);
+        return shape;
+    }
+
     auto getBinCount() const
     {
         return bin_count_;

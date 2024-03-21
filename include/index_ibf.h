@@ -38,6 +38,11 @@ public:
             agent_{ibf_.membership_agent()}
     { }
 
+    std::pair<size_t, size_t> getShape() const
+    {
+        return std::make_pair(getBinCount(), getBinSize());
+    }
+
     size_t getBinCount() const
     {
         assert(ibf_.bin_count() == bin_count_);

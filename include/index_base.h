@@ -60,10 +60,19 @@ class TetrexIndex
             }
         }
 
+        std::pair<size_t, size_t> getShape() const
+        {
+            return ibf_.getShape();
+        }
+
         size_t getBinCount() const
         {
-            size_t bc = ibf_.getBinCount();
-            return bc;
+            return ibf_.getBinCount();
+        }
+
+        size_t getHashCount() const
+        {
+            return ibf_.getHashCount();
         }
 
         void populate_index()
@@ -78,7 +87,7 @@ class TetrexIndex
 
         const bitvector & query(uint64_t const kmer)
         {
-            return ibf_.query(kmer);
+            return ibf_.query(kmer); // Hmmm ask about this
         }
 
         bool is_hibf() const
