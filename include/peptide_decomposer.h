@@ -202,14 +202,16 @@ namespace molecules
                 return codemer;
             }
 
-            void rollover_peptide_hash(const unsigned char residue, seqan::hibf::bin_index const bin_id, auto &base_ref) const
+            template<typename T>
+            void rollover_peptide_hash(const unsigned char residue, T const bin_id, auto &base_ref) const
             {
                 auto encoded_residue = aamap_[residue];
                 base_ref.forward_store_ = ((base_ref.forward_store_<<5)&selection_mask_) | encoded_residue;
                 base_ref.emplace(base_ref.forward_store_, bin_id);
             }
 
-            void decompose_record(std::string_view const record_seq, seqan::hibf::bin_index const tech_bin_id, auto &base_ref)
+            template<typename T>
+            void decompose_record(std::string_view const record_seq, T const tech_bin_id, auto &base_ref)
             {
                 uint64_t initial_encoding = encode_peptide(record_seq.substr(0, ksize_));
                 base_ref.forward_store_ = initial_encoding;

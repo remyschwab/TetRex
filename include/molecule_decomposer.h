@@ -89,7 +89,8 @@ class MoleculeDecomposer
             decomposer_{molecules::PeptideDecomposer{ksize_, reduction}}
         {}
 
-    void decompose_record(std::string_view const record, seqan::hibf::bin_index const &tech_bin_id, auto &base_ref)
+    template<typename T>
+    void decompose_record(std::string_view const record, T const &tech_bin_id, auto &base_ref)
     {
         decomposer_.decompose_record(record, tech_bin_id, base_ref);
     }

@@ -32,7 +32,7 @@ class OTFCollector
         std::unique_ptr<nfa_t> NFA_{};
         std::unique_ptr<lmap_t> nfa_map_{};
         size_t node_count_{};
-        TetrexIndex<flavor, mol_t> ibf_{};
+        TetrexIndex<flavor, mol_t> *ibf_{};
         amap_t arc_map_{};
         CollectionUtils::comp_table_t comp_table_{};
         CollectionUtils::rank_t rank_map_{};
@@ -50,13 +50,13 @@ class OTFCollector
                     NFA_(std::move(nfa)),
                     nfa_map_(std::move(nfa_map)),
                     node_count_{NFA_->nodeNum()},
-                    ibf_{ibf},
+                    ibf_{&ibf},
                     arc_map_{std::move(arc_map)},
                     comp_table_{node_count_},
                     rank_map_{std::move(rank_map)}
         {
             create_selection_bitmask();
-            ibf_.spawn_agent(); // Not done by the IBFIndex constructor during deserialization
+            ibf_->spawn_agent(); // Not done by the IBFIndex constructor during deserialization
         }
 
     std::string kmer2string(uint64_t kmer, uint8_t ksize)
@@ -86,11 +86,11 @@ class OTFCollector
         0b00000000-00000000-00000000-00000000-00000000-00000000-00000000-00111111
         to detect collisions for absorption
         */
-        size_t countdown = ibf_.k_-1;
+        size_t countdown = ibf_->k_-1;
         while(countdown > 0)
         {
-            submask_ <<= ibf_.decomposer_.lshift_;
-            submask_ |= ibf_.decomposer_.rmask_;
+            submask_ <<= ibf_->decomposer_.lshift_;
+            submask_ |= ibf_->decomposer_.rmask_;
             --countdown;
         }
         // seqan3::debug_stream << submask_ << std::endl;
@@ -130,29 +130,29 @@ class OTFCollector
     {
         bitvector hits;
         CollectionUtils::kmer_t canonical_kmer = 0;
-        if(current_state.shift_count_ < (ibf_.k_-1)) // Corresponds to a new kmer < threshold size (--A)
+        if(current_state.shift_count_ < (ibf_->k_-1)) // Corresponds to a new kmer < threshold size (--A)
         {
-            ibf_.update_kmer(symbol, current_state.kmer_);
+            ibf_->update_kmer(symbol, current_state.kmer_);
             current_state.shift_count_++;
         }
-        else if(current_state.shift_count_ == (ibf_.k_-1)) // If the kmer just needs to be updated one more time to be a valid kmer (-AC)
+        else if(current_state.shift_count_ == (ibf_->k_-1)) // If the kmer just needs to be updated one more time to be a valid kmer (-AC)
         {
             // The canonical kmer is returned but the reference kmer is also updated!!!
-            canonical_kmer = ibf_.update_kmer(symbol, current_state.kmer_);
+            canonical_kmer = ibf_->update_kmer(symbol, current_state.kmer_);
             if(kmer_cache_.find(current_state.kmer_) == kmer_cache_.end())
             {
-                kmer_cache_[current_state.kmer_] = ibf_.query(canonical_kmer);
+                kmer_cache_[current_state.kmer_] = ibf_->query(canonical_kmer);
             }
             hits = kmer_cache_[current_state.kmer_];
             current_state.path_ &= hits;
             current_state.shift_count_++;
         }
-        else if(current_state.shift_count_ == (ibf_.k_)) // (ACG) Next kmer will be valid
+        else if(current_state.shift_count_ == (ibf_->k_)) // (ACG) Next kmer will be valid
         {
-            canonical_kmer = ibf_.update_kmer(symbol, current_state.kmer_);
+            canonical_kmer = ibf_->update_kmer(symbol, current_state.kmer_);
             if(kmer_cache_.find(current_state.kmer_) == kmer_cache_.end())
             {
-                kmer_cache_[current_state.kmer_] = ibf_.query(canonical_kmer);
+                kmer_cache_[current_state.kmer_] = ibf_->query(canonical_kmer);
             }
             hits = kmer_cache_[current_state.kmer_];
             current_state.path_ &= hits;
@@ -171,8 +171,8 @@ class OTFCollector
 
     bitvector collect()
     {
-        bitvector path_matrix(ibf_.getBinCount());
-        bitvector hit_vector(ibf_.getBinCount(), true);
+        bitvector path_matrix(ibf_->getBinCount());
+        bitvector hit_vector(ibf_->getBinCount(), true);
 
         int id = 0;
         CollectionUtils::kmer_t kmer_init = 0;

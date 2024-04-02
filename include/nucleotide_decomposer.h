@@ -89,7 +89,8 @@ namespace molecules
                 return codemer;
             }
 
-            void rollover_nuc_hash(const char base , seqan::hibf::bin_index const bin_id, auto &base_ref) const
+            template<typename T>
+            void rollover_nuc_hash(const char base , T const bin_id, auto &base_ref) const
             {
                 auto fb = (base>>1)&3; // Encode the new base
                 auto cb = (fb^0b10)<<left_shift_; // Get its complement and shift it to the big end of the uint64
@@ -99,7 +100,8 @@ namespace molecules
                 base_ref.emplace(canon_kmer, bin_id);
             }
 
-            void decompose_record(std::string_view const record_seq, seqan::hibf::bin_index const tech_bin_id, auto &base_ref)
+            template<typename T>
+            void decompose_record(std::string_view const record_seq, T const tech_bin_id, auto &base_ref)
             {
                 uint64_t initial_encoding = encode_dna(record_seq.substr(0, k_)); // Encode forward
                 uint64_t reverse_complement = revComplement(initial_encoding, k_); // Compute the reverse compelement
