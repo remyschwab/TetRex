@@ -56,7 +56,7 @@ class TetrexIndex
             else
             {
                 permanent_hibf_status_ = true;
-                // ibf_ = HIBFIndex(bin_size, hc, acid_libs_);
+                ibf_ = HIBFIndex(bin_size, hc, acid_libs_);
             }
         }
 
@@ -80,12 +80,13 @@ class TetrexIndex
             ibf_.populate_index(k_, decomposer_, *this);
         }
 
-        void emplace(uint64_t const val, seqan::hibf::bin_index const idx)
+        template<typename idx_t>
+        void emplace(uint64_t const val, idx_t const idx)
         {
             ibf_.emplace(val, idx);
         }
 
-        const bitvector & query(uint64_t const kmer)
+        bitvector query(uint64_t const kmer)
         {
             return ibf_.query(kmer); // Hmmm ask about this
         }
