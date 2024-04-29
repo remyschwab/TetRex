@@ -4,6 +4,8 @@ import pandas as pd
 import numpy as np
 import seaborn as sns
 import matplotlib.pyplot as plt
+import subprocess
+import os
 
 from matplotlib.pyplot import figure
 from pysam import FastaFile
@@ -46,3 +48,24 @@ def track_fasta(fa_path):
         dists = track(record_tracker, record_seq)
         dist_lst.append(len(dists))
     return dist_lst
+
+
+def compare_to_prosite(tetrex_output):
+    prosite_path = '/Users/rschwab/repos/TetRex/data/ps_scan/ps_scan.pl'
+    dat_path = '/Users/rschwab/repos/TetRex/data/REFERENCES/prosite.dat'
+    true_positives = []
+    tetrex_results = []
+    for res in os.listdir(tetrex_output):
+        handle_path = tetrex_output+res
+        tetrex_count = 0
+        prosite_count = 0
+        pattern = res.split('.')[0]
+        for line in open(handle_path):
+            tetrex_count += 1
+            output = subprocess.run([prosite_path, '-p', pattern, '-d', dat_path, line], capture_output=True, text=True)
+            if output.stdout != '':
+                prosite_count += 1
+        tetrex_results.append(tetrex_count)
+        true_positives.append(prosite_count)
+    return (tetrex_results, true_positives)
+

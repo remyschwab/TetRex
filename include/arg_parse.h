@@ -30,6 +30,7 @@ inline void initialise_index_parser(seqan3::argument_parser &parser, index_argum
     parser.add_option(args.k, 'k', "ksize", "size of kmers");
     parser.add_option(args.bin_size, 's', "bin_size", "Size of bins");
     parser.add_option(args.dbin_size, 'd', "dbin_size", "Size of bins for dibf");
+    parser.add_option(args.dbin_size, 'p', "fpr", "False Positive Rate");
     parser.add_option(args.hash_count, 'c', "hash_count", "Number of hash functions. NOTE: MORE THAN 4 IS SLOW");
     parser.add_option(args.t, 't', "threads", "Number of threads");
     parser.add_option(args.molecule, 'm', "molecule", "Molecule type of library", seqan3::option_spec::required, seqan3::value_list_validator{"na", "aa"});
@@ -42,8 +43,8 @@ inline void initialise_index_parser(seqan3::argument_parser &parser, index_argum
 struct query_arguments
 {
     uint8_t t = 1;
+    bool verbose = 0;
     int text_length;
-    std::filesystem::path graph{};
     std::filesystem::path idx{};
     std::string regex;
     std::string query;
@@ -54,7 +55,7 @@ inline void initialise_query_parser(seqan3::argument_parser &parser, query_argum
     parser.info.author = "Remy Schwab";
     parser.info.version = "1.0.0";
     parser.add_option(args.t, 't', "threads", "Number of threads");
-    parser.add_option(args.graph, 'd', "dot", "Path to dot file");
+    parser.add_option(args.verbose, 'v', "verbose", "Log verbose output");
     parser.add_positional_option(args.idx, "Path to IBF acid index");
     parser.add_positional_option(args.regex, "Input Regex in reverse polish notation");
 }
@@ -65,7 +66,6 @@ inline void initialise_model_parser(seqan3::argument_parser &parser, query_argum
     parser.info.version = "1.0.0";
     parser.add_option(args.t, 't', "threads", "Number of threads");
     parser.add_option(args.text_length, 'l', "length", "Length of text");
-    parser.add_option(args.graph, 'd', "dot", "Path to dot file");
     parser.add_positional_option(args.idx, "Path to IBF acid index");
     parser.add_positional_option(args.regex, "Input Regex in reverse polish notation");
 }

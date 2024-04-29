@@ -51,7 +51,7 @@ void preprocess_query(std::string &rx_query, std::string &postfix_query)
 }
 
 
-void verify_fasta_hit(const gzFile &fasta_handle, kseq_t *record, re2::RE2 &crx)
+void verify_fasta_hit(const gzFile &fasta_handle, kseq_t *record, re2::RE2 &crx, std::string const &binid)
 {
     int status;
     int start = 0;
@@ -62,7 +62,7 @@ void verify_fasta_hit(const gzFile &fasta_handle, kseq_t *record, re2::RE2 &crx)
         re2::StringPiece bin_content(record->seq.s);
         while (RE2::FindAndConsume(&bin_content, crx, &match))
         {
-            std::cout << ">" << record->name.s << "\t" << match << "\t" << start << "-" << start+match.length()-1 << std::endl;
+            std::cout << binid << "\t>" << record->name.s << "\t" << match << std::endl;
             ++start;
         }
     }

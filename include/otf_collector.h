@@ -169,6 +169,16 @@ class OTFCollector
         push(item2);
     }
 
+    int sumBitvector(bitvector const &bits)
+    {
+        int sum = 0;
+        for(bool bit : bits)
+        {
+            sum += bit ? 1 : 0;
+        }
+        return sum;
+    }
+
     bitvector collect()
     {
         bitvector path_matrix(ibf_->getBinCount());

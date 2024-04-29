@@ -308,8 +308,8 @@ void construct_kgraph(const std::string &postfix, nfa_t &nfa, lmap_t &node_map, 
     }
     // Cap the graph at both ends
     // With a start node
-    nfa.addArc(start_node, nfa.nodeFromId(1));
-    node_t &&not_head = nfa.nodeFromId(1);
+    node_t not_head = stack.top().first;
+    nfa.addArc(start_node, not_head);
     update_arc_map(nfa, node_map, arc_map, start_node, not_head);
     
     // and with an accepting node

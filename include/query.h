@@ -34,6 +34,7 @@ void drive_query(query_arguments &cmd_args, const bool &model);
 void preprocess_query(std::string &rx_query, std::string &postfix_query);
 
 void verify_fasta_hit(const gzFile &fasta_handle, kseq_t *record, re2::RE2 &crx);
+void verify_fasta_hit(const gzFile &fasta_handle, kseq_t *record, re2::RE2 &crx, std::string const &binid);
 
 template<index_structure::is_valid flavor, molecules::is_molecule mol_type>
 void iter_disk_search(const bitvector &hits, const std::string &query, TetrexIndex<flavor, mol_type> &ibf)
@@ -50,7 +51,7 @@ void iter_disk_search(const bitvector &hits, const std::string &query, TetrexInd
         if(hits[i])
         {
             lib_path = gzopen(ibf.acid_libs_[i].c_str(), "r");
-            verify_fasta_hit(lib_path, record, compiled_regex);
+            verify_fasta_hit(lib_path, record, compiled_regex, ibf.acid_libs_[i]);
         }
     }
     kseq_destroy(record);
@@ -65,19 +66,29 @@ void run_collection(query_arguments &cmd_args, const bool &model, TetrexIndex<fl
     std::string &rx = cmd_args.regex;
     std::string &query = cmd_args.query;
     preprocess_query(rx, query);
+    // seqan3::debug_stream << query << std::endl;
 
     std::unique_ptr<nfa_t> NFA = std::make_unique<nfa_t>();
     std::unique_ptr<lmap_t> nfa_map =  std::make_unique<lmap_t>(*NFA);
     amap_t arc_map;
     
     construct_kgraph(cmd_args.query, *NFA, *nfa_map, arc_map, ibf.k_);
+
+    // print_node_ids(*NFA, *nfa_map);
+    // seqan3::debug_stream << std::endl;
+    // print_node_pointers(arc_map, *NFA);
+    // seqan3::debug_stream << std::endl;
+    // print_kgraph_arcs(*NFA);
+    // seqan3::debug_stream << std::endl;
+
     std::vector<int> top_rank_map = run_top_sort(*NFA);
     OTFCollector<flavor, mol_t> collector(std::move(NFA), std::move(nfa_map),
                                           ibf,
                                           std::move(top_rank_map), std::move(arc_map));
     
     bitvector hit_vector = collector.collect();
+    if(cmd_args.verbose) seqan3::debug_stream << "Narrowed Search to " << collector.sumBitvector(hit_vector) << " possible bins" << std::endl;
     if(!hit_vector.none()) iter_disk_search(hit_vector, rx, ibf);
     t2 = omp_get_wtime();
-    seqan3::debug_stream << "Query Time: " << (t2-t1) << std::endl;
+    seqan3::debug_stream << (t2-t1) << std::endl;
 }

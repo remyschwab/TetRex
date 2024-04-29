@@ -48,9 +48,14 @@ public:
 
     std::pair<size_t, size_t> getShape() const
     {
-        std::pair<size_t, size_t> shape = std::make_pair(1ULL, 1ULL);
+        std::pair<size_t, size_t> shape = std::make_pair(bin_count_, 1ULL);
         return shape;
     }
+
+    // float getFPR() const
+    // {
+    //     return hibf_.
+    // }
 
     auto getBinCount() const
     {
@@ -87,6 +92,7 @@ public:
         size_t seq_count{};
         for(size_t i = 0; i < bin_count_; ++i) // Iterate over bins
         {
+            seqan3::debug_stream << i << std::endl;
             handle = gzopen(user_bins_[i].c_str(), "r");
             record = kseq_init(handle);
             while ((status = kseq_read(record)) >= 0) // Iterate over bin records
