@@ -1,0 +1,16 @@
+RegEx_ID,Tool,QueryTime (s),Bin_Reduction (%),All_Matches_Found
+1,egrep,24.037,NaN,TRUE
+2,egrep,32.882,NaN,TRUE
+3,egrep,26.313,NaN,TRUE
+4,egrep,24.481,NaN,TRUE
+5,egrep,18.715,NaN,TRUE
+1,csearch,23.26105559,0,FALSE
+2,csearch,26.106174447,0,FALSE
+3,csearch,20.055128633,0,FALSE
+4,csearch,25.700416313,0,FALSE
+5,csearch,30.490769599,0,TRUE
+1,tetrex,0.0160246,99.939,TRUE
+2,tetrex,0.118499,99.939,TRUE
+3,tetrex,0.295227,99.939,TRUE
+4,tetrex,0.015441,99.939,TRUE
+5,tetrex,0.000611473,100,TRUE
