@@ -5,6 +5,7 @@
 #pragma once
 
 #include <re2/re2.h>
+#include <re2/set.h>
 #include <omp.h>
 
 #include "kseq.h"
@@ -33,10 +34,48 @@ void drive_query(query_arguments &cmd_args, const bool &model);
 
 void preprocess_query(std::string &rx_query, std::string &postfix_query);
 
-void verify_fasta_hit(const gzFile &fasta_handle, kseq_t *record, re2::RE2 &crx);
 void verify_fasta_hit(const gzFile &fasta_handle, kseq_t *record, re2::RE2 &crx, std::string const &binid);
 
-template<index_structure::is_valid flavor, molecules::is_molecule mol_type>
+std::string compute_query_rc(std::string const &regex);
+
+template<index_structure::is_valid flavor, molecules::is_dna mol_type>
+void iter_disk_search(const bitvector &hits, const std::string &query, TetrexIndex<flavor, mol_type> &ibf)
+{
+    size_t bins = hits.size();
+    gzFile lib_path;
+    kseq_t *record;
+    std::string *err;
+    std::string revcomp = compute_query_rc(query);
+    re2::StringPiece query_re2(query);
+    re2::StringPiece complement_re2(revcomp);
+
+    RE2::Set regex_set(RE2::DefaultOptions, RE2::UNANCHORED);
+    regex_set.Add(query_re2, err);
+    regex_set.Add(complement_re2, err);
+    regex_set.Compile();
+    std::vector<int> matching_rules;
+
+    #pragma omp parallel for
+    for(size_t i = 0; i < bins; i++)
+    {
+        if(hits[i])
+        {
+            lib_path = gzopen(ibf.acid_libs_[i].c_str(), "r");
+            int status;
+            record = kseq_init(lib_path);
+            while((status = kseq_read(record)) >= 0)
+            {
+                re2::StringPiece bin_content(record->seq.s);
+                regex_set.Match(bin_content, &matching_rules);
+            }
+        }
+    }
+    seqan3::debug_stream << matching_rules << std::endl;
+    kseq_destroy(record);
+    gzclose(lib_path);
+}
+
+template<index_structure::is_valid flavor, molecules::is_peptide mol_type>
 void iter_disk_search(const bitvector &hits, const std::string &query, TetrexIndex<flavor, mol_type> &ibf)
 {
     size_t bins = hits.size();

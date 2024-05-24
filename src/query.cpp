@@ -50,6 +50,29 @@ void preprocess_query(std::string &rx_query, std::string &postfix_query)
     rx_query = "(" + rx_query + ")"; // Capture entire RegEx
 }
 
+std::string compute_query_rc(std::string const &regex)
+{
+    robin_hood::unordered_map<char, char> complement_table = {
+        {'A', 'T'},
+        {'C', 'G'},
+        {'G', 'C'},
+        {'T', 'A'},
+        {'(', ')'},
+        {')', '('}
+    };
+    std::string complement = "";
+    for (auto it = regex.rbegin(); it != regex.rend(); ++it) {
+        char base = *it;
+        if (complement_table.find(base) != complement_table.end()) {
+            complement += complement_table[base];
+        }
+        else
+        {
+            complement += base;
+        }
+    }
+    return complement;
+}
 
 void verify_fasta_hit(const gzFile &fasta_handle, kseq_t *record, re2::RE2 &crx, std::string const &binid)
 {
@@ -67,7 +90,6 @@ void verify_fasta_hit(const gzFile &fasta_handle, kseq_t *record, re2::RE2 &crx,
         }
     }
 }
-
 
 void query_ibf_dna(query_arguments &cmd_args, const bool &model)
 {
