@@ -17,16 +17,12 @@ Despite the efficiency of modern day tools for Regular Expression search, their 
 4. Build with make ```make```
 
 ## Usage
-Tetrix offers two main commands [index & query] and two utility commands:
+Tetrix offers two main commands [index & query]:
 ```bash
 ## Index Nucleic Acid DB, with kmer size = 7, 3 hash functions, & 644830 bits per Bloom Filter, each input file represents a bin
-tetrix index -k 7 -c 3 -s 644830 -m na -o ibf_idx file1.fna file2.fna
+tetrex index -k 3 -c 3 -s 644830 -m na -o ibf_idx file1.fna file2.fna
 ## Query RegEx
-tetrix query ibf_idx.ibf "ACGTA(C|G)CC(A|G|T)A"
-## Print meta info for an index
-tetrix inspect ibf_idx.ibf
-## Compute the probability of finding your RegEx
-tetrix model -l 1000 ibf_idx.ibf "ACGTA(C|G)CC(A|G|T)A"
+tetrex query ibf_idx.ibf "ACGTA(C|G)CC(A|G|T)A"
 ```
 
 ## Notes
