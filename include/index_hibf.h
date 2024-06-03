@@ -10,7 +10,7 @@ class HIBFIndex
 
 private:
     size_t bin_count_{};
-    size_t max_bin_size_{};
+    float fpr_{};
     uint8_t hash_count_{};
     std::vector<std::string> user_bins_{};
     std::vector<std::vector<uint64_t>> user_bin_data_{};
@@ -25,7 +25,7 @@ public:
     HIBFIndex& operator=(HIBFIndex&& _rhs)
     {
         bin_count_ = _rhs.bin_count_;
-        max_bin_size_ = _rhs.max_bin_size_;
+        fpr_ = _rhs.fpr_;
         hash_count_ = _rhs.hash_count_;
         user_bins_ = std::move(_rhs.user_bins_);
         user_bin_data_ = std::move(_rhs.user_bin_data_);
@@ -35,9 +35,9 @@ public:
         return *this;
     } 
 
-    explicit HIBFIndex(size_t bs, uint8_t hc, std::vector<std::string> user_bins) :
+    explicit HIBFIndex(float fpr, uint8_t hc, std::vector<std::string> user_bins) :
             bin_count_{user_bins.size()},
-            max_bin_size_{bs},
+            fpr_{fpr},
             hash_count_{hc},
             user_bins_{std::move(user_bins)},
             hibf_{},
@@ -62,10 +62,9 @@ public:
         return bin_count_;
     }
 
-    size_t getBinSize() const
+    size_t getFPR() const
     {
-        assert(hibf_.bin_size() == max_bin_size_);
-        return max_bin_size_;
+        return fpr_;
     }
 
     uint8_t getHashCount() const
@@ -92,7 +91,7 @@ public:
         size_t seq_count{};
         for(size_t i = 0; i < bin_count_; ++i) // Iterate over bins
         {
-            seqan3::debug_stream << i << std::endl;
+            // fprintf(stderr, "\r%llu\n", i+1);
             handle = gzopen(user_bins_[i].c_str(), "r");
             record = kseq_init(handle);
             while ((status = kseq_read(record)) >= 0) // Iterate over bin records
@@ -100,7 +99,7 @@ public:
                 std::string_view record_view = record->seq.s;
                 if(record_view.length() < ksize)
                 {
-                    seqan3::debug_stream << "RECORD TOO SHORT " << record->comment.s << std::endl;
+                    // seqan3::debug_stream << "RECORD TOO SHORT " << record->comment.s << std::endl;
                     continue;
                 }
                 seq_count++;
@@ -109,13 +108,17 @@ public:
             kseq_destroy(record);
             gzclose(handle);
         }
+        // seqan3::debug_stream << std::endl;
         auto get_user_bin_data = [&](size_t const user_bin_id, seqan::hibf::insert_iterator it)
             {
                 for (auto value : user_bin_data_[user_bin_id])
                     it = value;
             };
         seqan3::debug_stream << "Indexed " << seq_count << " sequences across " << bin_count_ << " bins." << std::endl;
-        seqan::hibf::config config{.input_fn = get_user_bin_data, .number_of_user_bins = bin_count_};
+        seqan::hibf::config config{.input_fn = get_user_bin_data,
+                                   .number_of_user_bins = bin_count_,
+                                   .number_of_hash_functions = hash_count_,
+                                   .maximum_fpr = fpr_,};
         hibf_ = seqan::hibf::hierarchical_interleaved_bloom_filter{config};
     }
 
@@ -144,6 +147,6 @@ public:
     template<class Archive>
     void serialize(Archive &archive)
     {
-        archive(bin_count_, max_bin_size_, hash_count_, user_bins_, hibf_);
+        archive(bin_count_, fpr_, hash_count_, user_bins_, hibf_);
     }
 };

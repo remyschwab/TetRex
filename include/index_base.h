@@ -35,11 +35,11 @@ class TetrexIndex
         TetrexIndex() = default;
 
         explicit TetrexIndex(uint8_t k,
-                            size_t bin_size,
+                            float fpr,
                             uint8_t hc,
                             std::string molecule,
                             std::vector<std::string> acid_libs,
-                            uint8_t reduction) :
+                            uint8_t reduction) requires is_hibf_:
             k_{k},
             molecule_{std::move(molecule)},
             acid_libs_{std::move(acid_libs)},
@@ -47,17 +47,33 @@ class TetrexIndex
             decomposer_(k_, reduction_),
             permanent_hibf_status_{is_hibf_}
         {
-            if constexpr(!is_hibf_)
-            {
-                permanent_hibf_status_ = false;
-                size_t bin_count = acid_libs_.size();
-                ibf_ = IBFIndex(bin_size, hc, acid_libs_, bin_count);
-            }
-            else
-            {
-                permanent_hibf_status_ = true;
-                ibf_ = HIBFIndex(bin_size, hc, acid_libs_);
-            }
+            permanent_hibf_status_ = true;
+            ibf_ = HIBFIndex(fpr, hc, acid_libs_);
+        }
+
+        explicit TetrexIndex(uint8_t k,
+                            size_t bin_size,
+                            uint8_t hc,
+                            std::string molecule,
+                            std::vector<std::string> acid_libs,
+                            uint8_t reduction) requires (!is_hibf_):
+            k_{k},
+            molecule_{std::move(molecule)},
+            acid_libs_{std::move(acid_libs)},
+            reduction_{reduction},
+            decomposer_(k_, reduction_),
+            permanent_hibf_status_{is_hibf_}
+        {
+            permanent_hibf_status_ = false;
+            size_t bin_count = acid_libs_.size();
+            ibf_ = IBFIndex(bin_size, hc, acid_libs_, bin_count);
+        }
+
+        int calculate_m(int n, double p)
+        {
+            double numerator = n * std::log(p);
+            double denominator = std::log(1.0 / std::pow(2, std::log(2)));
+            return std::ceil(numerator / denominator);
         }
 
         std::pair<size_t, size_t> getShape() const
