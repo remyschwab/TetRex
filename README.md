@@ -20,9 +20,15 @@ Despite the efficiency of modern day tools for Regular Expression search, their 
 Tetrix offers two main commands [index & query]:
 ```bash
 ## Index Nucleic Acid DB, with kmer size = 7, 3 hash functions, & 644830 bits per Bloom Filter, each input file represents a bin
-tetrex index -k 3 -c 3 -s 644830 -m na -o ibf_idx file1.fna file2.fna
+tetrex index -m na -k 3 -o test data/dna_example_split/*.fa
 ## Query RegEx
-tetrex query ibf_idx.ibf "ACGTA(C|G)CC(A|G|T)A"
+tetrex query test.ibf "A(C+|G+)T" 
+#TetRex/data/dna_example_split/sequence1.fa >Sequence1      ACT
+#TetRex/data/dna_example_split/sequence1.fa >Sequence1      ACT
+#TetRex/data/dna_example_split/sequence1.fa >Sequence1      ACT
+#TetRex/data/dna_example_split/sequence2.fa >Sequence2      ACT
+#TetRex/data/dna_example_split/sequence2.fa >Sequence2      AGT
+#TetRex/data/dna_example_split/sequence4.fa >Sequence4      ACCCT
 ```
 
 ## Notes
