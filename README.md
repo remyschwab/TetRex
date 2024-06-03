@@ -19,7 +19,7 @@ Despite the efficiency of modern day tools for Regular Expression search, their 
 ## Usage
 Tetrix offers two main commands [index & query]:
 ```bash
-## Index Nucleic Acid DB, with kmer size = 7, 3 hash functions, & 644830 bits per Bloom Filter, each input file represents a bin
+## Index Nucleic Acid DB, with kmer size = 3, 3 hash functions, & a FPR of 0.05, each input file represents a bin
 tetrex index -m na -k 3 -o test data/dna_example_split/*.fa
 ## Query RegEx
 tetrex query test.ibf "A(C+|G+)T" 
