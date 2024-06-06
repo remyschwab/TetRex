@@ -69,7 +69,7 @@ class TetrexIndex
             ibf_ = IBFIndex(bin_size, hc, acid_libs_, bin_count);
         }
 
-        int calculate_m(int n, double p)
+        int calculate_m(size_t n, float p)
         {
             double numerator = n * std::log(p);
             double denominator = std::log(1.0 / std::pow(2, std::log(2)));
