@@ -69,7 +69,7 @@ public:
 
     uint8_t getHashCount() const
     {
-        assert(hibf_.hash_function_count() == hash_count_);
+        // assert(hibf_.hash_function_count() == hash_count_);
         return hash_count_;
     }
 

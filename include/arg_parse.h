@@ -6,6 +6,7 @@
 
 #include <seqan3/argument_parser/all.hpp>
 #include <seqan3/argument_parser/validators.hpp>
+#include <sharg/all.hpp>
 
 
 struct index_arguments
