@@ -19,3 +19,6 @@
 	path = lib/hibf
 	url = git@github.com:seqan/hibf.git
 	branch = master
+[submodule "lib/sharg-parser"]
+	path = lib/sharg-parser
+	url = git@github.com:seqan/sharg-parser.git

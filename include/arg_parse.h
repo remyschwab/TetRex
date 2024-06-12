@@ -4,8 +4,7 @@
 
 #pragma once
 
-#include <seqan3/argument_parser/all.hpp>
-#include <seqan3/argument_parser/validators.hpp>
+#include <sharg/all.hpp>
 
 
 struct index_arguments
@@ -23,22 +22,20 @@ struct index_arguments
     std::string reduction = "None";
 };
 
-inline void initialise_index_parser(seqan3::argument_parser &parser, index_arguments &args)
+inline void initialise_index_parser(sharg::parser &parser, index_arguments &args)
 {
     parser.info.author = "Remy Schwab";
     parser.info.version = "1.0.0";
-    parser.add_option(args.ibf, 'i', "idx_struct", "IBF or HIBF", seqan3::option_spec::standard, seqan3::value_list_validator{"ibf", "hibf"});
-    parser.add_option(args.k, 'k', "ksize", "size of kmers");
-    parser.add_option(args.fpr, 'p', "fpr", "Bloom Filter False Positive Rate");
-    parser.add_option(args.bin_size, 's', "bin_size", "Size of bins");
-    // parser.add_option(args.dbin_size, 'd', "dbin_size", "Size of bins for dibf");
-    parser.add_option(args.hash_count, 'c', "hash_count", "Number of hash functions. NOTE: MORE THAN 4 IS SLOW");
-    parser.add_option(args.t, 't', "threads", "Number of threads");
-    parser.add_option(args.molecule, 'm', "molecule", "Molecule type of library", seqan3::option_spec::required, seqan3::value_list_validator{"na", "aa"});
-    parser.add_option(args.reduction, 'r', "reduce", "Use reduced AA alphabet (Murphy or Li)", seqan3::option_spec::standard, seqan3::value_list_validator{"murphy","li"});
-    parser.add_option(args.ofile, 'o', "ofile", "Name of index on disk");
-    parser.add_positional_option(args.acid_libs, "Nucleic or Amino Acid library to indexed",
-                                seqan3::input_file_validator{{"lst","fa", "fa.gz","fasta", "fasta.gz", "fna", "fna.gz"}});
+    parser.add_option(args.ibf, sharg::config{.short_id='i', .long_id="idx_struct", .description="IBF or HIBF", .validator=sharg::value_list_validator{"ibf", "hibf"}});
+    parser.add_option(args.k, sharg::config{'k', "ksize", "size of kmers"});
+    parser.add_option(args.fpr, sharg::config{'p', "fpr", "Bloom Filter False Positive Rate"});
+    parser.add_option(args.bin_size, sharg::config{'s', "bin_size", "Size of bins"});
+    parser.add_option(args.hash_count, sharg::config{'c', "hash_count", "Number of hash functions. NOTE: MORE THAN 4 IS SLOW"});
+    parser.add_option(args.t, sharg::config{'t', "threads", "Number of threads"});
+    parser.add_option(args.molecule, sharg::config{.short_id='m', .long_id="molecule", .description="Molecule type of library", .required=true, .validator=sharg::value_list_validator{"na", "aa"}});
+    parser.add_option(args.reduction, sharg::config{.short_id='r', .long_id="reduce", .description="Use reduced AA alphabet (Murphy or Li)", .validator=sharg::value_list_validator{"murphy","li"}});
+    parser.add_option(args.ofile, sharg::config{'o', "ofile", "Name of index on disk"});
+    parser.add_positional_option(args.acid_libs, sharg::config{.description="Nucleic or Amino Acid library to indexed", .validator=sharg::input_file_validator{{"lst","fa", "fa.gz","fasta", "fasta.gz", "fna", "fna.gz"}}});
 }
 
 struct query_arguments
@@ -51,24 +48,24 @@ struct query_arguments
     std::string query;
 };
 
-inline void initialise_query_parser(seqan3::argument_parser &parser, query_arguments &args)
+inline void initialise_query_parser(sharg::parser &parser, query_arguments &args)
 {
     parser.info.author = "Remy Schwab";
     parser.info.version = "1.0.0";
-    parser.add_option(args.t, 't', "threads", "Number of threads");
-    parser.add_option(args.verbose, 'v', "verbose", "Log verbose output");
-    parser.add_positional_option(args.idx, "Path to IBF acid index");
-    parser.add_positional_option(args.regex, "Input Regex in reverse polish notation");
+    parser.add_option(args.t, sharg::config{'t', "threads", "Number of threads"});
+    parser.add_option(args.verbose, sharg::config{'v', "verbose", "Log verbose output"});
+    parser.add_positional_option(args.idx, sharg::config{.description="Path to IBF acid index"});
+    parser.add_positional_option(args.regex, sharg::config{.description="Input Regex in reverse polish notation"});
 }
 
-inline void initialise_model_parser(seqan3::argument_parser &parser, query_arguments &args)
+inline void initialise_model_parser(sharg::parser &parser, query_arguments &args)
 {
     parser.info.author = "Remy Schwab";
     parser.info.version = "1.0.0";
-    parser.add_option(args.t, 't', "threads", "Number of threads");
-    parser.add_option(args.text_length, 'l', "length", "Length of text");
-    parser.add_positional_option(args.idx, "Path to IBF acid index");
-    parser.add_positional_option(args.regex, "Input Regex in reverse polish notation");
+    parser.add_option(args.t, sharg::config{'t', "threads", "Number of threads"});
+    parser.add_option(args.text_length, sharg::config{'l', "length", "Length of text"});
+    parser.add_positional_option(args.idx, sharg::config{.description="Path to IBF acid index"});
+    parser.add_positional_option(args.regex, sharg::config{.description="Input Regex in reverse polish notation"});
 }
 
 struct inspection_arguments
@@ -76,9 +73,9 @@ struct inspection_arguments
     std::filesystem::path idx{};
 };
 
-inline void initialise_inspection_parser(seqan3::argument_parser &parser, inspection_arguments &args)
+inline void initialise_inspection_parser(sharg::parser &parser, inspection_arguments &args)
 {
     parser.info.author = "Remy Schwab";
     parser.info.version = "1.0.0";
-    parser.add_positional_option(args.idx, "Path to IBF acid index");
+    parser.add_positional_option(args.idx, sharg::config{.description="Path to IBF acid index"});
 }

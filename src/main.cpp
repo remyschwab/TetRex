@@ -9,7 +9,7 @@
 #include <algorithm>
 
 
-void run_index(seqan3::argument_parser &parser)
+void run_index(sharg::parser &parser)
 {
     index_arguments cmd_args{};
     initialise_index_parser(parser, cmd_args);
@@ -17,7 +17,7 @@ void run_index(seqan3::argument_parser &parser)
     {
         parser.parse();
     }
-    catch (seqan3::argument_parser_error const & ext)
+    catch (sharg::parser_error const & ext)
     {
         seqan3::debug_stream << "[Indexing Parser Error] " << ext.what() << "\n";
         return;
@@ -25,7 +25,7 @@ void run_index(seqan3::argument_parser &parser)
     drive_index(cmd_args);
 }
 
-void run_query(seqan3::argument_parser &parser)
+void run_query(sharg::parser &parser)
 {
     // Parse Arguments
     query_arguments cmd_args{};
@@ -34,7 +34,7 @@ void run_query(seqan3::argument_parser &parser)
     {
         parser.parse();
     }
-    catch (seqan3::argument_parser_error const & ext)
+    catch (sharg::parser_error const & ext)
     {
         seqan3::debug_stream << "[Error TetRex Query module " << ext.what() << "\n";
         return;
@@ -42,7 +42,7 @@ void run_query(seqan3::argument_parser &parser)
     drive_query(cmd_args, false);
 }
 
-void run_inspection(seqan3::argument_parser &parser)
+void run_inspection(sharg::parser &parser)
 {
     // Parse Arguments
     inspection_arguments cmd_args{};
@@ -51,7 +51,7 @@ void run_inspection(seqan3::argument_parser &parser)
     {
         parser.parse();
     }
-    catch (seqan3::argument_parser_error const & ext)
+    catch (sharg::parser_error const & ext)
     {
         seqan3::debug_stream << "[Error TetRex Index Inspection module " << ext.what() << "\n";
         return;
@@ -59,7 +59,7 @@ void run_inspection(seqan3::argument_parser &parser)
     drive_inspection(cmd_args);
 }
 
-void run_model(seqan3::argument_parser &parser)
+void run_model(sharg::parser &parser)
 {
     // Parse Arguments
     query_arguments cmd_args{};
@@ -68,7 +68,7 @@ void run_model(seqan3::argument_parser &parser)
     {
         parser.parse();
     }
-    catch (seqan3::argument_parser_error const & ext)
+    catch (sharg::parser_error const & ext)
     {
         seqan3::debug_stream << "[Error TetRex Discovery Modeling module " << ext.what() << "\n";
         return;
@@ -78,21 +78,21 @@ void run_model(seqan3::argument_parser &parser)
 
 int main(int argc, char *argv[])
 {
-    seqan3::argument_parser top_level_parser{"tetrex", argc, argv,
-                                             seqan3::update_notifications::off,
+    sharg::parser top_level_parser{"tetrex", argc, argv,
+                                             sharg::update_notifications::off,
                                              {"index", "query", "inspect", "model"}};
     top_level_parser.info.description.push_back("Index a NA|AA FASTA library or search a regular expression.");
     try
     {
         top_level_parser.parse(); // trigger command line parsing
     }
-    catch (seqan3::argument_parser_error const & ext) // catch user errors
+    catch (sharg::parser_error const & ext) // catch user errors
     {
         seqan3::debug_stream << "[Error] " << ext.what() << "\n"; // customise your error message
         return -1;
     }
 
-    seqan3::argument_parser & sub_parser = top_level_parser.get_sub_parser(); // hold a reference to the sub_parser
+    sharg::parser &sub_parser = top_level_parser.get_sub_parser(); // hold a reference to the sub_parser
     if (sub_parser.info.app_name == std::string_view{"tetrex-index"})
         run_index(sub_parser);
     else if (sub_parser.info.app_name == std::string_view{"tetrex-query"})
