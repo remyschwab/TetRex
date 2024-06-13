@@ -33,7 +33,8 @@ void drive_query(query_arguments &cmd_args, const bool &model);
 
 void preprocess_query(std::string &rx_query, std::string &postfix_query);
 
-void verify_fasta_hit(const gzFile &fasta_handle, kseq_t *record, re2::RE2 &crx);
+bool validate_regex(const std::string &regex, uint8_t ksize);
+
 void verify_fasta_hit(const gzFile &fasta_handle, kseq_t *record, re2::RE2 &crx, std::string const &binid);
 
 template<index_structure::is_valid flavor, molecules::is_molecule mol_type>
@@ -66,28 +67,37 @@ void run_collection(query_arguments &cmd_args, const bool &model, TetrexIndex<fl
     std::string &rx = cmd_args.regex;
     std::string &query = cmd_args.query;
     preprocess_query(rx, query);
+    bool valid = validate_regex(query, ibf.k_);
     // seqan3::debug_stream << query << std::endl;
+    bitvector hit_vector(ibf.getBinCount(), true);
 
-    std::unique_ptr<nfa_t> NFA = std::make_unique<nfa_t>();
-    std::unique_ptr<lmap_t> nfa_map =  std::make_unique<lmap_t>(*NFA);
-    amap_t arc_map;
-    
-    construct_kgraph(cmd_args.query, *NFA, *nfa_map, arc_map, ibf.k_);
+    if(valid)
+    {
+        std::unique_ptr<nfa_t> NFA = std::make_unique<nfa_t>();
+        std::unique_ptr<lmap_t> nfa_map =  std::make_unique<lmap_t>(*NFA);
+        amap_t arc_map;
+        
+        construct_kgraph(cmd_args.query, *NFA, *nfa_map, arc_map, ibf.k_);
 
-    // print_node_ids(*NFA, *nfa_map);
-    // seqan3::debug_stream << std::endl;
-    // print_node_pointers(arc_map, *NFA);
-    // seqan3::debug_stream << std::endl;
-    // print_kgraph_arcs(*NFA);
-    // seqan3::debug_stream << std::endl;
+        // print_node_ids(*NFA, *nfa_map);
+        // seqan3::debug_stream << std::endl;
+        // print_node_pointers(arc_map, *NFA);
+        // seqan3::debug_stream << std::endl;
+        // print_kgraph_arcs(*NFA);
+        // seqan3::debug_stream << std::endl;
 
-    std::vector<int> top_rank_map = run_top_sort(*NFA);
-    OTFCollector<flavor, mol_t> collector(std::move(NFA), std::move(nfa_map),
-                                          ibf,
-                                          std::move(top_rank_map), std::move(arc_map));
-    
-    bitvector hit_vector = collector.collect();
-    if(cmd_args.verbose) seqan3::debug_stream << "Narrowed Search to " << collector.sumBitvector(hit_vector) << " possible bins" << std::endl;
+        std::vector<int> top_rank_map = run_top_sort(*NFA);
+        OTFCollector<flavor, mol_t> collector(std::move(NFA), std::move(nfa_map),
+                                            ibf,
+                                            std::move(top_rank_map), std::move(arc_map));
+        
+        hit_vector = collector.collect();
+        if(cmd_args.verbose) seqan3::debug_stream << "Narrowed Search to " << collector.sumBitvector(hit_vector) << " possible bins" << std::endl;
+    }
+    else // if the RegEx is shorter than the index kmer size, then prompt user and trigger linear search
+    {
+        seqan3::debug_stream << "RegEx is too short to use index. Performing linear scan over whole database" << std::endl;
+    }
     if(!hit_vector.none()) iter_disk_search(hit_vector, rx, ibf);
     t2 = omp_get_wtime();
     seqan3::debug_stream << (t2-t1) << std::endl;

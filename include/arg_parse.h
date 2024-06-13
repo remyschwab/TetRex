@@ -16,7 +16,6 @@ struct index_arguments
     std::string ofile;
     std::vector<std::filesystem::path> acid_libs{};
     size_t bin_size = 10000;
-    // size_t dbin_size = 10000;
     uint8_t hash_count = 3;
     std::string molecule;
     std::string reduction = "None";
@@ -55,7 +54,7 @@ inline void initialise_query_parser(sharg::parser &parser, query_arguments &args
     parser.add_option(args.t, sharg::config{'t', "threads", "Number of threads"});
     parser.add_option(args.verbose, sharg::config{'v', "verbose", "Log verbose output"});
     parser.add_positional_option(args.idx, sharg::config{.description="Path to IBF acid index"});
-    parser.add_positional_option(args.regex, sharg::config{.description="Input Regex in reverse polish notation"});
+    parser.add_positional_option(args.regex, sharg::config{.description="Input Regex"});
 }
 
 inline void initialise_model_parser(sharg::parser &parser, query_arguments &args)
@@ -65,7 +64,7 @@ inline void initialise_model_parser(sharg::parser &parser, query_arguments &args
     parser.add_option(args.t, sharg::config{'t', "threads", "Number of threads"});
     parser.add_option(args.text_length, sharg::config{'l', "length", "Length of text"});
     parser.add_positional_option(args.idx, sharg::config{.description="Path to IBF acid index"});
-    parser.add_positional_option(args.regex, sharg::config{.description="Input Regex in reverse polish notation"});
+    parser.add_positional_option(args.regex, sharg::config{.description="Input Regex"});
 }
 
 struct inspection_arguments

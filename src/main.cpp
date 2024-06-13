@@ -22,6 +22,11 @@ void run_index(sharg::parser &parser)
         seqan3::debug_stream << "[Indexing Parser Error] " << ext.what() << "\n";
         return;
     }
+    if(cmd_args.molecule == "aa" && cmd_args.k > 12)
+    {
+        seqan3::debug_stream << "[Indexing Parser Error] Max kmer size for amino acids is 12" << "\n";
+        return;
+    }
     drive_index(cmd_args);
 }
 

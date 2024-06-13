@@ -50,6 +50,14 @@ void preprocess_query(std::string &rx_query, std::string &postfix_query)
     rx_query = "(" + rx_query + ")"; // Capture entire RegEx
 }
 
+// Check if the RegEx is smaller than the kmer size
+bool validate_regex(const std::string &regex, uint8_t ksize)
+{
+    size_t dot_count = 1; // One dot means there should be two characters
+    for(unsigned char c: regex) if(c == '.') ++dot_count;
+    return dot_count >= ksize ? true : false;
+}
+
 
 void verify_fasta_hit(const gzFile &fasta_handle, kseq_t *record, re2::RE2 &crx, std::string const &binid)
 {
