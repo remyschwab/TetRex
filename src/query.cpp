@@ -33,6 +33,82 @@ double compute_knut_model(const size_t &query_length, const uint8_t &k, const in
 }
 
 
+// Function to reverse the regular expression while preserving groups
+std::string reverseRegexPreservingGroups(const std::string &regex)
+{
+    std::stack<std::string> stack;
+    std::string reversedRegex;
+    int i = 0;
+    int n = regex.length();
+    
+    while (i < n) {
+        if (regex[i] == '(')
+        {
+            std::string group = "(";
+            i++;
+            while (i < n && regex[i] != ')') {
+                group += regex[i];
+                i++;
+            }
+            group += ')';
+            stack.push(group);
+        }
+        else
+        {
+            stack.push(std::string(1, regex[i]));
+        }
+        i++;
+    }
+    
+    while(!stack.empty())
+    {
+        reversedRegex += stack.top();
+        stack.pop();
+    }
+    return reversedRegex;
+}
+
+
+// Function to complement the bases in the regular expression
+std::string complementBasesInRegex(const std::string &regex)
+{
+    std::unordered_map<char, char> complement = {
+        {'A', 'T'}, {'T', 'A'}, {'C', 'G'}, {'G', 'C'}
+    };
+    
+    std::string complementedRegex;
+    int i = 0;
+    int n = regex.length();
+    
+    while (i < n) {
+        if (regex[i] == '(') {
+            std::string group = "(";
+            i++;
+            while (i < n && regex[i] != ')') {
+                group += complement.count(regex[i]) ? complement[regex[i]] : regex[i];
+                i++;
+            }
+            group += ')';
+            complementedRegex += group;
+        } else {
+            complementedRegex += complement.count(regex[i]) ? complement[regex[i]] : regex[i];
+        }
+        i++;
+    }
+    
+    return complementedRegex;
+}
+
+
+std::string compute_reverse_complement(std::string &regex)
+{
+    std::string forward_reverse_regex = "("+regex+")|(";
+    std::string reverse_regex = reverseRegexPreservingGroups(regex);
+    forward_reverse_regex += complementBasesInRegex(reverse_regex)+")";
+    return forward_reverse_regex;
+}
+
+
 void preprocess_query(std::string &rx_query, std::string &postfix_query)
 {
     // We don't want to generate kmers from something with anchors
@@ -47,14 +123,13 @@ void preprocess_query(std::string &rx_query, std::string &postfix_query)
     // }
     // seqan3::debug_stream << rx_query << std::endl;
     postfix_query = translate(rx_query);
-    rx_query = "(" + rx_query + ")"; // Capture entire RegEx
 }
 
 // Check if the RegEx is smaller than the kmer size
 bool validate_regex(const std::string &regex, uint8_t ksize)
 {
     size_t dot_count = 1; // One dot means there should be two characters
-    for(unsigned char c: regex) if(c == '.') ++dot_count;
+    for(unsigned char c: regex) if(c == '-') ++dot_count;
     return dot_count >= ksize ? true : false;
 }
 

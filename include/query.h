@@ -33,17 +33,46 @@ void drive_query(query_arguments &cmd_args, const bool &model);
 
 void preprocess_query(std::string &rx_query, std::string &postfix_query);
 
+std::string compute_reverse_complement(std::string &regex);
+
+std::string complementBasesInRegex(const std::string &regex);
+
 bool validate_regex(const std::string &regex, uint8_t ksize);
 
 void verify_fasta_hit(const gzFile &fasta_handle, kseq_t *record, re2::RE2 &crx, std::string const &binid);
 
-template<index_structure::is_valid flavor, molecules::is_molecule mol_type>
-void iter_disk_search(const bitvector &hits, const std::string &query, TetrexIndex<flavor, mol_type> &ibf)
+template<index_structure::is_valid flavor, molecules::is_dna mol_type>
+void iter_disk_search(const bitvector &hits, std::string &query, TetrexIndex<flavor, mol_type> &ibf)
 {
     size_t bins = hits.size();
     gzFile lib_path;
     kseq_t *record;
 
+    std::string forward_and_reverse = compute_reverse_complement(query);
+    forward_and_reverse = "(" + forward_and_reverse + ")"; // Capture entire RegEx
+
+    re2::RE2 compiled_regex(forward_and_reverse);
+    assert(compiled_regex.ok());
+    #pragma omp parallel for
+    for(size_t i = 0; i < bins; i++)
+    {
+        if(hits[i])
+        {
+            lib_path = gzopen(ibf.acid_libs_[i].c_str(), "r");
+            verify_fasta_hit(lib_path, record, compiled_regex, ibf.acid_libs_[i]);
+        }
+    }
+    kseq_destroy(record);
+    gzclose(lib_path);
+}
+
+template<index_structure::is_valid flavor, molecules::is_peptide mol_type>
+void iter_disk_search(const bitvector &hits, std::string &query, TetrexIndex<flavor, mol_type> &ibf)
+{
+    size_t bins = hits.size();
+    gzFile lib_path;
+    kseq_t *record;
+    query = "(" + query + ")"; // Capture entire RegEx
     re2::RE2 compiled_regex(query);
     assert(compiled_regex.ok());
     #pragma omp parallel for
