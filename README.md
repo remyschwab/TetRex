@@ -29,6 +29,7 @@ tetrex query test.ibf "A(C+|G+)T"
 #TetRex/data/dna_example_split/sequence2.fa >Sequence2      ACT
 #TetRex/data/dna_example_split/sequence2.fa >Sequence2      AGT
 #TetRex/data/dna_example_split/sequence4.fa >Sequence4      ACCCT
+## Report some info about a constructed index
 tetrex inspect test.ibf
 # Reading Index from Disk... DONE in 3.1e-05s
 # INDEX TYPE: HIBF
