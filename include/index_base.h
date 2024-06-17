@@ -117,6 +117,11 @@ class TetrexIndex
             return ibf_;
         }
 
+        float getFPR() const
+        {
+            return ibf_.getFPR();
+        }
+
         void set_lib_paths(std::vector<std::string> path_collection)
         {
             acid_libs_ = std::move(path_collection);

@@ -71,6 +71,11 @@ public:
         ibf_.emplace(val, idx);
     }
 
+    float getFPR() const
+    {
+        return 0.05; // Lol gotta fix this I guess...
+    }
+
     void populate_index(uint8_t const ksize, auto &decomposer, auto &base_ref)
     {
         gzFile handle{};

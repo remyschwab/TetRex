@@ -62,7 +62,7 @@ public:
         return bin_count_;
     }
 
-    size_t getFPR() const
+    float getFPR() const
     {
         return fpr_;
     }

@@ -44,8 +44,7 @@ void inspect_dna_hibf(inspection_arguments const &cmd_args)
 
     // Print Info to std out
     std::cout << "INDEX TYPE: HIBF" << std::endl;
-    std::cout << "USER BIN COUNT: " << shape.first << std::endl;
-    std::cout << "BIN SIZE (bits): " << shape.second << std::endl;
+    std::cout << "FALSE POSITIVE RATE: " << std::fixed << std::setprecision(2) << ibf.getFPR() << std::endl;
     std::cout << "HASH COUNT (hash functions): " << unsigned(ibf.getHashCount()) << std::endl;
     std::cout << "KMER LENGTH (bases): " << unsigned(ibf.k_) << std::endl;
     std::cout << "MOLECULE TYPE (alphabet): Nucleic Acid [REDUCTION=NONE]" << std::endl;
@@ -75,7 +74,7 @@ void inspect_aa_ibf(inspection_arguments const &cmd_args)
     std::cout << "BIN COUNT (BFs): " << shape.first << std::endl;
     std::cout << "BIN SIZE (bits): " << shape.second << std::endl;
     std::cout << "HASH COUNT (hash functions): " << unsigned(ibf.getHashCount()) << std::endl;
-    std::cout << "KMER LENGTH (bases): " << unsigned(ibf.k_) << std::endl;
+    std::cout << "KMER LENGTH (residues): " << unsigned(ibf.k_) << std::endl;
     std::cout << "MOLECULE TYPE (alphabet): Amino Acid [REDUCTION=" << ibf.reduction_ << "]" << std::endl;
     std::cout << "ACID LIBRARY (filepaths):" << std::endl;
     for(auto && path: ibf.acid_libs_)
@@ -100,10 +99,9 @@ void inspect_aa_hibf(inspection_arguments const &cmd_args)
 
     // Print Info to std out
     std::cout << "INDEX TYPE: HIBF" << std::endl;
-    std::cout << "BIN COUNT (BFs): " << shape.first << std::endl;
-    std::cout << "BIN SIZE (bits): " << shape.second << std::endl;
+    std::cout << "FALSE POSITIVE RATE: " << std::fixed << std::setprecision(2) << ibf.getFPR() << std::endl;
     std::cout << "HASH COUNT (hash functions): " << unsigned(ibf.getHashCount()) << std::endl;
-    std::cout << "KMER LENGTH (bases): " << unsigned(ibf.k_) << std::endl;
+    std::cout << "KMER LENGTH (residues): " << unsigned(ibf.k_) << std::endl;
     std::cout << "MOLECULE TYPE (alphabet): Amino Acid [REDUCTION=" << ibf.reduction_ << "]" << std::endl;
     std::cout << "ACID LIBRARY (filepaths):" << std::endl;
     for(auto && path: ibf.acid_libs_)
