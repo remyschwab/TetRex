@@ -17,9 +17,9 @@ Despite the efficiency of modern day tools for Regular Expression search, their 
 4. Build with make ```make```
 
 ## Usage
-Tetrix offers two main commands [index & query]:
+Tetrix offers two main commands [index & query] and one utility command [inspect]:
 ```bash
-## Index Nucleic Acid DB, with kmer size = 3, 3 hash functions, & a FPR of 0.05, each input file represents a bin
+## Construct an HIBF index of nucleic acids, with kmer size = 3, 3 hash functions, & a FPR of 0.05, each input file represents a bin
 tetrex index -m na -k 3 -o test data/dna_example_split/*.fa
 ## Query RegEx
 tetrex query test.ibf "A(C+|G+)T" 
@@ -29,6 +29,20 @@ tetrex query test.ibf "A(C+|G+)T"
 #TetRex/data/dna_example_split/sequence2.fa >Sequence2      ACT
 #TetRex/data/dna_example_split/sequence2.fa >Sequence2      AGT
 #TetRex/data/dna_example_split/sequence4.fa >Sequence4      ACCCT
+tetrex inspect test.ibf
+# Reading Index from Disk... DONE in 3.1e-05s
+# INDEX TYPE: HIBF
+# FALSE POSITIVE RATE: 0.05
+# HASH COUNT (hash functions): 3
+# KMER LENGTH (bases): 3
+# MOLECULE TYPE (alphabet): Nucleic Acid [REDUCTION=NONE]
+# ACID LIBRARY (filepaths):
+#         - /Users/rschwab/repos/TetRex/./data/dna_example_split/sequence1.fa
+#         - /Users/rschwab/repos/TetRex/./data/dna_example_split/sequence2.fa
+#         - /Users/rschwab/repos/TetRex/./data/dna_example_split/sequence3.fa
+#         - /Users/rschwab/repos/TetRex/./data/dna_example_split/sequence4.fa
+#         - /Users/rschwab/repos/TetRex/./data/dna_example_split/sequence5.fa
+# DONE
 ```
 
 ## Notes
