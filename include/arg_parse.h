@@ -78,3 +78,20 @@ inline void initialise_inspection_parser(sharg::parser &parser, inspection_argum
     parser.info.version = "1.0.0";
     parser.add_positional_option(args.idx, sharg::config{.description="Path to IBF acid index"});
 }
+
+
+struct mash_arguments
+{
+    std::filesystem::path pattern_file{};
+    uint8_t k = 3;
+    std::string molecule;
+};
+
+inline void initialise_mash_parser(sharg::parser &parser, mash_arguments &args)
+{
+    parser.info.author = "Remy Schwab";
+    parser.info.version = "1.0.0";
+    parser.add_option(args.k, sharg::config{'k', "ksize", "size of kmers"});
+    parser.add_option(args.molecule, sharg::config{.short_id='m', .long_id="molecule", .description="Molecule type of library", .required=true, .validator=sharg::value_list_validator{"na", "aa"}});
+    parser.add_positional_option(args.pattern_file, sharg::config{.description="Path to Pattern File"});
+}

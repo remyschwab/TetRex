@@ -3,6 +3,7 @@
 #include "index_base.h"
 #include "query.h"
 #include "inspect_idx.h"
+#include "mash.h"
 #include <fstream>
 #include <omp.h>
 #include <stdlib.h>
@@ -81,11 +82,26 @@ void run_model(sharg::parser &parser)
     drive_query(cmd_args, true);
 }
 
+void run_mash(sharg::parser &parser)
+{
+    mash_arguments cmd_args{};
+    initialise_mash_parser(parser, cmd_args);
+    try
+    {
+        parser.parse();
+    }
+    catch(sharg::parser_error const &ext)
+    {
+        seqan3::debug_stream << "[Error TetRex Discovery Modeling module " << ext.what() << "\n";
+    }
+    drive_mash(cmd_args);
+}
+
 int main(int argc, char *argv[])
 {
     sharg::parser top_level_parser{"tetrex", argc, argv,
                                              sharg::update_notifications::off,
-                                             {"index", "query", "inspect", "model"}};
+                                             {"index", "query", "inspect", "model", "mash"}};
     top_level_parser.info.description.push_back("Index a NA|AA FASTA library or search a regular expression.");
     try
     {
@@ -106,6 +122,8 @@ int main(int argc, char *argv[])
         run_inspection(sub_parser);
     else if (sub_parser.info.app_name == std::string_view{"tetrex-model"})
         run_model(sub_parser);
+    else if (sub_parser.info.app_name == std::string_view{"tetrex-mash"})
+        run_mash(sub_parser);
     else
         std::cout << "Unhandled subparser named " << sub_parser.info.app_name << '\n';
     return 0;

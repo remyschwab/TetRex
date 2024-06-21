@@ -22,3 +22,6 @@
 [submodule "lib/sharg-parser"]
 	path = lib/sharg-parser
 	url = git@github.com:seqan/sharg-parser.git
+[submodule "lib/xxHash"]
+	path = lib/xxHash
+	url = git@github.com:Cyan4973/xxHash.git
