@@ -6,6 +6,7 @@
 
 #include <re2/re2.h>
 #include <omp.h>
+#include <lemon/dfs.h>
 
 #include "kseq.h"
 #include "utils.h"
@@ -129,5 +130,5 @@ void run_collection(query_arguments &cmd_args, const bool &model, TetrexIndex<fl
     }
     if(!hit_vector.none()) iter_disk_search(hit_vector, rx, ibf);
     t2 = omp_get_wtime();
-    seqan3::debug_stream << (t2-t1) << std::endl;
+    seqan3::debug_stream << "Query Time: " << (t2-t1) << std::endl;
 }

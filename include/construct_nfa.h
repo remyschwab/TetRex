@@ -7,6 +7,8 @@
 #include "lemon/smart_graph.h"
 #include "lemon/maps.h"
 #include "lemon/connectivity.h"
+#include "lemon/bfs.h"
+#include "lemon/dfs.h"
 #include "utils.h"
 
 
@@ -61,7 +63,7 @@ void print_node_ids(nfa_t &NFA, lmap_t &nmap);
 
 void export_nfa_img(nfa_t &nfa, std::string &title);
 
-void copy_subgraph(node_pair_t &node_pair);
+void copy_subgraph(const node_pair_t &subgraph, nfa_t &NFA, lmap_t &node_map, node_pair_t &subgraph_copy, amap_t &arc_map);
 
 std::vector<int> run_top_sort(nfa_t &NFA);
 
