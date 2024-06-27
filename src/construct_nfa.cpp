@@ -1,11 +1,6 @@
 #include "construct_nfa.h"
 
 
-// void export_nfa_img(nfa_t &nfa, std::string &title)
-// {
-//     lemon::graphToEps(nfa, "/Users/rschwab/Desktop/nfa.eps").title(title).copyright("(C) 2003-2009 LEMON Project").run();
-// }
-
 void paste_to_graph(nfa_t &NFA, lmap_t &node_map, const node_t &reference_node, node_t &paste_node)
 {
     int symbol = node_map[reference_node];
@@ -35,6 +30,7 @@ void copy_subgraph(node_pair_t &subgraph, nfa_t &NFA, lmap_t &node_map, node_pai
     {
         arc_t arc = dfs.processNextArc();
         node_t source = NFA.source(arc);
+        if(source == subgraph.second) break;
         node_t target = NFA.target(arc);
         node_t source_copy = reference_to_copy_map[source];
         if(copied_targets.find(NFA.id(target)) != copied_targets.end())
@@ -257,35 +253,25 @@ void kleene_procedure(nfa_t &nfa, nfa_stack_t &stack, lmap_t &node_map, const ui
 
 void plus_procedure(nfa_t &nfa, nfa_stack_t &stack, lmap_t &node_map, const uint8_t &k, amap_t &arc_map)
 {
-    node_pair_t node = stack.top();
+    node_pair_t subgraph = stack.top();
     stack.pop();
-    const int symbol = node_map[node.first]; // This isn't a full solution!
-
-    node_t split_node = nfa.addNode();
-    node_map[split_node] = Split;
-    update_arc_map(nfa, node_map, arc_map, node.first, split_node);
 
     node_t ghost_node = nfa.addNode();
     node_map[ghost_node] = Ghost;
-    update_arc_map(nfa, node_map, arc_map, split_node, ghost_node);
 
-    node_t *back_node = &split_node;
-    for(uint8_t i = 1; i < (k-1); ++i) // I iterate starting at 1 to represent how I already linearized one cycle
+    node_t *back_node = &(subgraph.second);
+    for(uint8_t i = 1; i < (k-1); ++i) // I iterate starting at 1 because one subgraph already exists in the graph
     {
-        node_t new_node = nfa.addNode();
-        node_map[new_node] = symbol;
-        update_arc_map(nfa, node_map, arc_map, *back_node, new_node);
-        if(i == (k-2))
-        {
-            update_arc_map(nfa, node_map, arc_map, new_node, ghost_node);
-            break;
-        }
+        node_pair_t new_subgraph;
         node_t inner_split = nfa.addNode();
         node_map[inner_split] = Split;
-        update_arc_map(nfa, node_map, arc_map, new_node, inner_split);
-        back_node = &inner_split;
+        copy_subgraph(subgraph, nfa, node_map, new_subgraph, arc_map);
+        update_arc_map(nfa, node_map, arc_map, *back_node, inner_split);
+        update_arc_map(nfa, node_map, arc_map, inner_split, ghost_node);
+        update_arc_map(nfa, node_map, arc_map, inner_split, new_subgraph.first);
+        back_node = &new_subgraph.second;
     }
-    node_pair_t node_pair = std::make_pair(node.first, ghost_node);
+    node_pair_t node_pair = std::make_pair(subgraph.first, ghost_node);
     stack.push(node_pair);
 }
 

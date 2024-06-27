@@ -120,7 +120,7 @@ void run_collection(query_arguments &cmd_args, const bool &model, TetrexIndex<fl
                                             ibf,
                                             std::move(top_rank_map), std::move(arc_map));
         
-        hit_vector = collector.collect();
+        // hit_vector = collector.collect();
         if(cmd_args.verbose) seqan3::debug_stream << "Narrowed Search to " << collector.sumBitvector(hit_vector) << " possible bins" << std::endl;
     }
     else // if the RegEx is shorter than the index kmer size, then prompt user and trigger linear search
