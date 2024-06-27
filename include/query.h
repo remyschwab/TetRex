@@ -6,7 +6,6 @@
 
 #include <re2/re2.h>
 #include <omp.h>
-#include <lemon/dfs.h>
 
 #include "kseq.h"
 #include "utils.h"

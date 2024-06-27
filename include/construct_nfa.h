@@ -7,7 +7,6 @@
 #include "lemon/smart_graph.h"
 #include "lemon/maps.h"
 #include "lemon/connectivity.h"
-#include "lemon/bfs.h"
 #include "lemon/dfs.h"
 #include "utils.h"
 
