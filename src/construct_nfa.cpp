@@ -26,11 +26,11 @@ void copy_subgraph(node_pair_t &subgraph, nfa_t &NFA, lmap_t &node_map, node_pai
     dfs.init();
     dfs.addSource(subgraph.first);
     reference_to_copy_map[subgraph.first] = new_node;
-    while (!dfs.emptyQueue())
+    while(!dfs.emptyQueue())
     {
         arc_t arc = dfs.processNextArc();
         node_t source = NFA.source(arc);
-        if(source == subgraph.second) break;
+        if(source == subgraph.second) break; // i don't totally get why this works
         node_t target = NFA.target(arc);
         node_t source_copy = reference_to_copy_map[source];
         if(copied_targets.find(NFA.id(target)) != copied_targets.end())
@@ -269,6 +269,11 @@ void plus_procedure(nfa_t &nfa, nfa_stack_t &stack, lmap_t &node_map, const uint
         update_arc_map(nfa, node_map, arc_map, *back_node, inner_split);
         update_arc_map(nfa, node_map, arc_map, inner_split, ghost_node);
         update_arc_map(nfa, node_map, arc_map, inner_split, new_subgraph.first);
+        if(i == (k-2)) // Is this right?
+        {
+            update_arc_map(nfa, node_map, arc_map, new_subgraph.second, ghost_node);
+            break;
+        }
         back_node = &new_subgraph.second;
     }
     node_pair_t node_pair = std::make_pair(subgraph.first, ghost_node);
