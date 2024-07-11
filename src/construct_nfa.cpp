@@ -20,11 +20,13 @@ void copy_subgraph(node_pair_t &subgraph, nfa_t &NFA, lmap_t &node_map, node_pai
         return;
     }
     // If the operand is a more complicated subgraph, then traverse with BFS copying nodes and arcs along the way
-    nfa_t::NodeMap<node_t> reference_to_copy_map(NFA);
-    robin_hood::unordered_set<int> copied_targets;
+    nfa_t::NodeMap<node_t> reference_to_copy_map(NFA); // A mapping of nodes in the old subgraph to the new one
+    robin_hood::unordered_set<int> copied_targets; // It's possible that paths converge to the same (ghost) node and we don't want to copy it twice
+    
     lemon::Dfs<nfa_t> dfs(NFA);
     dfs.init();
     dfs.addSource(subgraph.first);
+    
     reference_to_copy_map[subgraph.first] = new_node;
     while(!dfs.emptyQueue())
     {
@@ -174,6 +176,8 @@ void union_procedure(nfa_t &nfa, nfa_stack_t &stack, lmap_t &node_map, amap_t &a
     stack.pop();
     node_pair_t node1 = stack.top();
     stack.pop();
+
+    // Maybe just check here if two nodes in a union have the same symbol??
 
     node_t split_node = nfa.addNode();
     node_map[split_node] = Split;

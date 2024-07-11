@@ -48,7 +48,8 @@ void iter_disk_search(const bitvector &hits, std::string &query, TetrexIndex<fla
     gzFile lib_path;
     kseq_t *record;
 
-    std::string forward_and_reverse = compute_reverse_complement(query);
+    // std::string forward_and_reverse = compute_reverse_complement(query);
+    std::string forward_and_reverse = query;
     forward_and_reverse = "(" + forward_and_reverse + ")"; // Capture entire RegEx
 
     re2::RE2 compiled_regex(forward_and_reverse);
@@ -59,6 +60,7 @@ void iter_disk_search(const bitvector &hits, std::string &query, TetrexIndex<fla
         if(hits[i])
         {
             lib_path = gzopen(ibf.acid_libs_[i].c_str(), "r");
+            if(!lib_path) throw std::runtime_error("File not found. Did you move/rename an indexed file?");
             verify_fasta_hit(lib_path, record, compiled_regex, ibf.acid_libs_[i]);
         }
     }
@@ -81,6 +83,7 @@ void iter_disk_search(const bitvector &hits, std::string &query, TetrexIndex<fla
         if(hits[i])
         {
             lib_path = gzopen(ibf.acid_libs_[i].c_str(), "r");
+            if(!lib_path) throw std::runtime_error("File not found. Did you move/rename an indexed file?");
             verify_fasta_hit(lib_path, record, compiled_regex, ibf.acid_libs_[i]);
         }
     }
@@ -127,7 +130,18 @@ void run_collection(query_arguments &cmd_args, const bool &model, TetrexIndex<fl
     {
         seqan3::debug_stream << "RegEx is too short to use index. Performing linear scan over whole database" << std::endl;
     }
-    if(!hit_vector.none()) iter_disk_search(hit_vector, rx, ibf);
+    if(!hit_vector.none())
+    {
+        try
+        {
+            iter_disk_search(hit_vector, rx, ibf);
+        }
+        catch(const std::exception& e)
+        {
+            std::cerr << e.what() << '\n';
+        }
+        
+    }
     t2 = omp_get_wtime();
     seqan3::debug_stream << "Query Time: " << (t2-t1) << std::endl;
 }
