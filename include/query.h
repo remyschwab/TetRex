@@ -14,9 +14,6 @@
 #include "otf_collector.h"
 #include "construct_nfa.h"
 
-
-// bitvector query_ibf(uint32_t &bin_count, robin_hood::unordered_map<uint64_t, bitvector> &hash_to_bits, std::vector<std::pair<std::string, uint64_t>> &path);
-
 double compute_k_probability(const uint8_t &k);
 
 double compute_knut_model(const size_t &query_length, const uint8_t &k, const int &m, const size_t &multiplyer);
@@ -39,6 +36,8 @@ std::string complementBasesInRegex(const std::string &regex);
 
 bool validate_regex(const std::string &regex, uint8_t ksize);
 
+void reverse_verify_fasta_hit(const gzFile &fasta_handle, kseq_t *record, re2::RE2 &crx, std::string const &binid);
+
 void verify_fasta_hit(const gzFile &fasta_handle, kseq_t *record, re2::RE2 &crx, std::string const &binid);
 
 template<index_structure::is_valid flavor, molecules::is_dna mol_type>
@@ -48,7 +47,6 @@ void iter_disk_search(const bitvector &hits, std::string &query, TetrexIndex<fla
     gzFile lib_path;
     kseq_t *record;
 
-    // std::string forward_and_reverse = compute_reverse_complement(query);
     std::string forward_and_reverse = query;
     forward_and_reverse = "(" + forward_and_reverse + ")"; // Capture entire RegEx
 
@@ -62,6 +60,8 @@ void iter_disk_search(const bitvector &hits, std::string &query, TetrexIndex<fla
             lib_path = gzopen(ibf.acid_libs_[i].c_str(), "r");
             if(!lib_path) throw std::runtime_error("File not found. Did you move/rename an indexed file?");
             verify_fasta_hit(lib_path, record, compiled_regex, ibf.acid_libs_[i]);
+            lib_path = gzopen(ibf.acid_libs_[i].c_str(), "r");
+            reverse_verify_fasta_hit(lib_path, record, compiled_regex, ibf.acid_libs_[i]);
         }
     }
     kseq_destroy(record);

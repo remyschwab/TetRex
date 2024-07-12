@@ -4,6 +4,17 @@
 
 #include "query.h"
 
+char comp_tab[] = {
+	  0,   1,	2,	 3,	  4,   5,	6,	 7,	  8,   9,  10,	11,	 12,  13,  14,	15,
+	 16,  17,  18,	19,	 20,  21,  22,	23,	 24,  25,  26,	27,	 28,  29,  30,	31,
+	 32,  33,  34,	35,	 36,  37,  38,	39,	 40,  41,  42,	43,	 44,  45,  46,	47,
+	 48,  49,  50,	51,	 52,  53,  54,	55,	 56,  57,  58,	59,	 60,  61,  62,	63,
+	 64, 'T', 'V', 'G', 'H', 'E', 'F', 'C', 'D', 'I', 'J', 'M', 'L', 'K', 'N', 'O',
+	'P', 'Q', 'Y', 'S', 'A', 'A', 'B', 'W', 'X', 'R', 'Z',	91,	 92,  93,  94,	95,
+	 64, 't', 'v', 'g', 'h', 'e', 'f', 'c', 'd', 'i', 'j', 'm', 'l', 'k', 'n', 'o',
+	'p', 'q', 'y', 's', 'a', 'a', 'b', 'w', 'x', 'r', 'z', 123, 124, 125, 126, 127
+};
+
 
 // Helper Function to compute the probability of any kmer for a given k
 double compute_k_probability(const uint8_t &k)
@@ -133,11 +144,34 @@ bool validate_regex(const std::string &regex, uint8_t ksize)
     return dot_count >= ksize ? true : false;
 }
 
+void reverse_verify_fasta_hit(const gzFile &fasta_handle, kseq_t *record, re2::RE2 &crx, std::string const &binid)
+{
+    int status;
+    std::string match;
+    record = kseq_init(fasta_handle);
+    while((status = kseq_read(record)) >= 0)
+    {
+        int c0, c1;
+        for(size_t i = 0; i < record->seq.l>>1; ++i)
+        { // reverse complement sequence
+            c0 = comp_tab[(int)record->seq.s[i]];
+            c1 = comp_tab[(int)record->seq.s[record->seq.l - 1 - i]];
+            record->seq.s[i] = c1;
+            record->seq.s[record->seq.l - 1 - i] = c0;
+        }
+        if (record->seq.l & 1) // complement the remaining base
+	        record->seq.s[record->seq.l>>1] = comp_tab[(int)record->seq.s[record->seq.l>>1]];
+        re2::StringPiece bin_content(record->seq.s);
+        while (RE2::FindAndConsume(&bin_content, crx, &match))
+        {
+            std::cout << binid << "\t>" << record->name.s << "\t" << match << "\t" << "REVERSE STRAND HIT" << std::endl;
+        }
+    }
+}
 
 void verify_fasta_hit(const gzFile &fasta_handle, kseq_t *record, re2::RE2 &crx, std::string const &binid)
 {
     int status;
-    int start = 0;
     std::string match;
     record = kseq_init(fasta_handle);
     while((status = kseq_read(record)) >= 0)
@@ -146,7 +180,6 @@ void verify_fasta_hit(const gzFile &fasta_handle, kseq_t *record, re2::RE2 &crx,
         while (RE2::FindAndConsume(&bin_content, crx, &match))
         {
             std::cout << binid << "\t>" << record->name.s << "\t" << match << std::endl;
-            ++start;
         }
     }
 }
