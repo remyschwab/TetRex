@@ -60,60 +60,62 @@ namespace molecules
                 {
                     case Murphy:
                         alphabet_size_ = 10;
-                        aamap_['A'] = 0;
-                        aamap_['B'] = 1;
-                        aamap_['C'] = 2;
-                        aamap_['F'] = 3;
-                        aamap_['G'] = 4;
-                        aamap_['H'] = 5;
-                        aamap_['I'] = 6;
-                        aamap_['K'] = 7;
-                        aamap_['P'] = 8;
-                        aamap_['S'] = 9;
-                        aamap_['D'] = aamap_['B'];
-                        aamap_['E'] = aamap_['B'];
-                        aamap_['L'] = aamap_['I'];
-                        aamap_['M'] = aamap_['I'];
-                        aamap_['N'] = aamap_['B'];
-                        aamap_['Q'] = aamap_['B'];
-                        aamap_['R'] = aamap_['K'];
-                        aamap_['T'] = aamap_['S'];
-                        aamap_['V'] = aamap_['I'];
-                        aamap_['W'] = aamap_['F'];
-                        aamap_['Y'] = aamap_['F'];
-                        aamap_['J'] = aamap_['I'];
-                        aamap_['O'] = aamap_['K'];
-                        aamap_['U'] = aamap_['C'];
-                        aamap_['X'] = aamap_['S'];
-                        aamap_['Z'] = aamap_['B'];
+                        aamap_['A'] = 0u;
+                        aamap_['B'] = 1u;
+                        aamap_['C'] = 2u;
+                        aamap_['D'] = aamap_['B']; // 1
+                        aamap_['E'] = aamap_['B']; // 1
+                        aamap_['F'] = 3u;
+                        aamap_['G'] = 4u;
+                        aamap_['H'] = 5u;
+                        aamap_['I'] = 6u;
+                        aamap_['J'] = aamap_['I']; // 6
+                        aamap_['K'] = 7u;
+                        aamap_['L'] = aamap_['I']; // 6
+                        aamap_['M'] = aamap_['I']; // 1
+                        aamap_['N'] = aamap_['B']; // 1
+                        aamap_['O'] = aamap_['K']; // 7
+                        aamap_['P'] = 8u;
+                        aamap_['Q'] = aamap_['B']; // 1
+                        aamap_['R'] = aamap_['K']; // 7
+                        aamap_['S'] = 9u;
+                        aamap_['T'] = aamap_['S']; // 9
+                        aamap_['U'] = aamap_['C']; // 2
+                        aamap_['V'] = aamap_['I']; // 6
+                        aamap_['W'] = aamap_['F']; // 3
+                        aamap_['X'] = aamap_['S']; // 9
+                        aamap_['Y'] = aamap_['F']; // 3
+                        aamap_['Z'] = aamap_['B']; // 1
+                        break;
                     case Li:
                         alphabet_size_ = 10;
-                        aamap_['A'] = 0;
-                        aamap_['B'] = 1;
-                        aamap_['C'] = 2;
-                        aamap_['F'] = 3;
-                        aamap_['G'] = 4;
-                        aamap_['H'] = 5;
-                        aamap_['I'] = 6;
-                        aamap_['J'] = 7;
-                        aamap_['K'] = 8;
-                        aamap_['P'] = 9;
+                        aamap_['A'] = 0u;
+                        aamap_['B'] = 1u;
+                        aamap_['C'] = 2u;
                         aamap_['D'] = aamap_['B'];
                         aamap_['E'] = aamap_['B'];
+                        aamap_['F'] = 3u;
+                        aamap_['G'] = 4u;
+                        aamap_['H'] = 5u;
+                        aamap_['I'] = 6u;
+                        aamap_['J'] = 7u;
+                        aamap_['K'] = 8u;
                         aamap_['L'] = aamap_['J'];
                         aamap_['M'] = aamap_['J'];
                         aamap_['N'] = aamap_['H'];
+                        aamap_['O'] = aamap_['K'];
+                        aamap_['P'] = 9u;
                         aamap_['Q'] = aamap_['B'];
                         aamap_['R'] = aamap_['K'];
+                        aamap_['S'] = aamap_['A'];
                         aamap_['T'] = aamap_['A'];
                         aamap_['V'] = aamap_['I'];
                         aamap_['W'] = aamap_['F'];
                         aamap_['Y'] = aamap_['F'];
-                        aamap_['S'] = aamap_['A'];
-                        aamap_['O'] = aamap_['K'];
                         aamap_['U'] = aamap_['C'];
                         aamap_['X'] = aamap_['A'];
                         aamap_['Z'] = aamap_['B'];
+                        break;
                     default: // Base
                         alphabet_size_ = 20;
                         aamap_['A'] = 0u;
@@ -142,6 +144,7 @@ namespace molecules
                         aamap_['O'] = aamap_['X'];
                         aamap_['U'] = aamap_['X'];
                         aamap_['Z'] = aamap_['E'];
+                        break;
                 }
             }
 

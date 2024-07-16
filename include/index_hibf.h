@@ -99,7 +99,7 @@ public:
                 std::string_view record_view = record->seq.s;
                 if(record_view.length() < ksize)
                 {
-                    // seqan3::debug_stream << "RECORD TOO SHORT " << record->comment.s << std::endl;
+                    seqan3::debug_stream << "RECORD TOO SHORT " << record->comment.s << std::endl;
                     continue;
                 }
                 seq_count++;
@@ -108,7 +108,6 @@ public:
             kseq_destroy(record);
             gzclose(handle);
         }
-        // seqan3::debug_stream << std::endl;
         auto get_user_bin_data = [&](size_t const user_bin_id, seqan::hibf::insert_iterator it)
             {
                 for (auto value : user_bin_data_[user_bin_id])
