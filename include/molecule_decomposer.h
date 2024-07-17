@@ -110,6 +110,11 @@ class MoleculeDecomposer
         decomposer_.print_mask();
     }
 
+    // std::array<char, 256> getReductionMap()
+    // {
+    //     return decomp
+    // }
+
     template<class Archive>
     void serialize(Archive &archive)
     {

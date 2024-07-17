@@ -19,11 +19,13 @@ namespace molecules
 
         public:
             std::array<uint8_t, 256> aamap_{};
+            std::array<char, 256> redmap_{};
 
             PeptideDecomposer() = default;
             PeptideDecomposer(uint8_t const k, uint8_t const reduction) : ksize_{k}, reduction_{reduction}
             {
                 create_residue_maps();
+                create_r2r_maps();
                 create_selection_bitmask();
             }
 
@@ -148,6 +150,68 @@ namespace molecules
                 }
             }
 
+            void create_r2r_maps()
+            {
+                if(reduction_ == Murphy)
+                {
+                    redmap_['A'] = 'A'; // 1
+                    redmap_['R'] = 'K'; // 2
+                    redmap_['N'] = 'B'; // 3
+                    redmap_['D'] = 'B'; // 4
+                    redmap_['C'] = 'C'; // 5
+                    redmap_['Y'] = 'F'; // 6
+                    redmap_['E'] = 'B'; // 7
+                    redmap_['Q'] = 'B'; // 8
+                    redmap_['G'] = 'G'; // 9
+                    redmap_['H'] = 'H'; // 10
+                    redmap_['I'] = 'I'; // 11
+                    redmap_['L'] = 'I'; // 12
+                    redmap_['K'] = 'K'; // 13
+                    redmap_['M'] = 'I'; // 14
+                    redmap_['F'] = 'F'; // 15
+                    redmap_['P'] = 'P'; // 16
+                    redmap_['S'] = 'S'; // 17
+                    redmap_['T'] = 'S'; // 18
+                    redmap_['W'] = 'F'; // 19
+                    redmap_['V'] = 'I'; // 20
+                    redmap_['U'] = 'C'; // 21
+                    redmap_['O'] = 'K'; // 22
+                    redmap_['B'] = 'B'; // 23
+                    redmap_['Z'] = 'B'; // 24
+                    redmap_['J'] = 'I'; // 25
+                    redmap_['X'] = 'S'; // 26
+                }
+                else
+                {
+                    redmap_['A'] = 'A'; // 1
+                    redmap_['R'] = 'K'; // 2
+                    redmap_['N'] = 'H'; // 3
+                    redmap_['D'] = 'B'; // 4
+                    redmap_['C'] = 'C'; // 5
+                    redmap_['Y'] = 'F'; // 6
+                    redmap_['E'] = 'B'; // 7
+                    redmap_['Q'] = 'B'; // 8
+                    redmap_['G'] = 'G'; // 9
+                    redmap_['H'] = 'H'; // 10
+                    redmap_['I'] = 'I'; // 11
+                    redmap_['L'] = 'J'; // 12
+                    redmap_['K'] = 'K'; // 13
+                    redmap_['M'] = 'J'; // 14
+                    redmap_['F'] = 'F'; // 15
+                    redmap_['P'] = 'P'; // 16
+                    redmap_['S'] = 'A'; // 17
+                    redmap_['T'] = 'A'; // 18
+                    redmap_['W'] = 'F'; // 19
+                    redmap_['V'] = 'I'; // 20
+                    redmap_['U'] = 'C'; // 21
+                    redmap_['O'] = 'K'; // 22
+                    redmap_['B'] = 'B'; // 23
+                    redmap_['Z'] = 'B'; // 24
+                    redmap_['J'] = 'J'; // 25
+                    redmap_['X'] = 'A'; // 26
+                }
+            }
+
             // uint64_t compute_hash(const uint64_t &kmer)
             // {
             //     uint64_t hash;
@@ -237,7 +301,7 @@ namespace molecules
             template<class Archive>
             void serialize(Archive &archive)
             {
-                archive(ksize_, reduction_, alphabet_size_, selection_mask_, aamap_);
+                archive(ksize_, reduction_, alphabet_size_, selection_mask_, aamap_, redmap_);
             }
     };
 
