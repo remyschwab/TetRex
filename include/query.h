@@ -28,7 +28,43 @@ void query_hibf_aa(query_arguments &cmd_args, const bool &model);
 
 void drive_query(query_arguments &cmd_args, const bool &model);
 
-void preprocess_query(std::string &rx_query, std::string &postfix_query);
+void reduce_query_alphabet(std::string &regex, const std::array<char, 256> &reduction_map);
+
+template<index_structure::is_valid flavor, molecules::is_peptide mol_type>
+void preprocess_query(std::string &rx_query, std::string &postfix_query, const TetrexIndex<flavor, mol_type> &ibf)
+{
+    // We don't want to generate kmers from something with anchors
+
+    // We want the entire query to be in one capture group
+    // But we need to account for the case where the user tried that themselves
+    // size_t query_length = rx_query.length();
+    // if(rx_query[0] != "(" && rx_query[query_length-1] != ")") // Default case where there is just a query
+    // {
+    //     postfix_query = translate(rx_query);
+    //     rx_query = "(" + rx_query + ")";
+    // }
+    // seqan3::debug_stream << rx_query << std::endl;
+    if(ibf.reduction_ > 0) reduce_query_alphabet(rx_query, ibf.decomposer_.decomposer_.redmap_);
+    seqan3::debug_stream << rx_query << std::endl;
+    postfix_query = translate(rx_query);
+}
+
+template<index_structure::is_valid flavor, molecules::is_dna mol_type>
+void preprocess_query(std::string &rx_query, std::string &postfix_query, const TetrexIndex<flavor, mol_type> &ibf)
+{
+    // We don't want to generate kmers from something with anchors
+
+    // We want the entire query to be in one capture group
+    // But we need to account for the case where the user tried that themselves
+    // size_t query_length = rx_query.length();
+    // if(rx_query[0] != "(" && rx_query[query_length-1] != ")") // Default case where there is just a query
+    // {
+    //     postfix_query = translate(rx_query);
+    //     rx_query = "(" + rx_query + ")";
+    // }
+    // seqan3::debug_stream << rx_query << std::endl;
+    postfix_query = translate(rx_query);
+}
 
 std::string compute_reverse_complement(std::string &regex);
 
@@ -39,6 +75,8 @@ bool validate_regex(const std::string &regex, uint8_t ksize);
 void reverse_verify_fasta_hit(const gzFile &fasta_handle, kseq_t *record, re2::RE2 &crx, std::string const &binid);
 
 void verify_fasta_hit(const gzFile &fasta_handle, kseq_t *record, re2::RE2 &crx, std::string const &binid);
+
+void verify_aa_fasta_hit(const gzFile &fasta_handle, kseq_t *record, re2::RE2 &crx, std::string const &binid, const uint8_t &reduction, std::array<char, 256> residue_map);
 
 template<index_structure::is_valid flavor, molecules::is_dna mol_type>
 void iter_disk_search(const bitvector &hits, std::string &query, TetrexIndex<flavor, mol_type> &ibf)
@@ -84,7 +122,7 @@ void iter_disk_search(const bitvector &hits, std::string &query, TetrexIndex<fla
         {
             lib_path = gzopen(ibf.acid_libs_[i].c_str(), "r");
             if(!lib_path) throw std::runtime_error("File not found. Did you move/rename an indexed file?");
-            verify_fasta_hit(lib_path, record, compiled_regex, ibf.acid_libs_[i]);
+            verify_aa_fasta_hit(lib_path, record, compiled_regex, ibf.acid_libs_[i], ibf.reduction_, ibf.decomposer_.decomposer_.redmap_);
         }
     }
     kseq_destroy(record);
@@ -98,7 +136,7 @@ void run_collection(query_arguments &cmd_args, const bool &model, TetrexIndex<fl
     t1 = omp_get_wtime();
     std::string &rx = cmd_args.regex;
     std::string &query = cmd_args.query;
-    preprocess_query(rx, query);
+    preprocess_query(rx, query, ibf);
     bool valid = validate_regex(query, ibf.k_);
     // seqan3::debug_stream << query << std::endl;
     bitvector hit_vector(ibf.getBinCount(), true);

@@ -119,22 +119,18 @@ std::string compute_reverse_complement(std::string &regex)
     return forward_reverse_regex;
 }
 
-
-void preprocess_query(std::string &rx_query, std::string &postfix_query)
+void reduce_query_alphabet(std::string &regex, const std::array<char, 256> &reduction_map)
 {
-    // We don't want to generate kmers from something with anchors
-
-    // We want the entire query to be in one capture group
-    // But we need to account for the case where the user tried that themselves
-    // size_t query_length = rx_query.length();
-    // if(rx_query[0] != "(" && rx_query[query_length-1] != ")") // Default case where there is just a query
-    // {
-    //     postfix_query = translate(rx_query);
-    //     rx_query = "(" + rx_query + ")";
-    // }
-    // seqan3::debug_stream << rx_query << std::endl;
-    postfix_query = translate(rx_query);
+    for(size_t i = 0; i < regex.length(); ++i)
+    {
+        char residue = regex.at(i);
+        if(std::isalpha(residue))
+        {
+            regex.at(i) = reduction_map[residue];
+        }
+    }
 }
+
 
 // Check if the RegEx is smaller than the kmer size
 bool validate_regex(const std::string &regex, uint8_t ksize)
@@ -176,6 +172,29 @@ void verify_fasta_hit(const gzFile &fasta_handle, kseq_t *record, re2::RE2 &crx,
     record = kseq_init(fasta_handle);
     while((status = kseq_read(record)) >= 0)
     {
+        re2::StringPiece bin_content(record->seq.s);
+        while (RE2::FindAndConsume(&bin_content, crx, &match))
+        {
+            std::cout << binid << "\t>" << record->name.s << "\t" << match << std::endl;
+        }
+    }
+}
+
+void verify_aa_fasta_hit(const gzFile &fasta_handle, kseq_t *record, re2::RE2 &crx, std::string const &binid, const uint8_t &reduction, std::array<char, 256> residue_map)
+{
+    int status;
+    std::string match;
+    record = kseq_init(fasta_handle);
+    while((status = kseq_read(record)) >= 0)
+    {
+        if(reduction > 0)
+        {
+            for(size_t i = 0; i < record->seq.l; ++i)
+            {
+                char residue = record->seq.s[i];
+                record->seq.s[i] = residue_map[residue];
+            }
+        }
         re2::StringPiece bin_content(record->seq.s);
         while (RE2::FindAndConsume(&bin_content, crx, &match))
         {
