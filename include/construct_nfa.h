@@ -41,6 +41,7 @@ using lmap_t = nfa_t::NodeMap<int>;
 using amap_t = robin_hood::unordered_map<int, std::pair<node_t, node_t>>;
 using node_pair_t = std::pair<node_t, node_t>;
 using nfa_stack_t = std::stack<node_pair_t>;
+using buffer_t = std::stack<int>;
 using wmap_t = SerializingWriteMap<nfa_t>;
 
 enum
@@ -66,16 +67,22 @@ void copy_subgraph(const node_pair_t &subgraph, nfa_t &NFA, lmap_t &node_map, no
 
 std::vector<int> run_top_sort(nfa_t &NFA);
 
-void default_procedure(nfa_t &nfa, nfa_stack_t &stack, lmap_t &node_map, const int &symbol);
+bool twin_test(node_pair_t &node_pair);
 
-void concat_procedure(nfa_t &nfa, lmap_t &node_map, nfa_stack_t &stack, amap_t &arc_map);
+int twin_procedure(node_pair_t &node_pair, buffer_t &buffer, nfa_t &nfa, nfa_stack_t &stack, lmap_t &node_map);
 
-void union_procedure(nfa_t &nfa, nfa_stack_t &stack, lmap_t &node_map, amap_t &arc_map);
+node_pair_t add_node(nfa_t &nfa, lmap_t &node_map, const int &symbol);
 
-void optional_procedure(nfa_t &nfa, nfa_stack_t &stack, lmap_t &node_map, amap_t &arc_map);
+void default_procedure(buffer_t &buffer, const int symbol, nfa_stack_t &stack);
 
-void kleene_procedure(nfa_t &nfa, nfa_stack_t &stack, lmap_t &node_map, const uint8_t &k, amap_t &arc_map);
+void concat_procedure(nfa_t &nfa, lmap_t &node_map, nfa_stack_t &stack, amap_t &arc_map, buffer_t &buffer);
 
-void plus_procedure(nfa_t &nfa, nfa_stack_t &stack, lmap_t &node_map, const uint8_t &k, amap_t &arc_map);
+void union_procedure(nfa_t &nfa, nfa_stack_t &stack, lmap_t &node_map, amap_t &arc_map, buffer_t &buffer);
+
+void optional_procedure(nfa_t &nfa, nfa_stack_t &stack, lmap_t &node_map, amap_t &arc_map, buffer_t &buffer);
+
+void kleene_procedure(nfa_t &nfa, nfa_stack_t &stack, lmap_t &node_map, const uint8_t &k, amap_t &arc_map, buffer_t &buffer);
+
+void plus_procedure(nfa_t &nfa, nfa_stack_t &stack, lmap_t &node_map, const uint8_t &k, amap_t &arc_map, buffer_t &buffer);
 
 void construct_kgraph(const std::string &postfix, nfa_t &nfa, lmap_t &node_map, amap_t &arc_map, const uint8_t &k);

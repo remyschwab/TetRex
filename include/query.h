@@ -45,7 +45,6 @@ void preprocess_query(std::string &rx_query, std::string &postfix_query, const T
     // }
     // seqan3::debug_stream << rx_query << std::endl;
     if(ibf.reduction_ > 0) reduce_query_alphabet(rx_query, ibf.decomposer_.decomposer_.redmap_);
-    seqan3::debug_stream << rx_query << std::endl;
     postfix_query = translate(rx_query);
 }
 
@@ -138,7 +137,7 @@ void run_collection(query_arguments &cmd_args, const bool &model, TetrexIndex<fl
     std::string &query = cmd_args.query;
     preprocess_query(rx, query, ibf);
     bool valid = validate_regex(query, ibf.k_);
-    // seqan3::debug_stream << query << std::endl;
+    seqan3::debug_stream << query << std::endl;
     bitvector hit_vector(ibf.getBinCount(), true);
 
     if(valid)
@@ -148,13 +147,14 @@ void run_collection(query_arguments &cmd_args, const bool &model, TetrexIndex<fl
         amap_t arc_map;
         
         construct_kgraph(cmd_args.query, *NFA, *nfa_map, arc_map, ibf.k_);
+        seqan3::debug_stream << NFA->nodeNum() << std::endl;
 
-        // print_node_ids(*NFA, *nfa_map);
-        // seqan3::debug_stream << std::endl;
-        // print_node_pointers(arc_map, *NFA);
-        // seqan3::debug_stream << std::endl;
-        // print_kgraph_arcs(*NFA);
-        // seqan3::debug_stream << std::endl;
+        print_node_ids(*NFA, *nfa_map);
+        seqan3::debug_stream << std::endl;
+        print_node_pointers(arc_map, *NFA);
+        seqan3::debug_stream << std::endl;
+        print_kgraph_arcs(*NFA);
+        seqan3::debug_stream << std::endl;
 
         std::vector<int> top_rank_map = run_top_sort(*NFA);
         OTFCollector<flavor, mol_t> collector(std::move(NFA), std::move(nfa_map),
