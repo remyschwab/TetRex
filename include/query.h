@@ -12,7 +12,9 @@
 #include "index_base.h"
 #include "arg_parse.h"
 #include "otf_collector.h"
+#include "construction_tools.h"
 #include "construct_nfa.h"
+#include "construct_reduced_nfa.h"
 
 double compute_k_probability(const uint8_t &k);
 
@@ -45,7 +47,6 @@ void preprocess_query(std::string &rx_query, std::string &postfix_query, const T
     // }
     // seqan3::debug_stream << rx_query << std::endl;
     if(ibf.reduction_ > 0) reduce_query_alphabet(rx_query, ibf.decomposer_.decomposer_.redmap_);
-    seqan3::debug_stream << rx_query << std::endl;
     postfix_query = translate(rx_query);
 }
 
@@ -146,8 +147,15 @@ void run_collection(query_arguments &cmd_args, const bool &model, TetrexIndex<fl
         std::unique_ptr<nfa_t> NFA = std::make_unique<nfa_t>();
         std::unique_ptr<lmap_t> nfa_map =  std::make_unique<lmap_t>(*NFA);
         amap_t arc_map;
-        
-        construct_kgraph(cmd_args.query, *NFA, *nfa_map, arc_map, ibf.k_);
+        if(ibf.reduction_ == Base)
+        {
+            construct_kgraph(cmd_args.query, *NFA, *nfa_map, arc_map, ibf.k_);
+        }
+        else
+        {
+            construct_reduced_kgraph(cmd_args.query, *NFA, *nfa_map, arc_map, ibf.k_);
+        }
+        // seqan3::debug_stream << std::endl << NFA->nodeNum() << std::endl << std::endl;
 
         // print_node_ids(*NFA, *nfa_map);
         // seqan3::debug_stream << std::endl;
