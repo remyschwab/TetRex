@@ -123,7 +123,12 @@ void iter_disk_search(const bitvector &hits, std::string &query, TetrexIndex<fla
         {
             lib_path = gzopen(ibf.acid_libs_[i].c_str(), "r");
             if(!lib_path) throw std::runtime_error("File not found. Did you move/rename an indexed file?");
-            verify_aa_fasta_hit(lib_path, record, compiled_regex, ibf.acid_libs_[i], ibf.reduction_, ibf.decomposer_.decomposer_.redmap_);
+            if(ibf.reduction_ > Base)
+            {
+                verify_reduced_fasta_hit(lib_path, record, compiled_regex, ibf.acid_libs_[i], ibf.reduction_, ibf.decomposer_.decomposer_.redmap_);
+                continue;
+            }
+            verify_fasta_hit(lib_path, record, compiled_regex, ibf.acid_libs_[i]);
         }
     }
     kseq_destroy(record);
