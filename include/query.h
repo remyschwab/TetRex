@@ -12,7 +12,9 @@
 #include "index_base.h"
 #include "arg_parse.h"
 #include "otf_collector.h"
+#include "construction_tools.h"
 #include "construct_nfa.h"
+#include "construct_reduced_nfa.h"
 
 double compute_k_probability(const uint8_t &k);
 
@@ -137,7 +139,7 @@ void run_collection(query_arguments &cmd_args, const bool &model, TetrexIndex<fl
     std::string &query = cmd_args.query;
     preprocess_query(rx, query, ibf);
     bool valid = validate_regex(query, ibf.k_);
-    seqan3::debug_stream << query << std::endl;
+    // seqan3::debug_stream << query << std::endl;
     bitvector hit_vector(ibf.getBinCount(), true);
 
     if(valid)
@@ -145,16 +147,22 @@ void run_collection(query_arguments &cmd_args, const bool &model, TetrexIndex<fl
         std::unique_ptr<nfa_t> NFA = std::make_unique<nfa_t>();
         std::unique_ptr<lmap_t> nfa_map =  std::make_unique<lmap_t>(*NFA);
         amap_t arc_map;
-        
-        construct_kgraph(cmd_args.query, *NFA, *nfa_map, arc_map, ibf.k_);
-        seqan3::debug_stream << NFA->nodeNum() << std::endl;
+        if(ibf.reduction_ == Base)
+        {
+            construct_kgraph(cmd_args.query, *NFA, *nfa_map, arc_map, ibf.k_);
+        }
+        else
+        {
+            construct_reduced_kgraph(cmd_args.query, *NFA, *nfa_map, arc_map, ibf.k_);
+        }
+        // seqan3::debug_stream << std::endl << NFA->nodeNum() << std::endl << std::endl;
 
-        print_node_ids(*NFA, *nfa_map);
-        seqan3::debug_stream << std::endl;
-        print_node_pointers(arc_map, *NFA);
-        seqan3::debug_stream << std::endl;
-        print_kgraph_arcs(*NFA);
-        seqan3::debug_stream << std::endl;
+        // print_node_ids(*NFA, *nfa_map);
+        // seqan3::debug_stream << std::endl;
+        // print_node_pointers(arc_map, *NFA);
+        // seqan3::debug_stream << std::endl;
+        // print_kgraph_arcs(*NFA);
+        // seqan3::debug_stream << std::endl;
 
         std::vector<int> top_rank_map = run_top_sort(*NFA);
         OTFCollector<flavor, mol_t> collector(std::move(NFA), std::move(nfa_map),
