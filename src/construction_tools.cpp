@@ -70,6 +70,39 @@ std::string generate_kmer_seq(uint64_t &kmer, uint8_t &k)
 }
 
 
+void print_graph(const nfa_t &NFA, const amap_t &arc_map, lmap_t &nmap)
+{
+    std::fstream f;
+    const std::string filename = "graph_viz.dot";
+    f.open(filename, std::ios::out);
+    f << "kGraph Visualizer"<<"\n";
+    f << "{"<<"\n";
+
+    lemon::Dfs<nfa_t> dfs(NFA);
+    dfs.init();
+    dfs.addSource(NFA.nodeFromId(0));
+    while(!dfs.emptyQueue())
+    {
+        arc_t arc = dfs.processNextArc();
+        node_t source = NFA.source(arc);
+        if(NFA.id(source) == 0)
+        {
+            f << "\t • -> "
+        }
+        node_t target = NFA.target(arc);
+        if(nmap[target] == Match)
+        {
+            newline += "∆;\n";
+            continue;
+        }
+        f << itoa(nmap[target]) << " -> ";
+
+    }
+    f << "}";
+    f.close();
+}
+
+
 void print_node_pointers(const amap_t &arc_map, nfa_t &nfa)
 {
     for(auto [id, target_pair]: arc_map)

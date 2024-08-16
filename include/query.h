@@ -174,6 +174,8 @@ void run_collection(query_arguments &cmd_args, const bool &model, TetrexIndex<fl
                                             ibf,
                                             std::move(top_rank_map), std::move(arc_map));
         
+        print_graph(*NFA, arc_map, *nfa_map);
+        
         hit_vector = collector.collect();
         if(cmd_args.verbose) seqan3::debug_stream << "Narrowed Search to " << collector.sumBitvector(hit_vector) << " possible bins" << std::endl;
     }

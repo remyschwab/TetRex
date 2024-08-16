@@ -80,7 +80,6 @@ void kleene_procedure(nfa_t &nfa, nfa_stack_t &stack, lmap_t &node_map, const ui
     node_map[ghost_node] = Ghost;
     update_arc_map(nfa, node_map, arc_map, split_node, ghost_node); // * allows to skip the operand completely
 
-
     node_t *back_node = &subgraph.second;
     for(uint8_t i = 1; i < (k-1); ++i) // I iterate starting at 1 to represent how I already linearized one cycle
     {
