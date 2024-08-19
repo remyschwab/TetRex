@@ -169,13 +169,12 @@ void run_collection(query_arguments &cmd_args, const bool &model, TetrexIndex<fl
         // print_kgraph_arcs(*NFA);
         // seqan3::debug_stream << std::endl;
 
+        // print_graph(*NFA, *nfa_map);
+
         std::vector<int> top_rank_map = run_top_sort(*NFA);
         OTFCollector<flavor, mol_t> collector(std::move(NFA), std::move(nfa_map),
                                             ibf,
-                                            std::move(top_rank_map), std::move(arc_map));
-        
-        print_graph(*NFA, arc_map, *nfa_map);
-        
+                                            std::move(top_rank_map), std::move(arc_map));   
         hit_vector = collector.collect();
         if(cmd_args.verbose) seqan3::debug_stream << "Narrowed Search to " << collector.sumBitvector(hit_vector) << " possible bins" << std::endl;
     }

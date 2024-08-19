@@ -80,7 +80,7 @@ void kleene_procedure(nfa_t &nfa, nfa_stack_t &stack, lmap_t &node_map, const ui
     node_map[ghost_node] = Ghost;
     update_arc_map(nfa, node_map, arc_map, split_node, ghost_node); // * allows to skip the operand completely
 
-    node_t *back_node = &subgraph.second;
+    node_t back_node = subgraph.second;
     for(uint8_t i = 1; i < (k-1); ++i) // I iterate starting at 1 to represent how I already linearized one cycle
     {
         node_t inner_split = nfa.addNode();
@@ -91,7 +91,7 @@ void kleene_procedure(nfa_t &nfa, nfa_stack_t &stack, lmap_t &node_map, const ui
         copy_subgraph(subgraph, nfa, node_map, new_subgraph, arc_map);
         // Copy the subgraph before connecting it to anything downstream
         // so that the DFS in the copy routine doesn't go beyond the subgraph
-        update_arc_map(nfa, node_map, arc_map, *back_node, inner_split);
+        update_arc_map(nfa, node_map, arc_map, back_node, inner_split);
         update_arc_map(nfa, node_map, arc_map, inner_split, new_subgraph.first);
 
         if(i == (k-2)) // Is this right?
@@ -99,7 +99,7 @@ void kleene_procedure(nfa_t &nfa, nfa_stack_t &stack, lmap_t &node_map, const ui
             update_arc_map(nfa, node_map, arc_map, new_subgraph.second, ghost_node);
             break;
         }
-        back_node = &new_subgraph.second;
+        back_node = new_subgraph.second;
     }
     node_pair_t node_pair = std::make_pair(split_node, ghost_node);
     stack.push(node_pair);
@@ -114,14 +114,14 @@ void plus_procedure(nfa_t &nfa, nfa_stack_t &stack, lmap_t &node_map, const uint
     node_t ghost_node = nfa.addNode();
     node_map[ghost_node] = Ghost;
 
-    node_t *back_node = &(subgraph.second);
+    node_t back_node = subgraph.second;
     for(uint8_t i = 1; i < (k-1); ++i) // I iterate starting at 1 because one subgraph already exists in the graph
     {
         node_pair_t new_subgraph;
         node_t inner_split = nfa.addNode();
         node_map[inner_split] = Split;
         copy_subgraph(subgraph, nfa, node_map, new_subgraph, arc_map);
-        update_arc_map(nfa, node_map, arc_map, *back_node, inner_split);
+        update_arc_map(nfa, node_map, arc_map, back_node, inner_split);
         update_arc_map(nfa, node_map, arc_map, inner_split, ghost_node);
         update_arc_map(nfa, node_map, arc_map, inner_split, new_subgraph.first);
         if(i == (k-2)) // Is this right?
@@ -129,7 +129,7 @@ void plus_procedure(nfa_t &nfa, nfa_stack_t &stack, lmap_t &node_map, const uint
             update_arc_map(nfa, node_map, arc_map, new_subgraph.second, ghost_node);
             break;
         }
-        back_node = &new_subgraph.second;
+        back_node = new_subgraph.second;
     }
     node_pair_t node_pair = std::make_pair(subgraph.first, ghost_node);
     stack.push(node_pair);

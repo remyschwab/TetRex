@@ -196,7 +196,6 @@ class OTFCollector
                 auto top = comp_table_[i].begin()->second;
                 scrub(i);
                 id = top.id_;
-                seqan3::debug_stream << id << std::endl;
                 int symbol = (*nfa_map_)[top.node];
                 switch(symbol)
                 {

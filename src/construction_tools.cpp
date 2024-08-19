@@ -19,7 +19,7 @@ void copy_subgraph(node_pair_t &subgraph, nfa_t &NFA, lmap_t &node_map, node_pai
         subgraph_copy.second = new_node;
         return;
     }
-    // If the operand is a more complicated subgraph, then traverse with BFS copying nodes and arcs along the way
+    // If the operand is a more complicated subgraph, then traverse with DFS copying nodes and arcs along the way
     nfa_t::NodeMap<node_t> reference_to_copy_map(NFA); // A mapping of nodes in the old subgraph to the new one
     robin_hood::unordered_set<int> copied_targets; // It's possible that paths converge to the same (ghost) node and we don't want to copy it twice
     
@@ -70,34 +70,70 @@ std::string generate_kmer_seq(uint64_t &kmer, uint8_t &k)
 }
 
 
-void print_graph(const nfa_t &NFA, const amap_t &arc_map, lmap_t &nmap)
+void print_graph(nfa_t &NFA, lmap_t &nmap)
 {
     std::fstream f;
-    const std::string filename = "graph_viz.dot";
-    f.open(filename, std::ios::out);
-    f << "kGraph Visualizer"<<"\n";
-    f << "{"<<"\n";
-
+    const std::string filename = "kgraph_visualizer.gv";
+    
+    // f.open(filename, std::ios::out);
+    // f << "digraph kGraph"<<"\n";
+    // f << "{"<<"\n";
+    // f << "\trankdir=\"LR\"\n";
+    
     lemon::Dfs<nfa_t> dfs(NFA);
     dfs.init();
     dfs.addSource(NFA.nodeFromId(0));
-    while(!dfs.emptyQueue())
-    {
-        arc_t arc = dfs.processNextArc();
-        node_t source = NFA.source(arc);
-        if(NFA.id(source) == 0)
-        {
-            f << "\t • -> "
-        }
-        node_t target = NFA.target(arc);
-        if(nmap[target] == Match)
-        {
-            newline += "∆;\n";
-            continue;
-        }
-        f << itoa(nmap[target]) << " -> ";
+    std::vector<lemon::ListPath<nfa_t>> paths;
+    lemon::ListPath<nfa_t> currPath;
+    nfa_t::Node prevNode = NFA.nodeFromId(0);
 
+    while (!dfs.emptyQueue())
+    {
+        nfa_t::Arc arc = dfs.processNextArc();
+
+        if (NFA.source(arc) == prevNode)
+        {
+            currPath.addBack(arc);
+            prevNode = NFA.target(arc);
+        }
+        else
+        {
+            prevNode = NFA.target(arc);
+            currPath = {};
+            currPath.addBack(arc);
+        }
+        if (nmap[NFA.target(arc)] == Match)
+        {
+            paths.push_back(currPath);
+        }
     }
+
+    for (auto path : paths)
+    {
+        for (int i = 0; i < path.length(); i++)
+        {
+            std::cout << NFA.id(NFA.source(path.nth(i))) << " -> " << NFA.id(NFA.target(path.nth(i))) << ", ";
+        }
+        std::cout << std::endl;
+    }
+    
+    // dfs.addSource(start);
+    // while(!dfs.emptyQueue())
+    // {
+    //     arc_t arc = dfs.processNextArc();
+    //     node_t source = NFA.source(arc);
+    //     if(NFA.id(source) == 0)
+    //     {
+    //         f << "\t• -> ";
+    //     }
+    //     node_t target = NFA.target(arc);
+    //     if(nmap[target] == Match)
+    //     {
+    //         f <<  "∆;\n\t";
+    //         continue;
+    //     }
+    //     f << NFA.id(target) << " -> ";
+    // }
     f << "}";
     f.close();
 }
