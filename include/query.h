@@ -169,7 +169,7 @@ void run_collection(query_arguments &cmd_args, const bool &model, TetrexIndex<fl
         // print_kgraph_arcs(*NFA);
         // seqan3::debug_stream << std::endl;
 
-        // print_graph(*NFA, *nfa_map);
+        if(cmd_args.draw) print_graph(*NFA, *nfa_map);
 
         std::vector<int> top_rank_map = run_top_sort(*NFA);
         OTFCollector<flavor, mol_t> collector(std::move(NFA), std::move(nfa_map),

@@ -40,7 +40,8 @@ inline void initialise_index_parser(sharg::parser &parser, index_arguments &args
 struct query_arguments
 {
     uint8_t t = 1;
-    bool verbose = 0;
+    bool verbose = {false};
+    bool draw = {false};
     int text_length;
     std::filesystem::path idx{};
     std::string regex;
@@ -52,7 +53,8 @@ inline void initialise_query_parser(sharg::parser &parser, query_arguments &args
     parser.info.author = "Remy Schwab";
     parser.info.version = "1.0.0";
     parser.add_option(args.t, sharg::config{'t', "threads", "Number of threads"});
-    parser.add_option(args.verbose, sharg::config{'v', "verbose", "Log verbose output"});
+    parser.add_flag(args.draw, sharg::config{'d', "draw", "Write Graph Viz file to disk"});
+    parser.add_flag(args.verbose, sharg::config{'v', "verbose", "Log verbose output"});
     parser.add_positional_option(args.idx, sharg::config{.description="Path to IBF acid index"});
     parser.add_positional_option(args.regex, sharg::config{.description="Input Regex"});
 }

@@ -74,66 +74,43 @@ void print_graph(nfa_t &NFA, lmap_t &nmap)
 {
     std::fstream f;
     const std::string filename = "kgraph_visualizer.gv";
-    
-    // f.open(filename, std::ios::out);
-    // f << "digraph kGraph"<<"\n";
-    // f << "{"<<"\n";
-    // f << "\trankdir=\"LR\"\n";
-    
+    f.open(filename, std::ios::out);
+    f << "digraph kGraph\n{\n\tsize =\"10,10\";\n\trankdir=\"LR\";\n";
+    lemon::Bfs<nfa_t>  bfs(NFA);
+    bfs.run(NFA.nodeFromId(0));
+    for(nfa_t::NodeIt n(NFA); n != lemon::INVALID; ++n)
+    {
+        const int id = NFA.id(n);
+        if(id == 0)
+        {
+            f << "\t" << NFA.id(n) << " [style=filled fillcolor=black label=\"\"];\n";
+            continue;
+        }
+        if(nmap[n] == Split)
+        {
+            f << "\t" << NFA.id(n) << " [label=\"" << "Ø\"];\n";
+            continue;
+        }
+        if(nmap[n] == Ghost)
+        {
+            f << "\t" << NFA.id(n) << " [label=\"" << "•\"];\n";
+            continue;
+        }
+        if(nmap[n] == Match)
+        {
+            f << "\t" << NFA.id(n) << " [shape=doublecircle label=\"\"];\n";
+            continue;
+        }
+        f << "\t" << NFA.id(n) << " [label=\"" << (char)nmap[n] << "\"];\n";
+    }
     lemon::Dfs<nfa_t> dfs(NFA);
     dfs.init();
     dfs.addSource(NFA.nodeFromId(0));
-    std::vector<lemon::ListPath<nfa_t>> paths;
-    lemon::ListPath<nfa_t> currPath;
-    nfa_t::Node prevNode = NFA.nodeFromId(0);
-
     while (!dfs.emptyQueue())
     {
         nfa_t::Arc arc = dfs.processNextArc();
-
-        if (NFA.source(arc) == prevNode)
-        {
-            currPath.addBack(arc);
-            prevNode = NFA.target(arc);
-        }
-        else
-        {
-            prevNode = NFA.target(arc);
-            currPath = {};
-            currPath.addBack(arc);
-        }
-        if (nmap[NFA.target(arc)] == Match)
-        {
-            paths.push_back(currPath);
-        }
+        f << "\t" << NFA.id(NFA.source(arc)) << "->" << NFA.id(NFA.target(arc)) << ";" << std::endl;
     }
-
-    for (auto path : paths)
-    {
-        for (int i = 0; i < path.length(); i++)
-        {
-            std::cout << NFA.id(NFA.source(path.nth(i))) << " -> " << NFA.id(NFA.target(path.nth(i))) << ", ";
-        }
-        std::cout << std::endl;
-    }
-    
-    // dfs.addSource(start);
-    // while(!dfs.emptyQueue())
-    // {
-    //     arc_t arc = dfs.processNextArc();
-    //     node_t source = NFA.source(arc);
-    //     if(NFA.id(source) == 0)
-    //     {
-    //         f << "\t• -> ";
-    //     }
-    //     node_t target = NFA.target(arc);
-    //     if(nmap[target] == Match)
-    //     {
-    //         f <<  "∆;\n\t";
-    //         continue;
-    //     }
-    //     f << NFA.id(target) << " -> ";
-    // }
     f << "}";
     f.close();
 }
