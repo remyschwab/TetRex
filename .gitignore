@@ -32,4 +32,5 @@
 *.app
 
 
-/home/schwab/repos/kBioReg/data/mmseqs_uniprot
+data/
+build/
