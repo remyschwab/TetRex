@@ -75,7 +75,8 @@ void print_graph(nfa_t &NFA, lmap_t &nmap)
     std::fstream f;
     const std::string filename = "kgraph_visualizer.gv";
     f.open(filename, std::ios::out);
-    f << "digraph kGraph\n{\n\tsize =\"10,10\";\n\trankdir=\"LR\";\n";
+    f << "digraph kGraph\n{\n\trankdir=\"LR\";\n";
+    // Collect and style all the nodes
     lemon::Bfs<nfa_t>  bfs(NFA);
     bfs.run(NFA.nodeFromId(0));
     for(nfa_t::NodeIt n(NFA); n != lemon::INVALID; ++n)
@@ -83,7 +84,7 @@ void print_graph(nfa_t &NFA, lmap_t &nmap)
         const int id = NFA.id(n);
         if(id == 0)
         {
-            f << "\t" << NFA.id(n) << " [style=filled fillcolor=black label=\"\"];\n";
+            f << "\t" << NFA.id(n) << " [shape=point label=\"\"];\n";
             continue;
         }
         if(nmap[n] == Split)
@@ -93,7 +94,7 @@ void print_graph(nfa_t &NFA, lmap_t &nmap)
         }
         if(nmap[n] == Ghost)
         {
-            f << "\t" << NFA.id(n) << " [label=\"" << "•\"];\n";
+            f << "\t" << NFA.id(n) << " [label=\"•\"];\n";
             continue;
         }
         if(nmap[n] == Match)
@@ -103,6 +104,7 @@ void print_graph(nfa_t &NFA, lmap_t &nmap)
         }
         f << "\t" << NFA.id(n) << " [label=\"" << (char)nmap[n] << "\"];\n";
     }
+    // Traverse the Graph and get all the transitions
     lemon::Dfs<nfa_t> dfs(NFA);
     dfs.init();
     dfs.addSource(NFA.nodeFromId(0));
