@@ -31,6 +31,10 @@
 *.out
 *.app
 
+# Weird Cache File
+*.DS_Store
+*__pycache__
 
 data/
 build/
+.vscode/
