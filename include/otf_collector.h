@@ -117,6 +117,7 @@ class OTFCollector
 
     void absorb(uint64_t &subhash, CollectionUtils::CollectorsItem &item, int idx)
     {
+        // seqan3::debug_stream << "ABSORBING" << std::endl;
         comp_table_[idx][subhash].path_ |= item.path_;
     }
 

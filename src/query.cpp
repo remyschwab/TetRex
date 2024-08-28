@@ -44,6 +44,37 @@ double compute_knut_model(const size_t &query_length, const uint8_t &k, const in
 }
 
 
+std::vector<size_t> compute_set_bins(const bitvector &hits)
+{
+    std::vector<size_t> hit_vector;
+    size_t const words = seqan::hibf::divide_and_ceil(hits.size(), 64u);
+        uint64_t const * const bit_vector_ptr = hits.data();
+
+        // Jump to the next 1 and return the number of jumped bits in value.
+        auto jump_to_next_1bit = [](uint64_t & value)
+        {
+            auto const zeros = std::countr_zero(value);
+            value >>= zeros; // skip number of zeros
+            return zeros;
+        };
+
+        // Each iteration can handle 64 bits, i.e., one word.
+        for (size_t iteration = 0; iteration < words; ++iteration)
+        {
+            uint64_t current_word = bit_vector_ptr[iteration];
+
+            // For each set bit in the current word, add/subtract 1 to the corresponding bin.
+            for (size_t bin = iteration * 64u; current_word != 0u; ++bin, current_word >>= 1)
+            {
+                // Jump to the next 1
+                bin += jump_to_next_1bit(current_word);
+                hit_vector.push_back(bin);
+            }
+        }
+    return hit_vector;
+}
+
+
 void reduce_query_alphabet(std::string &regex, const std::array<char, 256> &reduction_map)
 {
     for(size_t i = 0; i < regex.length(); ++i)
