@@ -73,60 +73,47 @@ std::string complementBasesInRegex(const std::string &regex);
 
 bool validate_regex(const std::string &regex, uint8_t ksize);
 
-void reverse_verify_fasta_hit(const gzFile &fasta_handle, kseq_t *record, re2::RE2 &crx, std::string const &binid);
+void reverse_verify_fasta_hit(const gzFile &fasta_handle, re2::RE2 &crx, std::string const &binid);
 
-void verify_fasta_hit(const gzFile &fasta_handle, kseq_t *record, re2::RE2 &crx, std::string const &binid);
+void verify_fasta_hit(const gzFile &fasta_handle, const re2::RE2 &crx, std::string const &binid);
 
-void verify_aa_fasta_hit(const gzFile &fasta_handle, kseq_t *record, re2::RE2 &crx, std::string const &binid, const uint8_t &reduction, std::array<char, 256> residue_map);
+void verify_aa_fasta_hit(const gzFile &fasta_handle, const re2::RE2 &crx, std::string const &binid, const uint8_t &reduction, const std::array<char, 256> &residue_map);
 
 std::vector<size_t> compute_set_bins(const bitvector &hits);
 
 template<index_structure::is_valid flavor, molecules::is_dna mol_type>
-void iter_disk_search(const bitvector &hits, std::string &query, TetrexIndex<flavor, mol_type> &ibf)
+void iter_disk_search(const bitvector &hits, std::string &query, const TetrexIndex<flavor, mol_type> &ibf)
 {
     std::vector<size_t> bins = compute_set_bins(hits);
-    gzFile lib_path;
-    kseq_t *record;
-
     std::string forward_and_reverse = query;
     forward_and_reverse = "(" + forward_and_reverse + ")"; // Capture entire RegEx
 
     re2::RE2 compiled_regex(forward_and_reverse);
     assert(compiled_regex.ok());
-    omp_lock_t writelock;
-    omp_init_lock(&writelock);
     #pragma omp parallel for
     for(size_t hit: bins)
     {
-        lib_path = gzopen(ibf.acid_libs_[hit].c_str(), "r");
+        gzFile lib_path = gzopen(ibf.acid_libs_[hit].c_str(), "r");
         if(!lib_path)
         {
             throw std::runtime_error("File not found. Did you move/rename an indexed file?");
         }
-        omp_set_lock(&writelock);
-        verify_fasta_hit(lib_path, record, compiled_regex, ibf.acid_libs_[hit]);
-        omp_unset_lock(&writelock);
+        verify_fasta_hit(lib_path, compiled_regex, ibf.acid_libs_[hit]);
+        gzclose(lib_path);
     }
-    omp_destroy_lock(&writelock);
-    kseq_destroy(record);
-    gzclose(lib_path);
 }
 
 template<index_structure::is_valid flavor, molecules::is_peptide mol_type>
-void iter_disk_search(const bitvector &hits, std::string &query, TetrexIndex<flavor, mol_type> &ibf)
+void iter_disk_search(const bitvector &hits, std::string &query, const TetrexIndex<flavor, mol_type> &ibf)
 {
     std::vector<size_t> bins = compute_set_bins(hits);
-    gzFile lib_path;
-    kseq_t *record;
     query = "(" + query + ")"; // Capture entire RegEx
     re2::RE2 compiled_regex(query);
     assert(compiled_regex.ok());
-    omp_lock_t writelock;
-    omp_init_lock(&writelock);
     #pragma omp parallel for
     for(size_t hit: bins)
     {
-        lib_path = gzopen(ibf.acid_libs_[hit].c_str(), "r");
+        gzFile lib_path = gzopen(ibf.acid_libs_[hit].c_str(), "r");
         if(!lib_path)
         {
             seqan3::debug_stream << ibf.acid_libs_[hit].c_str() << std::endl;
@@ -134,16 +121,12 @@ void iter_disk_search(const bitvector &hits, std::string &query, TetrexIndex<fla
         }
         if(ibf.reduction_ > Base)
         {
-            verify_reduced_fasta_hit(lib_path, record, compiled_regex, ibf.acid_libs_[hit], ibf.reduction_, ibf.decomposer_.decomposer_.redmap_);
+            verify_reduced_fasta_hit(lib_path, compiled_regex, ibf.acid_libs_[hit], ibf.reduction_, ibf.decomposer_.decomposer_.redmap_);
             continue;
         }
-        omp_set_lock(&writelock);
-        verify_fasta_hit(lib_path, record, compiled_regex, ibf.acid_libs_[hit]);
-        omp_unset_lock(&writelock);
+        verify_fasta_hit(lib_path, compiled_regex, ibf.acid_libs_[hit]);
+        gzclose(lib_path);
     }
-    omp_destroy_lock(&writelock);
-    kseq_destroy(record);
-    gzclose(lib_path);
 }
 
 template<index_structure::is_valid flavor, molecules::is_molecule mol_t>
