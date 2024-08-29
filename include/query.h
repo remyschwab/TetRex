@@ -82,7 +82,7 @@ void verify_aa_fasta_hit(const gzFile &fasta_handle, const re2::RE2 &crx, std::s
 std::vector<size_t> compute_set_bins(const bitvector &hits);
 
 template<index_structure::is_valid flavor, molecules::is_dna mol_type>
-void iter_disk_search(const bitvector &hits, std::string &query, TetrexIndex<flavor, mol_type> &ibf)
+void iter_disk_search(const bitvector &hits, std::string &query, const TetrexIndex<flavor, mol_type> &ibf)
 {
     std::vector<size_t> bins = compute_set_bins(hits);
     std::string forward_and_reverse = query;
@@ -104,7 +104,7 @@ void iter_disk_search(const bitvector &hits, std::string &query, TetrexIndex<fla
 }
 
 template<index_structure::is_valid flavor, molecules::is_peptide mol_type>
-void iter_disk_search(const bitvector &hits, std::string &query, TetrexIndex<flavor, mol_type> &ibf)
+void iter_disk_search(const bitvector &hits, std::string &query, const TetrexIndex<flavor, mol_type> &ibf)
 {
     std::vector<size_t> bins = compute_set_bins(hits);
     query = "(" + query + ")"; // Capture entire RegEx
