@@ -96,7 +96,7 @@ bool validate_regex(const std::string &regex, uint8_t ksize)
     return dot_count >= ksize ? true : false;
 }
 
-void reverse_verify_fasta_hit(const gzFile &fasta_handle, re2::RE2 &crx, std::string const &binid)
+void reverse_verify_fasta_hit(const gzFile &fasta_handle, const re2::RE2 &crx, std::string const &binid)
 {
     int status;
     std::string match;
@@ -122,7 +122,7 @@ void reverse_verify_fasta_hit(const gzFile &fasta_handle, re2::RE2 &crx, std::st
     kseq_destroy(record);
 }
 
-void verify_fasta_hit(const gzFile &fasta_handle, re2::RE2 &crx, std::string const &binid)
+void verify_fasta_hit(const gzFile &fasta_handle, const re2::RE2 &crx, std::string const &binid)
 {
     int status;
     std::string match;
@@ -174,7 +174,7 @@ void verify_fasta_hit(const gzFile &fasta_handle, re2::RE2 &crx, std::string con
 // }
 
 
-void verify_reduced_fasta_hit(const gzFile &fasta_handle, re2::RE2 &crx, std::string const &binid, const uint8_t &reduction, std::array<char, 256> residue_map)
+void verify_reduced_fasta_hit(const gzFile &fasta_handle, const re2::RE2 &crx, std::string const &binid, const uint8_t &reduction, const std::array<char, 256> &residue_map)
 {
     int status;
     size_t startpos;

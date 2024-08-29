@@ -75,9 +75,9 @@ bool validate_regex(const std::string &regex, uint8_t ksize);
 
 void reverse_verify_fasta_hit(const gzFile &fasta_handle, re2::RE2 &crx, std::string const &binid);
 
-void verify_fasta_hit(const gzFile &fasta_handle, re2::RE2 &crx, std::string const &binid);
+void verify_fasta_hit(const gzFile &fasta_handle, const re2::RE2 &crx, std::string const &binid);
 
-void verify_aa_fasta_hit(const gzFile &fasta_handle, re2::RE2 &crx, std::string const &binid, const uint8_t &reduction, std::array<char, 256> residue_map);
+void verify_aa_fasta_hit(const gzFile &fasta_handle, const re2::RE2 &crx, std::string const &binid, const uint8_t &reduction, const std::array<char, 256> &residue_map);
 
 std::vector<size_t> compute_set_bins(const bitvector &hits);
 
@@ -90,8 +90,6 @@ void iter_disk_search(const bitvector &hits, std::string &query, TetrexIndex<fla
 
     re2::RE2 compiled_regex(forward_and_reverse);
     assert(compiled_regex.ok());
-    omp_lock_t writelock;
-    omp_init_lock(&writelock);
     #pragma omp parallel for
     for(size_t hit: bins)
     {
@@ -100,12 +98,9 @@ void iter_disk_search(const bitvector &hits, std::string &query, TetrexIndex<fla
         {
             throw std::runtime_error("File not found. Did you move/rename an indexed file?");
         }
-        omp_set_lock(&writelock);
         verify_fasta_hit(lib_path, compiled_regex, ibf.acid_libs_[hit]);
-        omp_unset_lock(&writelock);
         gzclose(lib_path);
     }
-    omp_destroy_lock(&writelock);
 }
 
 template<index_structure::is_valid flavor, molecules::is_peptide mol_type>
@@ -115,8 +110,6 @@ void iter_disk_search(const bitvector &hits, std::string &query, TetrexIndex<fla
     query = "(" + query + ")"; // Capture entire RegEx
     re2::RE2 compiled_regex(query);
     assert(compiled_regex.ok());
-    omp_lock_t writelock;
-    omp_init_lock(&writelock);
     #pragma omp parallel for
     for(size_t hit: bins)
     {
@@ -131,12 +124,9 @@ void iter_disk_search(const bitvector &hits, std::string &query, TetrexIndex<fla
             verify_reduced_fasta_hit(lib_path, compiled_regex, ibf.acid_libs_[hit], ibf.reduction_, ibf.decomposer_.decomposer_.redmap_);
             continue;
         }
-        omp_set_lock(&writelock);
         verify_fasta_hit(lib_path, compiled_regex, ibf.acid_libs_[hit]);
-        omp_unset_lock(&writelock);
         gzclose(lib_path);
     }
-    omp_destroy_lock(&writelock);
 }
 
 template<index_structure::is_valid flavor, molecules::is_molecule mol_t>
