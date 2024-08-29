@@ -6,6 +6,7 @@
 
 #include <re2/re2.h>
 #include <omp.h>
+#include "libfork/core.hpp"
 
 #include "kseq.h"
 #include "utils.h"

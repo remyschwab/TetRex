@@ -37,6 +37,9 @@ add_subdirectory(lib/hibf)
 # Dependency: Sharg-Parser
 find_package(sharg REQUIRED HINTS lib/sharg-parser/build_system)
 
+# Dependency: Libfork
+add_subdirectory(lib/libfork)
+
 # Allow to include CMake scripts from seqan3.
 list (APPEND CMAKE_MODULE_PATH "${SEQAN3_CLONE_DIR}/test/cmake/")
 
