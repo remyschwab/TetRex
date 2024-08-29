@@ -96,11 +96,11 @@ bool validate_regex(const std::string &regex, uint8_t ksize)
     return dot_count >= ksize ? true : false;
 }
 
-void reverse_verify_fasta_hit(const gzFile &fasta_handle, kseq_t *record, re2::RE2 &crx, std::string const &binid)
+void reverse_verify_fasta_hit(const gzFile &fasta_handle, re2::RE2 &crx, std::string const &binid)
 {
     int status;
     std::string match;
-    record = kseq_init(fasta_handle);
+    kseq_t* record = kseq_init(fasta_handle);
     while((status = kseq_read(record)) >= 0)
     {
         int c0, c1;
@@ -119,13 +119,14 @@ void reverse_verify_fasta_hit(const gzFile &fasta_handle, kseq_t *record, re2::R
             std::cout << binid << "\t>" << record->name.s << "\t" << match << "\t" << "REVERSE STRAND HIT" << std::endl;
         }
     }
+    kseq_destroy(record);
 }
 
-void verify_fasta_hit(const gzFile &fasta_handle, kseq_t *record, re2::RE2 &crx, std::string const &binid)
+void verify_fasta_hit(const gzFile &fasta_handle, re2::RE2 &crx, std::string const &binid)
 {
     int status;
     std::string match;
-    record = kseq_init(fasta_handle);
+    kseq_t* record = kseq_init(fasta_handle);
     while((status = kseq_read(record)) >= 0)
     {
         re2::StringPiece bin_content(record->seq.s);
@@ -134,6 +135,7 @@ void verify_fasta_hit(const gzFile &fasta_handle, kseq_t *record, re2::RE2 &crx,
             std::cout << binid << "\t>" << record->name.s << "\t" << match << std::endl;
         }
     }
+    kseq_destroy(record);
 }
 
 // void verify_aa_fasta_hit(const gzFile &fasta_handle, kseq_t *record, re2::RE2 &crx, std::string const &binid, const uint8_t &reduction, std::array<char, 256> residue_map)
@@ -172,14 +174,14 @@ void verify_fasta_hit(const gzFile &fasta_handle, kseq_t *record, re2::RE2 &crx,
 // }
 
 
-void verify_reduced_fasta_hit(const gzFile &fasta_handle, kseq_t *record, re2::RE2 &crx, std::string const &binid, const uint8_t &reduction, std::array<char, 256> residue_map)
+void verify_reduced_fasta_hit(const gzFile &fasta_handle, re2::RE2 &crx, std::string const &binid, const uint8_t &reduction, std::array<char, 256> residue_map)
 {
     int status;
     size_t startpos;
     size_t endpos;
     re2::StringPiece match;
     std::string seq_copy;
-    record = kseq_init(fasta_handle);
+    kseq_t* record = kseq_init(fasta_handle);
     while((status = kseq_read(record)) >= 0)
     {
         startpos = 0;
@@ -202,6 +204,7 @@ void verify_reduced_fasta_hit(const gzFile &fasta_handle, kseq_t *record, re2::R
             startpos++;
         }
     }
+    kseq_destroy(record);
 }
 
 
