@@ -74,7 +74,7 @@ std::string complementBasesInRegex(const std::string &regex);
 
 bool validate_regex(const std::string &regex, uint8_t ksize);
 
-void reverse_verify_fasta_hit(const gzFile &fasta_handle, re2::RE2 &crx, std::string const &binid);
+void reverse_verify_fasta_hit(const gzFile &fasta_handle, const re2::RE2 &crx, std::string const &binid);
 
 void verify_fasta_hit(const gzFile &fasta_handle, const re2::RE2 &crx, std::string const &binid);
 
@@ -100,7 +100,7 @@ void iter_disk_search(const bitvector &hits, std::string &query, const TetrexInd
             throw std::runtime_error("File not found. Did you move/rename an indexed file?");
         }
         verify_fasta_hit(lib_path, compiled_regex, ibf.acid_libs_[hit]);
-        lib_path = gzopen(ibf.acid_libs_[i].c_str(), "r");
+	lib_path = gzopen(ibf.acid_libs_[hit].c_str(), "r");
         reverse_verify_fasta_hit(lib_path, compiled_regex, ibf.acid_libs_[hit]);
         gzclose(lib_path);
     }
