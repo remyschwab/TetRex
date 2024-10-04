@@ -3,7 +3,7 @@
 //
 
 #pragma once
-
+#include <syncstream>
 #include <re2/re2.h>
 #include <omp.h>
 #include "libfork/core.hpp"
@@ -100,6 +100,8 @@ void iter_disk_search(const bitvector &hits, std::string &query, const TetrexInd
             throw std::runtime_error("File not found. Did you move/rename an indexed file?");
         }
         verify_fasta_hit(lib_path, compiled_regex, ibf.acid_libs_[hit]);
+        lib_path = gzopen(ibf.acid_libs_[i].c_str(), "r");
+        reverse_verify_fasta_hit(lib_path, compiled_regex, ibf.acid_libs_[hit]);
         gzclose(lib_path);
     }
 }

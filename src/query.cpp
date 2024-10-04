@@ -116,7 +116,7 @@ void reverse_verify_fasta_hit(const gzFile &fasta_handle, const re2::RE2 &crx, s
         re2::StringPiece bin_content(record->seq.s);
         while (RE2::FindAndConsume(&bin_content, crx, &match))
         {
-            std::cout << binid << "\t>" << record->name.s << "\t" << match << "\t" << "REVERSE STRAND HIT" << std::endl;
+            std::osyncstream(std::cout) << binid << "\t>" << record->name.s << "\t" << match << "\t" << "REVERSE STRAND HIT" << std::endl;
         }
     }
     kseq_destroy(record);
@@ -132,7 +132,7 @@ void verify_fasta_hit(const gzFile &fasta_handle, const re2::RE2 &crx, std::stri
         re2::StringPiece bin_content(record->seq.s);
         while (RE2::FindAndConsume(&bin_content, crx, &match))
         {
-            std::cout << binid << "\t>" << record->name.s << "\t" << match << std::endl;
+            std::osyncstream(std::cout) << binid << "\t>" << record->name.s << "\t" << match << std::endl;
         }
     }
     kseq_destroy(record);
@@ -197,7 +197,7 @@ void verify_reduced_fasta_hit(const gzFile &fasta_handle, const re2::RE2 &crx, s
         {
             if(crx.Match(bin_content, startpos, bin_content.size(), RE2::UNANCHORED, &match, 1))
             {
-                std::cout << binid << "\t>" << record->name.s << "\t" << seq_copy.substr(startpos, match.size()) << std::endl;
+                std::osyncstream(std::cout) << binid << "\t>" << record->name.s << "\t" << seq_copy.substr(startpos, match.size()) << std::endl;
                 startpos += match.size();
                 continue;
             }
