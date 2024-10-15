@@ -1,7 +1,7 @@
 [submodule "seqan3"]
 	path = lib/seqan3
 	url = https://github.com/seqan/seqan3.git
-	branch = master
+	branch = main
 [submodule "robin-hood-hashing"]
 	path = lib/robin-hood-hashing
 	url = https://github.com/martinus/robin-hood-hashing
