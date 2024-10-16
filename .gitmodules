@@ -1,7 +1,3 @@
-[submodule "seqan3"]
-	path = lib/seqan3
-	url = https://github.com/seqan/seqan3.git
-	branch = main
 [submodule "robin-hood-hashing"]
 	path = lib/robin-hood-hashing
 	url = https://github.com/martinus/robin-hood-hashing
@@ -22,6 +18,3 @@
 [submodule "lib/sharg-parser"]
 	path = lib/sharg-parser
 	url = git@github.com:seqan/sharg-parser.git
-[submodule "lib/libfork"]
-	path = lib/libfork
-	url = git@github.com:ConorWilliams/libfork.git

@@ -25,7 +25,7 @@ set (FontBold "${Esc}[1m")
 set (FontReset "${Esc}[m")
 
 # Dependency: SeqAn3.
-find_package (SeqAn3 QUIET REQUIRED HINTS lib/seqan3/build_system)
+# find_package (SeqAn3 QUIET REQUIRED HINTS lib/seqan3/build_system)
 
 # Dependency: re2
 option(RE2_BUILD_TESTING OFF)
@@ -38,14 +38,14 @@ add_subdirectory(lib/hibf)
 find_package(sharg REQUIRED HINTS lib/sharg-parser/build_system)
 
 # Dependency: Libfork
-add_subdirectory(lib/libfork)
+# add_subdirectory(lib/libfork)
 
 # Allow to include CMake scripts from seqan3.
-list (APPEND CMAKE_MODULE_PATH "${SEQAN3_CLONE_DIR}/test/cmake/")
+# list (APPEND CMAKE_MODULE_PATH "${SEQAN3_CLONE_DIR}/test/cmake/")
 
 # Use ccache.
-include (seqan3_require_ccache)
-seqan3_require_ccache ()
+# include (seqan3_require_ccache)
+# seqan3_require_ccache ()
 
 # Add the application.
 add_subdirectory (src)

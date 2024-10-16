@@ -92,7 +92,7 @@ public:
                 std::string_view record_view = record->seq.s;
                 if(record_view.length() < ksize)
                 {
-                    seqan3::debug_stream << "RECORD TOO SHORT " << record->comment.s << std::endl;
+                    std::cerr << "RECORD TOO SHORT " << record->comment.s << std::endl;
                     continue;
                 }
                 seq_count++;
@@ -101,7 +101,7 @@ public:
             kseq_destroy(record);
             gzclose(handle);
         }
-        seqan3::debug_stream << "Indexed " << seq_count << " sequences across " << bin_count_ << " bins." << std::endl;
+        std::cerr << "Indexed " << seq_count << " sequences across " << bin_count_ << " bins." << std::endl;
     }
 
     void spawn_agent()

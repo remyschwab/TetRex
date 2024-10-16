@@ -119,7 +119,7 @@ void iter_disk_search(const bitvector &hits, std::string &query, const TetrexInd
         gzFile lib_path = gzopen(ibf.acid_libs_[hit].c_str(), "r");
         if(!lib_path)
         {
-            seqan3::debug_stream << ibf.acid_libs_[hit].c_str() << std::endl;
+            std::cerr << ibf.acid_libs_[hit].c_str() << std::endl;
             throw std::runtime_error("File not found. Did you move/rename an indexed file?");
         }
         if(ibf.reduction_ > Base)
@@ -173,11 +173,11 @@ void run_collection(query_arguments &cmd_args, const bool &model, TetrexIndex<fl
                                             ibf,
                                             std::move(top_rank_map), std::move(arc_map));   
         hit_vector = collector.collect();
-        if(cmd_args.verbose) seqan3::debug_stream << "Narrowed Search to " << collector.sumBitvector(hit_vector) << " possible bins" << std::endl;
+        if(cmd_args.verbose) std::cerr << "Narrowed Search to " << collector.sumBitvector(hit_vector) << " possible bins" << std::endl;
     }
     else // if the RegEx is shorter than the index kmer size, then prompt user and trigger linear search
     {
-        seqan3::debug_stream << "RegEx is too short to use index. Performing linear scan over whole database" << std::endl;
+        std::cerr << "RegEx is too short to use index. Performing linear scan over whole database" << std::endl;
     }
     if(!hit_vector.none())
     {
@@ -192,5 +192,5 @@ void run_collection(query_arguments &cmd_args, const bool &model, TetrexIndex<fl
         
     }
     t2 = omp_get_wtime();
-    seqan3::debug_stream << "Query Time: " << (t2-t1) << std::endl;
+    std::cerr << "Query Time: " << (t2-t1) << std::endl;
 }

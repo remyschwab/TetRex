@@ -27,10 +27,10 @@ void create_ibf_dna_index(const index_arguments &cmd_args, const std::vector<std
     std::string molecule = cmd_args.molecule;
     TetrexIndex<index_structure::IBF, molecules::nucleotide> ibf(cmd_args.k, cmd_args.bin_size, cmd_args.hash_count, molecule, std::move(input_bin_files), reduction);
     ibf.populate_index();
-    seqan3::debug_stream << "Writing to disk... ";
+    std::cerr << "Writing to disk... ";
     std::filesystem::path output_path{cmd_args.ofile+".ibf"};
     store_ibf(ibf, output_path);
-    seqan3::debug_stream << "DONE" << std::endl;
+    std::cerr << "DONE" << std::endl;
 }
 
 
@@ -39,10 +39,10 @@ void create_hibf_dna_index(const index_arguments &cmd_args, const std::vector<st
     std::string molecule = cmd_args.molecule;
     TetrexIndex<index_structure::HIBF, molecules::nucleotide> ibf(cmd_args.k, cmd_args.fpr, cmd_args.hash_count, molecule, input_bin_files, reduction);
     ibf.populate_index();
-    seqan3::debug_stream << "Writing to disk... ";
+    std::cerr << "Writing to disk... ";
     std::filesystem::path output_path{cmd_args.ofile+".ibf"};
     store_ibf(ibf, output_path);
-    seqan3::debug_stream << "DONE" << std::endl;
+    std::cerr << "DONE" << std::endl;
 }
 
 
@@ -51,10 +51,10 @@ void create_ibf_aa_index(const index_arguments &cmd_args, const std::vector<std:
     std::string molecule = cmd_args.molecule;
     TetrexIndex<index_structure::IBF, molecules::peptide> ibf(cmd_args.k, cmd_args.bin_size, cmd_args.hash_count, molecule, input_bin_files, reduction);
     ibf.populate_index();
-    seqan3::debug_stream << "Writing to disk... ";
+    std::cerr << "Writing to disk... ";
     std::filesystem::path output_path{cmd_args.ofile+".ibf"};
     store_ibf(ibf, output_path);
-    seqan3::debug_stream << "DONE" << std::endl;
+    std::cerr << "DONE" << std::endl;
 }
 
 
@@ -63,10 +63,10 @@ void create_hibf_aa_index(const index_arguments &cmd_args, const std::vector<std
     std::string molecule = cmd_args.molecule;
     TetrexIndex<index_structure::HIBF, molecules::peptide> ibf(cmd_args.k, cmd_args.fpr, cmd_args.hash_count, molecule, input_bin_files, reduction);
     ibf.populate_index();
-    seqan3::debug_stream << "Writing to disk... ";
+    std::cerr << "Writing to disk... ";
     std::filesystem::path output_path{cmd_args.ofile+".ibf"};
     store_ibf(ibf, output_path);
-    seqan3::debug_stream << "DONE" << std::endl;
+    std::cerr << "DONE" << std::endl;
 }
 
 

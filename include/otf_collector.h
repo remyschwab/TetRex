@@ -98,7 +98,7 @@ class OTFCollector
 
     void print_ranks() const
     {
-        seqan3::debug_stream << rank_map_ << std::endl;
+        // std::cerr << rank_map_ << std::endl;
     }
 
     void push(CollectionUtils::CollectorsItem &item)

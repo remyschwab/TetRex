@@ -19,12 +19,12 @@ void run_index(sharg::parser &parser)
     }
     catch (sharg::parser_error const & ext)
     {
-        seqan3::debug_stream << "[Indexing Parser Error] " << ext.what() << "\n";
+        std::cerr << "[Indexing Parser Error] " << ext.what() << "\n";
         return;
     }
     if(cmd_args.molecule == "aa" && cmd_args.k > 12)
     {
-        seqan3::debug_stream << "[Indexing Parser Error] Max kmer size for amino acids is 12" << "\n";
+        std::cerr << "[Indexing Parser Error] Max kmer size for amino acids is 12" << "\n";
         return;
     }
     drive_index(cmd_args);
@@ -41,7 +41,7 @@ void run_query(sharg::parser &parser)
     }
     catch (sharg::parser_error const & ext)
     {
-        seqan3::debug_stream << "[Error TetRex Query module " << ext.what() << "\n";
+        std::cerr << "[Error TetRex Query module " << ext.what() << "\n";
         return;
     }
     drive_query(cmd_args, false);
@@ -58,7 +58,7 @@ void run_inspection(sharg::parser &parser)
     }
     catch (sharg::parser_error const & ext)
     {
-        seqan3::debug_stream << "[Error TetRex Index Inspection module " << ext.what() << "\n";
+        std::cerr << "[Error TetRex Index Inspection module " << ext.what() << "\n";
         return;
     }
     drive_inspection(cmd_args);
@@ -75,7 +75,7 @@ void run_model(sharg::parser &parser)
     }
     catch (sharg::parser_error const & ext)
     {
-        seqan3::debug_stream << "[Error TetRex Discovery Modeling module " << ext.what() << "\n";
+        std::cerr << "[Error TetRex Discovery Modeling module " << ext.what() << "\n";
         return;
     }
     drive_query(cmd_args, true);
@@ -93,7 +93,7 @@ int main(int argc, char *argv[])
     }
     catch (sharg::parser_error const & ext) // catch user errors
     {
-        seqan3::debug_stream << "[Error] " << ext.what() << "\n"; // customise your error message
+        std::cerr << "[Error] " << ext.what() << "\n"; // customise your error message
         return -1;
     }
 
