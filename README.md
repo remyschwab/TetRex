@@ -13,8 +13,24 @@ Despite the efficiency of modern day tools for Regular Expression search, their 
 ```git clone --recurse-submodules git@github.com:remyschwab/TetRex.git```
 2. Descend into the home directory and input:
 ```mkdir build && cd build```
-3. Configure with cmake ```cmake -DCMAKE_CXX_COMPILER=/path/to/g++-11 ..```
+3. Configure with cmake ```cmake -DCMAKE_CXX_COMPILER=/path/to/g++-14 ..```
 4. Build with make ```make```
+
+Unforunately, with the latest updates to macOS, configuration with cmake may produce the following error:
+
+```shell
+CMake Error at lib/seqan3/build_system/seqan3-config.cmake:106 (message):
+  The SDSL library is required, but wasn't found.  Get it from
+  https://github.com/xxsds/sdsl-lite
+Call Stack (most recent call first):
+  lib/seqan3/build_system/seqan3-config.cmake:266 (seqan3_config_error)
+  CMakeLists.txt:28 (find_package)
+```
+
+As a temporary solution we recommend setting the SDKROOT environment variable via:
+```shell
+export SDKROOT="$(g++-11 -v 2>&1 | sed -n 's@.*--with-sysroot=\([^ ]*\).*@\1@p')"
+```
 
 ## Usage
 Tetrix offers two main commands [index & query] and one utility command [inspect]:
