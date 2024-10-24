@@ -151,12 +151,12 @@ void verify_fasta_set(const gzFile &fasta_handle, const RE2::Set &reg_set, std::
         if (!reg_set.Match(record->seq.s, &matching_rules)) continue;
         if(matching_rules.size() == count)
         {
-            std::osyncstream(std::cout) << binid << "\t>" << record->name.s << "\t";
+            std::osyncstream(std::cout) << binid << "\t>" << record->name.s << "\tN --> ";
             for(auto rule_index: matching_rules)
             {
-                std::osyncstream(std::cout) << queries[rule_index] << "\t";
+                std::osyncstream(std::cout) << queries[rule_index] << " --> ";
             }
-            std::osyncstream(std::cout) << std::endl;
+            std::osyncstream(std::cout) << "C" << std::endl;
         }
     }
     kseq_destroy(record);
