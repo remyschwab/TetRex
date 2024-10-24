@@ -5,6 +5,7 @@
 #pragma once
 #include <syncstream>
 #include <re2/re2.h>
+#include <re2/set.h>
 #include <omp.h>
 
 #include "kseq.h"
@@ -79,6 +80,8 @@ void verify_fasta_hit(const gzFile &fasta_handle, const re2::RE2 &crx, std::stri
 
 void verify_aa_fasta_hit(const gzFile &fasta_handle, const re2::RE2 &crx, std::string const &binid, const uint8_t &reduction, const std::array<char, 256> &residue_map);
 
+void verify_fasta_set(const gzFile &fasta_handle, const RE2::Set &reg_set, std::string const &binid, const std::vector<std::string> &queries);
+
 std::vector<size_t> compute_set_bins(const bitvector &hits);
 
 template<index_structure::is_valid flavor, molecules::is_dna mol_type>
@@ -131,64 +134,118 @@ void iter_disk_search(const bitvector &hits, std::string &query, const TetrexInd
     }
 }
 
-template<index_structure::is_valid flavor, molecules::is_molecule mol_t>
-void run_collection(query_arguments &cmd_args, const bool &model, TetrexIndex<flavor, mol_t> &ibf)
+
+template<index_structure::is_valid flavor, molecules::is_molecule mol_type>
+void iter_disk_search_set(const bitvector &hits, const std::vector<std::string> &queries, const TetrexIndex<flavor, mol_type> &ibf)
 {
-    double t1, t2;
-    t1 = omp_get_wtime();
-    std::string &rx = cmd_args.regex;
-    std::string &query = cmd_args.query;
+    std::vector<size_t> bins = compute_set_bins(hits);
+    RE2::Set regex_set(RE2::DefaultOptions, RE2::UNANCHORED);
+    std::string err;
+    for(auto query: queries)
+    {
+        query = "(" + query + ")"; // Capture entire RegEx
+        int index = regex_set.Add(query, &err);
+        if (index < 0)
+        {
+            seqan3::debug_stream << "Failed to add RegEx" << std::endl;
+            return;
+        }
+    }
+    if (!regex_set.Compile())
+    {
+        seqan3::debug_stream << "Failed to Compile RegEx" << std::endl;
+        return;
+    }
+    #pragma omp parallel for
+    for(size_t hit: bins)
+    {
+        gzFile lib_path = gzopen(ibf.acid_libs_[hit].c_str(), "r");
+        if(!lib_path)
+        {
+            seqan3::debug_stream << ibf.acid_libs_[hit].c_str() << std::endl;
+            throw std::runtime_error("File not found. Did you move/rename an indexed file?");
+        }
+        verify_fasta_set(lib_path, regex_set, ibf.acid_libs_[hit], queries);
+        gzclose(lib_path);
+    }
+}
+
+
+template<index_structure::is_valid flavor, molecules::is_molecule mol_t>
+bitvector process_query(const std::string &regex, TetrexIndex<flavor, mol_t> &ibf)
+{
+    std::string rx = regex;
+    std::string query;
     preprocess_query(rx, query, ibf);
     bool valid = validate_regex(query, ibf.k_);
-    // seqan3::debug_stream << query << std::endl;
     bitvector hit_vector(ibf.getBinCount(), true);
-
     if(valid)
     {
         std::unique_ptr<nfa_t> NFA = std::make_unique<nfa_t>();
         std::unique_ptr<lmap_t> nfa_map =  std::make_unique<lmap_t>(*NFA);
         amap_t arc_map;
+        
         if(ibf.reduction_ == Base)
         {
-            construct_kgraph(cmd_args.query, *NFA, *nfa_map, arc_map, ibf.k_);
+            construct_kgraph(query, *NFA, *nfa_map, arc_map, ibf.k_);
         }
         else
         {
-            construct_reduced_kgraph(cmd_args.query, *NFA, *nfa_map, arc_map, ibf.k_);
+            construct_reduced_kgraph(query, *NFA, *nfa_map, arc_map, ibf.k_);
         }
-        // seqan3::debug_stream << std::endl << NFA->nodeNum() << std::endl << std::endl;
 
-        // print_node_ids(*NFA, *nfa_map);
-        // seqan3::debug_stream << std::endl;
-        // print_node_pointers(arc_map, *NFA);
-        // seqan3::debug_stream << std::endl;
-        // print_kgraph_arcs(*NFA);
-        // seqan3::debug_stream << std::endl;
-
-        if(cmd_args.draw) print_graph(*NFA, *nfa_map);
+        // if(cmd_args.draw) print_graph(*NFA, *nfa_map);
 
         std::vector<int> top_rank_map = run_top_sort(*NFA);
         OTFCollector<flavor, mol_t> collector(std::move(NFA), std::move(nfa_map),
                                             ibf,
                                             std::move(top_rank_map), std::move(arc_map));   
         hit_vector = collector.collect();
-        if(cmd_args.verbose) seqan3::debug_stream << "Narrowed Search to " << collector.sumBitvector(hit_vector) << " possible bins" << std::endl;
     }
     else // if the RegEx is shorter than the index kmer size, then prompt user and trigger linear search
     {
         seqan3::debug_stream << "RegEx is too short to use index. Performing linear scan over whole database" << std::endl;
     }
+    return hit_vector;
+}
+
+template<index_structure::is_valid flavor, molecules::is_molecule mol_t>
+void run_collection(query_arguments &cmd_args, const bool &model, TetrexIndex<flavor, mol_t> &ibf)
+{
+    double t1, t2;
+    std::string &rx = cmd_args.regex;
+    std::vector<std::string> &queries = cmd_args.query_lst;
+    t1 = omp_get_wtime();
+    bitvector hit_vector(ibf.getBinCount(), true);
+    for(auto regex: queries)
+        hit_vector &= process_query(regex, ibf);
+
+    if(cmd_args.verbose) seqan3::debug_stream << "Narrowed Search to " << OTFCollector<flavor, mol_t>::sumBitVector(hit_vector) << " possible bins" << std::endl;
+    
     if(!hit_vector.none())
     {
-        try
+        if(queries.size() == 1)
         {
-            iter_disk_search(hit_vector, rx, ibf);
+            try
+            {
+                iter_disk_search(hit_vector, queries[0], ibf);
+            }
+            catch(const std::exception& e)
+            {
+                std::cerr << e.what() << '\n';
+            }
         }
-        catch(const std::exception& e)
+        else
         {
-            std::cerr << e.what() << '\n';
+            try
+            {
+                iter_disk_search_set(hit_vector, queries, ibf);
+            }
+            catch(const std::exception& e)
+            {
+                std::cerr << e.what() << '\n';
+            }
         }
-        
     }
     t2 = omp_get_wtime();
     seqan3::debug_stream << "Query Time: " << (t2-t1) << std::endl;

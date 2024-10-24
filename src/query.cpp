@@ -96,6 +96,7 @@ bool validate_regex(const std::string &regex, uint8_t ksize)
     return dot_count >= ksize ? true : false;
 }
 
+
 void reverse_verify_fasta_hit(const gzFile &fasta_handle, const re2::RE2 &crx, std::string const &binid)
 {
     int status;
@@ -133,6 +134,29 @@ void verify_fasta_hit(const gzFile &fasta_handle, const re2::RE2 &crx, std::stri
         while (RE2::FindAndConsume(&bin_content, crx, &match))
         {
             std::osyncstream(std::cout) << binid << "\t>" << record->name.s << "\t" << match << std::endl;
+        }
+    }
+    kseq_destroy(record);
+}
+
+void verify_fasta_set(const gzFile &fasta_handle, const RE2::Set &reg_set, std::string const &binid, const std::vector<std::string> &queries)
+{
+    int status;
+    std::string match;
+    kseq_t* record = kseq_init(fasta_handle);
+    uint8_t count = queries.size();
+    while((status = kseq_read(record)) >= 0)
+    {
+        std::vector<int> matching_rules;
+        if (!reg_set.Match(record->seq.s, &matching_rules)) continue;
+        if(matching_rules.size() == count)
+        {
+            std::osyncstream(std::cout) << binid << "\t>" << record->name.s << "\t";
+            for(auto rule_index: matching_rules)
+            {
+                std::osyncstream(std::cout) << queries[rule_index] << "\t";
+            }
+            std::osyncstream(std::cout) << std::endl;
         }
     }
     kseq_destroy(record);
