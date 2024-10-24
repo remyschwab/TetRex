@@ -170,7 +170,7 @@ class OTFCollector
         push(item2);
     }
 
-    int sumBitvector(bitvector const &bits)
+    static int sumBitVector(bitvector const &bits)
     {
         int sum = 0;
         for(bool bit : bits)
