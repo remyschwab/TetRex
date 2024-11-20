@@ -15,6 +15,7 @@ Despite the efficiency of modern day tools for Regular Expression search, their 
 ```mkdir build && cd build```
 3. Configure with cmake ```cmake -DCMAKE_CXX_COMPILER=/path/to/g++-14 ..```
 4. Build with make ```make```
+5. We recommend you add the ```tetrex``` binary to a location on your PATH ie ```/usr/local/bin```
 
 Unforunately, with the latest updates to macOS, configuration with cmake may produce the following error:
 
@@ -33,8 +34,9 @@ export SDKROOT="$(g++-11 -v 2>&1 | sed -n 's@.*--with-sysroot=\([^ ]*\).*@\1@p')
 ```
 
 ## Usage
+### A Small Example
 Tetrix offers two main commands [index & query] and one utility command [inspect]:
-```bash
+```shell
 ## Construct an HIBF index of nucleic acids, with kmer size = 3, 3 hash functions, & a FPR of 0.05, each input file represents a bin
 tetrex index -m na -k 3 -o test data/dna_example_split/*.fa
 ## Query RegEx
@@ -60,6 +62,55 @@ tetrex inspect test.ibf
 #         - /Users/rschwab/repos/TetRex/./data/dna_example_split/sequence4.fa
 #         - /Users/rschwab/repos/TetRex/./data/dna_example_split/sequence5.fa
 # DONE
+```
+
+### Indexing & Searching the Swissprot Database
+The workflow to download, split, index, and query the Swissprot DB from Uniprot
+```shell
+## Retrieve the Peptide Sequence Library
+wget https://ftp.uniprot.org/pub/databases/uniprot/current_release/knowledgebase/complete/uniprot_sprot.fasta.gz
+
+## Make a directory to store bins
+mkdir sprot_bins && cd sprot_bins
+
+## Split the Swissprot FASTA Library into equal sized bins
+split -d -a 4 -n 1024 ../uniprot_sprot.fasta swissprot_bin_
+
+## Give each file the proper extension
+for file in ./*;do mv $file "$file".fa;done
+
+## Create an HIBF index over the DB
+cd ..
+tetrex index -k 6 -o sprot_split -i hibf -m aa swissprot_split/*.fa
+
+## Query a domain
+tetrex query sprot_split.ibf "LMA(E|Q)GLYN"
+
+/Users/rschwab/Desktop/swissprot_split/swissprot_bin_0346.fa	>sp|Q04896|HME1A_DANRE	LMAQGLYN
+/Users/rschwab/Desktop/swissprot_split/swissprot_bin_0346.fa	>sp|P31538|HME1B_XENLA	LMAQGLYN
+/Users/rschwab/Desktop/swissprot_split/swissprot_bin_0346.fa	>sp|Q05916|HME1_CHICK	LMAQGLYN
+/Users/rschwab/Desktop/swissprot_split/swissprot_bin_0346.fa	>sp|Q05925|HME1_HUMAN	LMAQGLYN
+/Users/rschwab/Desktop/swissprot_split/swissprot_bin_0346.fa	>sp|P09065|HME1_MOUSE	LMAQGLYN
+/Users/rschwab/Desktop/swissprot_split/swissprot_bin_0346.fa	>sp|P09015|HME2A_DANRE	LMAQGLYN
+/Users/rschwab/Desktop/swissprot_split/swissprot_bin_0346.fa	>sp|P52729|HME2A_XENLA	LMAQGLYN
+/Users/rschwab/Desktop/swissprot_split/swissprot_bin_0346.fa	>sp|P31533|HME2B_DANRE	LMAQGLYN
+/Users/rschwab/Desktop/swissprot_split/swissprot_bin_0346.fa	>sp|P52730|HME2B_XENLA	LMAQGLYN
+/Users/rschwab/Desktop/swissprot_split/swissprot_bin_0346.fa	>sp|Q05917|HME2_CHICK	LMAQGLYN
+/Users/rschwab/Desktop/swissprot_split/swissprot_bin_0346.fa	>sp|P19622|HME2_HUMAN	LMAQGLYN
+/Users/rschwab/Desktop/swissprot_split/swissprot_bin_0346.fa	>sp|P09066|HME2_MOUSE	LMAQGLYN
+/Users/rschwab/Desktop/swissprot_split/swissprot_bin_0346.fa	>sp|P09076|HME30_APIME	LMAQGLYN
+/Users/rschwab/Desktop/swissprot_split/swissprot_bin_0346.fa	>sp|P09075|HME60_APIME	LMAQGLYN
+/Users/rschwab/Desktop/swissprot_split/swissprot_bin_0346.fa	>sp|O02491|HMEN_ANOGA	LMAQGLYN
+/Users/rschwab/Desktop/swissprot_split/swissprot_bin_0346.fa	>sp|Q05640|HMEN_ARTSF	LMAQGLYN
+/Users/rschwab/Desktop/swissprot_split/swissprot_bin_0346.fa	>sp|P27609|HMEN_BOMMO	LMAQGLYN
+/Users/rschwab/Desktop/swissprot_split/swissprot_bin_0346.fa	>sp|P02836|HMEN_DROME	LMAQGLYN
+/Users/rschwab/Desktop/swissprot_split/swissprot_bin_0346.fa	>sp|P09145|HMEN_DROVI	LMAQGLYN
+/Users/rschwab/Desktop/swissprot_split/swissprot_bin_0346.fa	>sp|P23397|HMEN_HELTR	LMAQGLYN
+/Users/rschwab/Desktop/swissprot_split/swissprot_bin_0346.fa	>sp|P09532|HMEN_TRIGR	LMAQGLYN
+/Users/rschwab/Desktop/swissprot_split/swissprot_bin_0346.fa	>sp|P27610|HMIN_BOMMO	LMAQGLYN
+/Users/rschwab/Desktop/swissprot_split/swissprot_bin_0346.fa	>sp|P05527|HMIN_DROME	LMAQGLYN
+/Users/rschwab/Desktop/swissprot_split/swissprot_bin_0811.fa	>sp|Q26601|SMOX2_SCHMA	LMAEGLYN
+Query Time: 0.007119
 ```
 
 ## Notes
