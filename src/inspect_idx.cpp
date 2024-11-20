@@ -61,7 +61,7 @@ void inspect_aa_ibf(inspection_arguments const &cmd_args)
     double t1, t2;
     // Load index from disk
     seqan3::debug_stream << "Reading Index from Disk... ";
-    TetrexIndex<index_structure::IBF, molecules::nucleotide> ibf;
+    TetrexIndex<index_structure::IBF, molecules::peptide> ibf;
     t1 = omp_get_wtime();
     load_ibf(ibf, cmd_args.idx);
     t2 = omp_get_wtime();
@@ -89,12 +89,12 @@ void inspect_aa_hibf(inspection_arguments const &cmd_args)
     double t1, t2;
     // Load index from disk
     seqan3::debug_stream << "Reading Index from Disk... ";
-    TetrexIndex<index_structure::IBF, molecules::nucleotide> ibf;
+    TetrexIndex<index_structure::HIBF, molecules::peptide> ibf;
     t1 = omp_get_wtime();
     load_ibf(ibf, cmd_args.idx);
     t2 = omp_get_wtime();
     seqan3::debug_stream << "DONE in " << t2-t1 << "s" << std::endl;
-
+    
     std::pair<size_t, size_t> shape = ibf.getShape();
 
     // Print Info to std out
