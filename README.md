@@ -65,7 +65,7 @@ tetrex inspect test.ibf
 ```
 
 ### Indexing & Searching the Swissprot Database
-The workflow to download, split, index, and query the Swissprot DB from Uniprot
+A workflow to download, split, index, and query the Swissprot DB from Uniprot (in a Unix-like Environment)
 ```shell
 ## Retrieve the Peptide Sequence Library
 wget https://ftp.uniprot.org/pub/databases/uniprot/current_release/knowledgebase/complete/uniprot_sprot.fasta.gz
@@ -85,7 +85,6 @@ tetrex index -k 6 -o sprot_split -i hibf -m aa swissprot_split/*.fa
 
 ## Query a domain
 tetrex query sprot_split.ibf "LMA(E|Q)GLYN"
-
 /Users/rschwab/Desktop/swissprot_split/swissprot_bin_0346.fa	>sp|Q04896|HME1A_DANRE	LMAQGLYN
 /Users/rschwab/Desktop/swissprot_split/swissprot_bin_0346.fa	>sp|P31538|HME1B_XENLA	LMAQGLYN
 /Users/rschwab/Desktop/swissprot_split/swissprot_bin_0346.fa	>sp|Q05916|HME1_CHICK	LMAQGLYN
