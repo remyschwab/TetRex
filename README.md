@@ -77,12 +77,12 @@ mkdir sprot_bins && cd sprot_bins
 ## Split the Swissprot FASTA Library into equal sized bins
 split -d -a 4 -n 1024 ../uniprot_sprot.fasta swissprot_bin_
 
-## Give each file the proper extension
+## Give each file the proper ".fa" extension
 for file in ./*;do mv $file "$file".fa;done
 
 ## Create an HIBF index over the DB
 cd ..
-tetrex index -k 6 -o sprot_split -i hibf -m aa swissprot_split/*.fa
+tetrex index -k 6 -o sprot_split -i hibf -m aa sprot_bins/*.fa
 
 ## Query a domain
 tetrex query sprot_split.ibf "LMA(E|Q)GLYN"
