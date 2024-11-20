@@ -69,6 +69,7 @@ A workflow to download, split, index, and query the Swissprot DB from Uniprot (i
 ```shell
 ## Retrieve the Peptide Sequence Library
 wget https://ftp.uniprot.org/pub/databases/uniprot/current_release/knowledgebase/complete/uniprot_sprot.fasta.gz
+gzip -d uniprot_sprot.fasta.gz
 
 ## Make a directory to store bins
 mkdir sprot_bins && cd sprot_bins
