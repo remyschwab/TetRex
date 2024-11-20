@@ -93,7 +93,7 @@ int main(int argc, char *argv[])
 {
     sharg::parser top_level_parser{"tetrex", argc, argv,
                                              sharg::update_notifications::off,
-                                             {"index", "query", "inspect", "model"}};
+                                             {"index", "query", "inspect"}};
     top_level_parser.info.description.push_back("Index a NA|AA FASTA library or search a regular expression.");
     try
     {
@@ -112,8 +112,8 @@ int main(int argc, char *argv[])
         run_query(sub_parser);
     else if (sub_parser.info.app_name == std::string_view{"tetrex-inspect"})
         run_inspection(sub_parser);
-    else if (sub_parser.info.app_name == std::string_view{"tetrex-model"})
-        run_model(sub_parser);
+    // else if (sub_parser.info.app_name == std::string_view{"tetrex-model"})
+    //     run_model(sub_parser);
     else
         std::cout << "Unhandled subparser named " << sub_parser.info.app_name << '\n';
     return 0;

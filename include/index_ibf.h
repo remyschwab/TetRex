@@ -102,6 +102,10 @@ public:
             gzclose(handle);
         }
         seqan3::debug_stream << "Indexed " << seq_count << " sequences across " << bin_count_ << " bins." << std::endl;
+        if(bin_count_ == 1)
+        {
+            seqan3::debug_stream << "[WARNING] The indexed reference library was not split into bins. The TetRex runtime will be significantly slower." << std::endl;
+        }
     }
 
     void spawn_agent()
