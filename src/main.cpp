@@ -44,7 +44,15 @@ void run_query(sharg::parser &parser)
         seqan3::debug_stream << "[Error TetRex Query module " << ext.what() << "\n";
         return;
     }
-    drive_query(cmd_args, false);
+    try
+    {
+        drive_query(cmd_args, false);
+    }
+    catch(const cereal::Exception& e)
+    {
+        std::cerr << "Filepath to (H)IBF Index not valid" << std::endl;
+        std::cerr << e.what() << '\n';
+    }
 }
 
 void run_inspection(sharg::parser &parser)
