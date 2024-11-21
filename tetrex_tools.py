@@ -126,8 +126,8 @@ def convert_prosite_pattern(pattern):
 
 def main():
     PROSITE_PATTERN = sys.argv[1]
-    print(computeRegEx(sys.argv[1]))
-    # print(convert_prosite_pattern(PROSITE_PATTERN))
+    # print(computeRegEx(sys.argv[1]))
+    print(convert_prosite_pattern(PROSITE_PATTERN))
 
 
 if __name__ == "__main__":

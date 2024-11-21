@@ -15,7 +15,7 @@ Despite the efficiency of modern day tools for Regular Expression search, their 
 ```mkdir build && cd build```
 3. Configure with cmake ```cmake -DCMAKE_CXX_COMPILER=/path/to/g++-14 ..```
 4. Build with make ```make```
-5. We recommend you add the ```tetrex``` binary to a location on your PATH ie ```/usr/local/bin```
+5. We recommend you add the ```tetrex``` binary to a location on your PATH ie ```mv ./bin/tetrex /usr/local/bin```
 
 Unforunately, with the latest updates to macOS, configuration with cmake may produce the following error:
 
@@ -75,10 +75,7 @@ gzip -d uniprot_sprot.fasta.gz
 mkdir sprot_bins && cd sprot_bins
 
 ## Split the Swissprot FASTA Library into equal sized bins
-split -d -a 4 -n 1024 ../uniprot_sprot.fasta swissprot_bin_
-
-## Give each file the proper ".fa" extension
-for file in ./*;do mv $file "$file".fa;done
+gsplit -dn 1024 --additional-suffix .fa ../uniprot_sprot.fasta swissprot_bin_
 
 ## Create an HIBF index over the DB
 cd ..
@@ -111,6 +108,15 @@ tetrex query sprot_split.ibf "LMA(E|Q)GLYN"
 /Users/rschwab/Desktop/swissprot_split/swissprot_bin_0346.fa	>sp|P05527|HMIN_DROME	LMAQGLYN
 /Users/rschwab/Desktop/swissprot_split/swissprot_bin_0811.fa	>sp|Q26601|SMOX2_SCHMA	LMAEGLYN
 Query Time: 0.007119
+```
+
+Note that we leave the tasks of preprossing and splitting the database up to the user. The above example simply splits the database into equal sized bins. You may choose to cluster your sequences or split the bins into variable sizes. You can replace the `gsplit` command to `split` or any program of your choosing.
+
+### Using the Prosite Pattern to RegEx Converter
+You can use the python executable tetrex_tools.py to convert patterns in the Prosite syntax to POSIX style RegEx's
+```shell
+./tetrex_tools.py '[LIVMFGAC]-[LIVMTADN]-[LIVFSA]-D-[ST]-G-[STAV]-[STAPDENQ]-{GQ}-[LIVMFSTNC]-{EGK}-[LIVMFGTA]'
+(L|I|V|M|F|G|A|C)(L|I|V|M|T|A|D|N)(L|I|V|F|S|A)D(S|T)G(S|T|A|V)(S|T|A|P|D|E|N|Q)(C|I|S|H|T|K|P|A|M|V|Y|E|W|F|R|N|L|D)(L|I|V|M|F|S|T|N|C)(C|I|M|Q|S|Y|V|W|F|H|R|T|N|L|P|A|D)(L|I|V|M|F|G|T|A)
 ```
 
 ## Notes
