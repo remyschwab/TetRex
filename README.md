@@ -35,7 +35,7 @@ export SDKROOT="$(g++-11 -v 2>&1 | sed -n 's@.*--with-sysroot=\([^ ]*\).*@\1@p')
 
 ## Usage
 ### A Small Example
-Tetrix offers two main commands [index & query] and one utility command [inspect]:
+`TetRex` offers two main commands [index & query] and one utility command [inspect]:
 ```shell
 ## Construct an HIBF index of nucleic acids, with kmer size = 3, 3 hash functions, & a FPR of 0.05, each input file represents a bin
 tetrex index -m na -k 3 -o test data/dna_example_split/*.fa
