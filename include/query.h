@@ -79,12 +79,12 @@ void verify_fasta_hit(const gzFile &fasta_handle, const re2::RE2 &crx, std::stri
 
 void verify_aa_fasta_hit(const gzFile &fasta_handle, const re2::RE2 &crx, std::string const &binid, const uint8_t &reduction, const std::array<char, 256> &residue_map);
 
-std::vector<size_t> compute_set_bins(const bitvector &hits);
+std::vector<size_t> compute_set_bins(const bitvector &hits, const std::vector<std::string> &acid_lib);
 
 template<index_structure::is_valid flavor, molecules::is_dna mol_type>
 void iter_disk_search(const bitvector &hits, std::string &query, const TetrexIndex<flavor, mol_type> &ibf)
 {
-    std::vector<size_t> bins = compute_set_bins(hits);
+    std::vector<size_t> bins = compute_set_bins(hits, ibf.acid_libs_);
     std::string forward_and_reverse = query;
     forward_and_reverse = "(" + forward_and_reverse + ")"; // Capture entire RegEx
 
@@ -108,14 +108,13 @@ void iter_disk_search(const bitvector &hits, std::string &query, const TetrexInd
 template<index_structure::is_valid flavor, molecules::is_peptide mol_type>
 void iter_disk_search(const bitvector &hits, std::string &query, const TetrexIndex<flavor, mol_type> &ibf)
 {
-    std::vector<size_t> bins = compute_set_bins(hits);
+    std::vector<size_t> bins = compute_set_bins(hits, ibf.acid_libs_);
     query = "(" + query + ")"; // Capture entire RegEx
     re2::RE2 compiled_regex(query);
     assert(compiled_regex.ok());
     #pragma omp parallel for
     for(size_t hit: bins)
     {
-        seqan3::debug_stream << ibf.acid_libs_[hit].c_str() << std::endl;
         gzFile lib_path = gzopen(ibf.acid_libs_[hit].c_str(), "r");
         if(!lib_path)
         {
@@ -179,7 +178,7 @@ void run_collection(query_arguments &cmd_args, const bool &model, TetrexIndex<fl
     // std::vector<std::string> &queries = cmd_args.query_lst;
     t1 = omp_get_wtime();
     bitvector hit_vector(ibf.getBinCount(), true);
-    if(ibf.getBinCount() > 1) // If someone forgot to split up their DB into bins then there's no point in the TetRex algorithm
+    if(ibf.getBinCount() > 1u) // If someone forgot to split up their DB into bins then there's no point in the TetRex algorithm
     {
         hit_vector &= process_query(rx, ibf);
     }

@@ -44,9 +44,16 @@ double compute_knut_model(const size_t &query_length, const uint8_t &k, const in
 }
 
 
-std::vector<size_t> compute_set_bins(const bitvector &hits)
+std::vector<size_t> compute_set_bins(const bitvector &hits, const std::vector<std::string> &acid_lib)
 {
     std::vector<size_t> hit_vector;
+    // The IBF will automatically use a multiple of 64 for the number of bins
+    // This will cause a segfault if someone just uses one bin
+    if(acid_lib.size() == 1u)
+    {
+        hit_vector.push_back(0u);
+        return hit_vector;
+    }
     size_t const words = seqan::hibf::divide_and_ceil(hits.size(), 64u);
         uint64_t const * const bit_vector_ptr = hits.data();
 

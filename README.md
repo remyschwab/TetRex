@@ -110,7 +110,7 @@ tetrex query sprot_split.ibf "LMA(E|Q)GLYN"
 Query Time: 0.007119
 ```
 
-Note that, for now, we leave the task of preprocessing the database up to the user. The above example simply splits the database into equal sized bins. You may choose to cluster your sequences or split the bins into variable sizes. You can replace the `gsplit` command to `split` or any program of your choosing. Please note that the database must be split into bins in order to see any significant runtime improvements from the `TetRex` algorithm.
+Note that, for now, we leave the task of preprocessing the database up to the user. The above example simply splits the database into equal sized bins. You may choose to cluster your sequences or split the bins into variable sizes. You can replace the `gsplit` command with `split` or any program of your choosing. Please note that the database must be split into bins in order to see any significant runtime improvements from the `TetRex` algorithm.
 
 ### Using the Prosite Pattern to RegEx Converter
 You can use the python executable tetrex_tools.py to convert patterns in the Prosite syntax to POSIX style RegEx's
