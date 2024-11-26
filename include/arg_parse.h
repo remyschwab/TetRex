@@ -25,6 +25,8 @@ inline void initialise_index_parser(sharg::parser &parser, index_arguments &args
 {
     parser.info.author = "Remy Schwab";
     parser.info.version = "1.0.0";
+    parser.add_flag(args.draw, sharg::config{'i', "ibf", "Write Graph Viz file to disk"});
+    parser.add_flag(args.draw, sharg::config{'a', "amino", "I"});
     parser.add_option(args.ibf, sharg::config{.short_id='i', .long_id="idx_struct", .description="IBF or HIBF", .validator=sharg::value_list_validator{"ibf", "hibf"}});
     parser.add_option(args.k, sharg::config{'k', "ksize", "size of kmers"});
     parser.add_option(args.fpr, sharg::config{'p', "fpr", "Bloom Filter False Positive Rate"});
