@@ -71,11 +71,8 @@ A workflow to download, split, index, and query the Swissprot DB from Uniprot (i
 wget https://ftp.uniprot.org/pub/databases/uniprot/current_release/knowledgebase/complete/uniprot_sprot.fasta.gz
 gzip -d uniprot_sprot.fasta.gz
 
-## Make a directory to store bins
-mkdir sprot_bins && cd sprot_bins
-
 ## Split the Swissprot FASTA Library into equal sized bins
-gsplit -dn 1024 --additional-suffix .fa ../uniprot_sprot.fasta swissprot_bin_
+fasta-splitter.pl --n-parts 1024 --out-dir sprot_split uniprot_sprot.fasta
 
 ## Create an HIBF index over the DB
 cd ..
@@ -110,7 +107,9 @@ tetrex query sprot_split.ibf "LMA(E|Q)GLYN"
 Query Time: 0.007119
 ```
 
-Note that, for now, we leave the task of preprocessing the database up to the user. The above example simply splits the database into equal sized bins using `gsplit`. You may choose to use a different program for splitting, cluster your sequences, split the bins into variable sizes, etc. However, the database must **at least** be split into bins in order to see any significant runtime improvements from the `TetRex` algorithm.
+The `fasta-splitter.pl` tool is available in the `utils` folder in this repository. The original tool is authored and distributed by [Kirill Kryukov](https://kirill-kryukov.com/study/tools/fasta-splitter/).
+
+Note that, for now, we leave the task of preprocessing the database up to the user. The above example simply splits the database into equal sized bins using `fasta-splitter.pl`. You may choose to use a different program for splitting, cluster your sequences, split the bins into variable sizes, etc. However, the database must **at least** be split into bins in order to see any significant runtime improvements from the `TetRex` algorithm.
 
 ### Using the Prosite Pattern to RegEx Converter
 You can use the python executable tetrex_tools.py to convert patterns in the Prosite syntax to POSIX style RegEx's

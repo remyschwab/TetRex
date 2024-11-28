@@ -96,14 +96,17 @@ public:
             record = kseq_init(handle);
             while ((status = kseq_read(record)) >= 0) // Iterate over bin records
             {
-                std::string_view record_view = record->seq.s;
-                if(record_view.length() < ksize)
+                // std::string_view record_view = record->seq.s;
+                // std::string record_view = record->seq.s;
+                if(record->seq.l < ksize)
                 {
-                    seqan3::debug_stream << "RECORD TOO SHORT " << record->comment.s << std::endl;
+                    std::cout << ">" << record->name.s << " " << record->comment.s << std::endl;
+                    std::cout << record->seq.s << std::endl;
+                    // seqan3::debug_stream << "RECORD TOO SHORT " << record->comment.s << std::endl;
                     continue;
                 }
                 seq_count++;
-                decomposer.decompose_record(record_view, i, base_ref);
+                decomposer.decompose_record(record->seq.s, i, base_ref);
             }
             kseq_destroy(record);
             gzclose(handle);
