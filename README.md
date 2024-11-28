@@ -76,7 +76,7 @@ fasta-splitter.pl --n-parts 1024 --out-dir sprot_split uniprot_sprot.fasta
 
 ## Create an HIBF index over the DB
 cd ..
-tetrex index -k 6 -o sprot_split -i hibf -m aa sprot_bins/*.fa
+tetrex index -k 6 -o sprot_split -i hibf -m aa sprot_bins/*.fasta
 
 ## Query a domain
 tetrex query sprot_split.ibf "LMA(E|Q)GLYN"
