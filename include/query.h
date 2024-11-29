@@ -32,6 +32,8 @@ void drive_query(query_arguments &cmd_args, const bool &model);
 
 void reduce_query_alphabet(std::string &regex, const std::array<char, 256> &reduction_map);
 
+void compute_query_complexity(const std::string &pfix, const uint8_t k);
+
 template<index_structure::is_valid flavor, molecules::is_peptide mol_type>
 void preprocess_query(std::string &rx_query, std::string &postfix_query, const TetrexIndex<flavor, mol_type> &ibf)
 {
@@ -48,6 +50,7 @@ void preprocess_query(std::string &rx_query, std::string &postfix_query, const T
     // seqan3::debug_stream << rx_query << std::endl;
     if(ibf.reduction_ > 0) reduce_query_alphabet(rx_query, ibf.decomposer_.decomposer_.redmap_);
     postfix_query = translate(rx_query);
+    compute_query_complexity(postfix_query, ibf.k_);
 }
 
 template<index_structure::is_valid flavor, molecules::is_dna mol_type>
@@ -132,7 +135,7 @@ void iter_disk_search(const bitvector &hits, std::string &query, const TetrexInd
 }
 
 template<index_structure::is_valid flavor, molecules::is_molecule mol_t>
-bitvector process_query(const std::string &regex, TetrexIndex<flavor, mol_t> &ibf)
+bitvector process_query(const std::string &regex, TetrexIndex<flavor, mol_t> &ibf, const bool &draw)
 {
     double t1, t2, preprocess_time, construction_time, traversal_time;
     t1 = omp_get_wtime();
@@ -141,6 +144,7 @@ bitvector process_query(const std::string &regex, TetrexIndex<flavor, mol_t> &ib
     preprocess_query(rx, query, ibf);
     bool valid = validate_regex(query, ibf.k_);
     bitvector hit_vector(ibf.getBinCount(), true);
+    return hit_vector;
     if(valid)
     {
         std::unique_ptr<nfa_t> NFA = std::make_unique<nfa_t>();
@@ -159,7 +163,7 @@ bitvector process_query(const std::string &regex, TetrexIndex<flavor, mol_t> &ib
         }
         t2 = omp_get_wtime();
         construction_time = t2-t1;
-        // if(cmd_args.draw) print_graph(*NFA, *nfa_map);
+        if(draw) print_graph(*NFA, *nfa_map);
         t1 = omp_get_wtime();
         std::vector<int> top_rank_map = run_top_sort(*NFA);
         OTFCollector<flavor, mol_t> collector(std::move(NFA), std::move(nfa_map),
@@ -187,13 +191,13 @@ void run_collection(query_arguments &cmd_args, const bool &model, TetrexIndex<fl
     bitvector hit_vector(ibf.getBinCount(), true);
     if(ibf.getBinCount() > 1u) // If someone forgot to split up their DB into bins then there's no point in the TetRex algorithm
     {
-        hit_vector &= process_query(rx, ibf);
+        hit_vector &= process_query(rx, ibf, cmd_args.draw);
     }
     else
     {
         seqan3::debug_stream << "[WARNING] Index contains only 1 bin. Unable to accelerate search using the TetRex algorithm. Performing Linear Scan" << std::endl;
     }
-
+    return;
     if(cmd_args.verbose) seqan3::debug_stream << "Narrowed Search to " << OTFCollector<flavor, mol_t>::sumBitVector(hit_vector) << " possible bins" << std::endl;
     t1 = omp_get_wtime();
     if(!hit_vector.none())

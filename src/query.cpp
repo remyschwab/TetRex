@@ -43,6 +43,61 @@ double compute_knut_model(const size_t &query_length, const uint8_t &k, const in
     return running_probability;
 }
 
+double compute_sum_of_exponentials(const std::vector<double> &kmer_complexities)
+{
+    return std::accumulate(kmer_complexities.begin(), kmer_complexities.end(), 0.0, 
+        [](double sum, double value) {
+            return sum + std::exp(value);
+        });
+}
+
+void compute_group_members(const std::string &pfix, std::vector<double> &group_counts)
+{
+    size_t group_count = 0;
+    bool run_start = true;
+    for(auto tkn: pfix)
+    {
+        if(!std::isalpha(tkn) && run_start)
+        {
+            group_counts.push_back(std::log(group_count)); // Use log here so you can use addition during complexity calc later
+            group_count = 0;
+            run_start = false;
+            continue;
+        }
+        else if(!std::isalpha(tkn) && !run_start)
+        {
+            continue;
+        }
+        group_count += 1;
+        run_start = true;
+    }
+}
+
+double compute_complexities(std::vector<double> &group_counts, std::vector<double> &complexities, const uint8_t k)
+{
+    double base_complexity = std::reduce(group_counts.begin(), group_counts.begin()+k);
+    complexities.push_back(base_complexity);
+    for(size_t i = 1; i < group_counts.size()-k+1; ++i)
+    {
+        base_complexity = (base_complexity-group_counts[i-1]) + group_counts[i+k-1];
+        complexities.push_back(base_complexity);
+    }
+    auto total_queries = compute_sum_of_exponentials(complexities);
+    return total_queries;
+}
+
+
+void compute_query_complexity(const std::string &pfix, const uint8_t k)
+{
+    // First compute the members from each subgraph
+    std::vector<double> group_counts;
+    compute_group_members(pfix, group_counts);
+    // Now compute the number of kmers
+    std::vector<double> kmer_complexity;
+    size_t total_complexity = compute_complexities(group_counts, kmer_complexity, k);
+    seqan3::debug_stream << total_complexity << std::endl;
+}
+
 
 std::vector<size_t> compute_set_bins(const bitvector &hits, const std::vector<std::string> &acid_lib)
 {
