@@ -40,6 +40,7 @@ class OTFCollector
         CollectionUtils::cache_t kmer_cache_{};
     
     public:
+        size_t caches_queries_{};
         OTFCollector() = default;
 
         explicit OTFCollector(std::unique_ptr<nfa_t> nfa,
@@ -53,7 +54,8 @@ class OTFCollector
                     ibf_{&ibf},
                     arc_map_{std::move(arc_map)},
                     comp_table_{node_count_},
-                    rank_map_{std::move(rank_map)}
+                    rank_map_{std::move(rank_map)},
+                    caches_queries_{0u}
         {
             create_selection_bitmask();
             ibf_->spawn_agent(); // Not done by the IBFIndex constructor during deserialization
@@ -140,22 +142,26 @@ class OTFCollector
         {
             // The canonical kmer is returned but the reference kmer is also updated!!!
             canonical_kmer = ibf_->update_kmer(symbol, current_state.kmer_);
-            if(kmer_cache_.find(current_state.kmer_) == kmer_cache_.end())
-            {
-                kmer_cache_[current_state.kmer_] = ibf_->query(canonical_kmer);
-            }
-            hits = kmer_cache_[current_state.kmer_];
+            // if(kmer_cache_.find(current_state.kmer_) == kmer_cache_.end())
+            // {
+            //     kmer_cache_[current_state.kmer_] = ibf_->query(canonical_kmer);
+            // }
+            // hits = kmer_cache_[current_state.kmer_];
+            // caches_queries_ += 1;
+            hits = ibf_->query(canonical_kmer);
             current_state.path_ &= hits;
             current_state.shift_count_++;
         }
         else if(current_state.shift_count_ == (ibf_->k_)) // (ACG) Next kmer will be valid
         {
             canonical_kmer = ibf_->update_kmer(symbol, current_state.kmer_);
-            if(kmer_cache_.find(current_state.kmer_) == kmer_cache_.end())
-            {
-                kmer_cache_[current_state.kmer_] = ibf_->query(canonical_kmer);
-            }
-            hits = kmer_cache_[current_state.kmer_];
+            // if(kmer_cache_.find(current_state.kmer_) == kmer_cache_.end())
+            // {
+            //     kmer_cache_[current_state.kmer_] = ibf_->query(canonical_kmer);
+            // }
+            // hits = kmer_cache_[current_state.kmer_];
+            // caches_queries_ += 1;
+            hits = ibf_->query(canonical_kmer);
             current_state.path_ &= hits;
         }
     }
