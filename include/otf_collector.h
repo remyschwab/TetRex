@@ -40,7 +40,9 @@ class OTFCollector
         CollectionUtils::cache_t kmer_cache_{};
     
     public:
-        size_t caches_queries_{};
+        size_t prune_count_{};
+        size_t absorb_count_{};
+        size_t max_pool_{};
         OTFCollector() = default;
 
         explicit OTFCollector(std::unique_ptr<nfa_t> nfa,
@@ -55,7 +57,9 @@ class OTFCollector
                     arc_map_{std::move(arc_map)},
                     comp_table_{node_count_},
                     rank_map_{std::move(rank_map)},
-                    caches_queries_{0u}
+                    prune_count_{0u},
+                    absorb_count_{0u},
+                    max_pool_{0u}
         {
             create_selection_bitmask();
             ibf_->spawn_agent(); // Not done by the IBFIndex constructor during deserialization
@@ -73,6 +77,11 @@ class OTFCollector
         }
         std::reverse(kmer_seq.begin(), kmer_seq.end());
         return kmer_seq;
+    }
+
+    void update_max_pool(const size_t new_val)
+    {
+        max_pool_ = max_pool_ > new_val ? max_pool_ : new_val;
     }
 
     uint64_t extract_hash(CollectionUtils::CollectorsItem &item)
@@ -120,6 +129,7 @@ class OTFCollector
     void absorb(uint64_t &subhash, CollectionUtils::CollectorsItem &item, int idx)
     {
         // seqan3::debug_stream << "ABSORBING" << std::endl;
+        ++absorb_count_;
         comp_table_[idx][subhash].path_ |= item.path_;
     }
 
@@ -200,6 +210,7 @@ class OTFCollector
         {
             while(!comp_table_[i].empty()) // [hash, itm]
             {
+                update_max_pool(comp_table_[i].size());
                 auto top = comp_table_[i].begin()->second;
                 scrub(i);
                 id = top.id_;
@@ -219,7 +230,11 @@ class OTFCollector
                         break;
                     default:
                         update_path(top, symbol);
-                        if(top.path_.none()) break; // Immediately get rid of deadend paths
+                        if(top.path_.none())
+                        {
+                            ++prune_count_;
+                            break; // Immediately get rid of deadend paths
+                        }
                         next = arc_map_.at(id).first;
                         item = {next, NFA_->id(next), top.shift_count_, top.kmer_, top.path_};
                         push(item);

@@ -135,7 +135,7 @@ void iter_disk_search(const bitvector &hits, std::string &query, const TetrexInd
 }
 
 template<index_structure::is_valid flavor, molecules::is_molecule mol_t>
-bitvector process_query(const std::string &regex, TetrexIndex<flavor, mol_t> &ibf, const bool &draw, size_t &cache_hits)
+bitvector process_query(const std::string &regex, TetrexIndex<flavor, mol_t> &ibf, const bool &draw, size_t &prune_counts, size_t &absorb_counts, size_t &pileup)
 {
     double t1, t2, preprocess_time, construction_time, traversal_time;
     t1 = omp_get_wtime();
@@ -171,7 +171,9 @@ bitvector process_query(const std::string &regex, TetrexIndex<flavor, mol_t> &ib
         hit_vector = collector.collect();
         t2 = omp_get_wtime();
         traversal_time = t2-t1;
-        cache_hits = collector.caches_queries_;
+        prune_counts = collector.prune_count_;
+        absorb_counts = collector.absorb_count_;
+        pileup = collector.max_pool_;
     }
     else // if the RegEx is shorter than the index kmer size, then prompt user and trigger linear search
     {
@@ -192,10 +194,12 @@ void run_collection(query_arguments &cmd_args, const bool &model, TetrexIndex<fl
     // std::vector<std::string> &queries = cmd_args.query_lst;
     bitvector hit_vector(ibf.getBinCount(), true);
     double complexity = compute_query_complexity(rx, ibf.k_);
-    size_t cache_hits;
+    size_t prunes;
+    size_t absorbs;
+    size_t pileup;
     if(ibf.getBinCount() > 1u) // If someone forgot to split up their DB into bins then there's no point in the TetRex algorithm
     {
-        hit_vector &= process_query(rx, ibf, cmd_args.draw, cache_hits);
+        hit_vector &= process_query(rx, ibf, cmd_args.draw, prunes, absorbs, pileup);
     }
     else
     {
@@ -217,6 +221,6 @@ void run_collection(query_arguments &cmd_args, const bool &model, TetrexIndex<fl
     t2 = omp_get_wtime();
     double scan_time = t2-t1;
     seqan3::debug_stream << scan_time << "\t";
-    seqan3::debug_stream << complexity << "\t" << ibf.query_count_ << std::endl;
+    seqan3::debug_stream << complexity << "\t" << ibf.query_count_ << "\t" << prunes << "\t" << absorbs << "\t" << pileup << std::endl;
     // seqan3::debug_stream << "Query Time: " << (t2-t1) << std::endl;
 }
