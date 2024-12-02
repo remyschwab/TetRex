@@ -30,6 +30,7 @@ class TetrexIndex
         static bool constexpr is_hibf_{index_structure::is_hibf<ibf_flavor>};
         uint64_t forward_store_{};
         uint64_t reverse_store_{};
+        size_t query_count_{};
 
 
         TetrexIndex() = default;
@@ -45,7 +46,8 @@ class TetrexIndex
             acid_libs_{std::move(acid_libs)},
             reduction_{reduction},
             decomposer_(k_, reduction_),
-            permanent_hibf_status_{is_hibf_}
+            permanent_hibf_status_{is_hibf_},
+            query_count_{0u}
         {
             permanent_hibf_status_ = true;
             ibf_ = HIBFIndex(fpr, hc, acid_libs_);
@@ -104,6 +106,7 @@ class TetrexIndex
 
         bitvector query(uint64_t const kmer)
         {
+            ++query_count_;
             return ibf_.query(kmer); // Hmmm ask about this
         }
 
