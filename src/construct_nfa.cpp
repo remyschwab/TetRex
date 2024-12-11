@@ -141,12 +141,15 @@ void construct_kgraph(const std::string &postfix, nfa_t &nfa, lmap_t &node_map, 
     nfa_stack_t stack;
     node_t start_node = nfa.addNode(); // I don't know why, but a buffer node is necessary for top sort...
     node_map[start_node] = Ghost;
+    size_t graph_width = 1;
+    size_t char_count = 0;
     for(size_t i = 0; i < postfix.size(); i++)
     {
         int symbol = postfix[i];
         switch(symbol)
         {
             default: // Character
+                char_count += 1;
                 default_procedure(nfa, stack, node_map, symbol);
                 break;
             case '-': // Concat

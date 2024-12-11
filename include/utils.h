@@ -13,6 +13,8 @@
 #include <stdlib.h>
 #include <unistd.h>
 #include <cstring>
+#include <cctype>
+#include <numeric>
 
 #include "hibf/interleaved_bloom_filter.hpp"
 #include "hibf/hierarchical_interleaved_bloom_filter.hpp"

@@ -44,6 +44,123 @@ double compute_knut_model(const size_t &query_length, const uint8_t &k, const in
 }
 
 
+// Function to check if a character is a unary operator
+bool isUnaryOperator(char ch) {
+    return ch == '*' || ch == '+' || ch == '?';
+}
+
+// Function to split the infix regex into concatenated groups
+std::vector<std::string> splitCatGroups(const std::string& infix)
+{
+    std::vector<std::string> groups;
+    std::string currentGroup;
+    int openParentheses = 0;
+    for (size_t i = 0; i < infix.length(); ++i)
+    {
+        char ch = infix[i];
+        currentGroup += ch;
+        if (ch == '(')
+        {
+            openParentheses++;
+        }
+        else if (ch == ')')
+        {
+            openParentheses--;
+        }
+        if (i + 1 < infix.length())
+        {
+            char nextCh = infix[i + 1];
+
+            if ((std::isalnum(ch) || ch == ')' || isUnaryOperator(ch)) &&
+                (std::isalnum(nextCh) || nextCh == '(') && openParentheses == 0)
+            {
+                groups.push_back(currentGroup);
+                currentGroup.clear();
+            }
+        }
+    }
+    if (!currentGroup.empty())
+    {
+        groups.push_back(currentGroup);
+    }
+    return groups;
+}
+
+
+double compute_sum_of_exponentials(const std::vector<double> &kmer_complexities)
+{
+    return std::accumulate(kmer_complexities.begin(), kmer_complexities.end(), 0.0, 
+        [] (double sum, double value)
+        {
+            return sum + std::exp(value);
+        });
+}
+
+
+std::vector<std::string> compute_group_members(const std::string &infix, std::vector<double> &group_counts)
+{
+    std::vector<std::string> cats = splitCatGroups(infix);
+    // seqan3::debug_stream << cats << std::endl;
+    size_t group_count;
+    for(auto group: cats)
+    {
+        group_count = 0;
+        for(auto tkn: group)
+        {
+            if(std::isalpha(tkn)) ++group_count;
+        }
+        group_counts.push_back(std::log(group_count));
+    }
+    return cats;
+}
+
+
+double compute_complexities(std::vector<double> &group_counts, std::vector<double> &complexities, const uint8_t k)
+{
+    double base_complexity = std::reduce(group_counts.begin(), group_counts.begin()+k);
+    complexities.push_back(base_complexity);
+    for(size_t i = 1; i < group_counts.size()-k+1; ++i)
+    {
+        base_complexity = (base_complexity-group_counts[i-1]) + group_counts[i+k-1];
+        complexities.push_back(base_complexity);
+    }
+    auto total_queries = compute_sum_of_exponentials(complexities);
+    return total_queries;
+}
+
+
+std::string inferComplexityDirection(const std::vector<std::string> &cats, const std::vector<double> complexities)
+{
+    size_t front = 0;
+    size_t back = complexities.size()-1;
+    double forward_complexity = complexities[front];
+    double backward_complexity = complexities[complexities.size()-1];
+    std::vector<double> forward_accel;
+    std::vector<double> backward_accel;
+
+    while(front != complexities.size())
+    {
+        forward_accel.push_back();
+        ++front;
+        --back;
+    }
+}
+
+
+double compute_query_complexity(const std::string &infix, const uint8_t k)
+{
+    // First compute the members from each subgraph
+    std::vector<double> group_counts;
+    std::vector<std::string> groups = compute_group_members(infix, group_counts);
+    // Now compute the number of kmers
+    std::vector<double> kmer_complexity;
+    double total_complexity = compute_complexities(group_counts, kmer_complexity, k);
+    // for(auto g: kmer_complexity) seqan3::debug_stream << std::exp(g) << " ";
+    // seqan3::debug_stream << std::endl;
+    return total_complexity;
+}
+
+
 std::vector<size_t> compute_set_bins(const bitvector &hits, const std::vector<std::string> &acid_lib)
 {
     std::vector<size_t> hit_vector;
