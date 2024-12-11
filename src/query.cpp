@@ -90,12 +90,14 @@ std::vector<std::string> splitCatGroups(const std::string& infix)
 double compute_sum_of_exponentials(const std::vector<double> &kmer_complexities)
 {
     return std::accumulate(kmer_complexities.begin(), kmer_complexities.end(), 0.0, 
-        [](double sum, double value) {
+        [] (double sum, double value)
+        {
             return sum + std::exp(value);
         });
 }
 
-void compute_group_members(const std::string &infix, std::vector<double> &group_counts)
+
+std::vector<std::string> compute_group_members(const std::string &infix, std::vector<double> &group_counts)
 {
     std::vector<std::string> cats = splitCatGroups(infix);
     // seqan3::debug_stream << cats << std::endl;
@@ -109,7 +111,9 @@ void compute_group_members(const std::string &infix, std::vector<double> &group_
         }
         group_counts.push_back(std::log(group_count));
     }
+    return cats;
 }
+
 
 double compute_complexities(std::vector<double> &group_counts, std::vector<double> &complexities, const uint8_t k)
 {
@@ -125,11 +129,29 @@ double compute_complexities(std::vector<double> &group_counts, std::vector<doubl
 }
 
 
+std::string inferComplexityDirection(const std::vector<std::string> &cats, const std::vector<double> complexities)
+{
+    size_t front = 0;
+    size_t back = complexities.size()-1;
+    double forward_complexity = complexities[front];
+    double backward_complexity = complexities[complexities.size()-1];
+    std::vector<double> forward_accel;
+    std::vector<double> backward_accel;
+
+    while(front != complexities.size())
+    {
+        forward_accel.push_back();
+        ++front;
+        --back;
+    }
+}
+
+
 double compute_query_complexity(const std::string &infix, const uint8_t k)
 {
     // First compute the members from each subgraph
     std::vector<double> group_counts;
-    compute_group_members(infix, group_counts);
+    std::vector<std::string> groups = compute_group_members(infix, group_counts);
     // Now compute the number of kmers
     std::vector<double> kmer_complexity;
     double total_complexity = compute_complexities(group_counts, kmer_complexity, k);
