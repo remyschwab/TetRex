@@ -32,6 +32,8 @@ void drive_query(query_arguments &cmd_args, const bool &model);
 
 void reduce_query_alphabet(std::string &regex, const std::array<char, 256> &reduction_map);
 
+std::vector<std::string> read_regex_from_file(const std::string &file_path);
+
 template<index_structure::is_valid flavor, molecules::is_peptide mol_type>
 void preprocess_query(std::string &rx_query, std::string &postfix_query, const TetrexIndex<flavor, mol_type> &ibf)
 {
@@ -132,6 +134,17 @@ void iter_disk_search(const bitvector &hits, std::string &query, const TetrexInd
 }
 
 template<index_structure::is_valid flavor, molecules::is_molecule mol_t>
+bitvector process_query(const std::vector<std::string> &queries, TetrexIndex<flavor, mol_t> &ibf)
+{
+    bitvector hit_vector(ibf.getBinCount(), true);
+    for(auto query: queries)
+    {
+        hit_vector &= process_query(query, ibf);
+    }
+    return hit_vector;
+}
+
+template<index_structure::is_valid flavor, molecules::is_molecule mol_t>
 bitvector process_query(const std::string &regex, TetrexIndex<flavor, mol_t> &ibf)
 {
     std::string rx = regex;
@@ -175,7 +188,6 @@ void run_collection(query_arguments &cmd_args, const bool &model, TetrexIndex<fl
 {
     double t1, t2;
     std::string &rx = cmd_args.regex;
-    // std::vector<std::string> &queries = cmd_args.query_lst;
     t1 = omp_get_wtime();
     bitvector hit_vector(ibf.getBinCount(), true);
     if(ibf.getBinCount() > 1u) // If someone forgot to split up their DB into bins then there's no point in the TetRex algorithm
@@ -202,4 +214,17 @@ void run_collection(query_arguments &cmd_args, const bool &model, TetrexIndex<fl
     }
     t2 = omp_get_wtime();
     seqan3::debug_stream << "Query Time: " << (t2-t1) << std::endl;
+}
+
+
+template<index_structure::is_valid flavor, molecules::is_molecule mol_t>
+void run_multiple_queries(query_arguments &cmd_args, const bool &model, TetrexIndex<flavor, mol_t> &ibf)
+{
+    std::vector<std::string> queries = read_regex_from_file(cmd_args.regex);
+    for(auto query: queries)
+    {
+        cmd_args.regex = query;
+        seqan3::debug_stream << "\n" << query << std::endl;
+        run_collection(cmd_args, model, ibf);
+    }
 }

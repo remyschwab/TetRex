@@ -42,6 +42,7 @@ struct query_arguments
     uint8_t t = 1;
     bool verbose = {false};
     bool draw = {false};
+    bool read_file = {false};
     int text_length;
     std::filesystem::path idx{};
     std::string regex;
@@ -55,6 +56,7 @@ inline void initialise_query_parser(sharg::parser &parser, query_arguments &args
     parser.add_option(args.t, sharg::config{'t', "threads", "Number of threads"});
     parser.add_flag(args.draw, sharg::config{'d', "draw", "Write Graph Viz file to disk"});
     parser.add_flag(args.verbose, sharg::config{'v', "verbose", "Log verbose output"});
+    parser.add_flag(args.read_file, sharg::config{'f', "file", "Interpret last argument as a file containing RegEx"});
     parser.add_positional_option(args.idx, sharg::config{.description="Path to IBF acid index"});
     parser.add_positional_option(args.regex, sharg::config{.description="Input Regex"});
 }

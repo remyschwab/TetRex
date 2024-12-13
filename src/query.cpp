@@ -215,11 +215,37 @@ void verify_reduced_fasta_hit(const gzFile &fasta_handle, const re2::RE2 &crx, s
 }
 
 
+std::vector<std::string> read_regex_from_file(const std::string &file_path)
+{
+    std::vector<std::string> queries;
+    std::ifstream handle{file_path};
+    std::string line;
+    if (handle.is_open())
+    {
+        while (getline(handle, line))
+        {
+            queries.push_back(line);
+        }
+        handle.close();
+    }
+    else
+    {
+        std::cerr << "Filepath not valid" << std::endl;
+    }
+    return queries;
+}
+
+
 void query_ibf_dna(query_arguments &cmd_args, const bool &model)
 {
     omp_set_num_threads(cmd_args.t);
     TetrexIndex<index_structure::IBF, molecules::nucleotide> ibf;
     load_ibf(ibf, cmd_args.idx);
+    if(cmd_args.read_file)
+    {
+        run_multiple_queries(cmd_args, model, ibf);
+        return;
+    }
     run_collection(cmd_args, model, ibf);
 }
 
@@ -228,6 +254,11 @@ void query_ibf_aa(query_arguments &cmd_args, const bool &model)
     omp_set_num_threads(cmd_args.t);
     TetrexIndex<index_structure::IBF, molecules::peptide> ibf;
     load_ibf(ibf, cmd_args.idx);
+    if(cmd_args.read_file)
+    {
+        run_multiple_queries(cmd_args, model, ibf);
+        return;
+    }
     run_collection(cmd_args, model, ibf);
 }
 
@@ -236,6 +267,11 @@ void query_hibf_dna(query_arguments &cmd_args, const bool &model)
     omp_set_num_threads(cmd_args.t);
     TetrexIndex<index_structure::HIBF, molecules::nucleotide> ibf;
     load_ibf(ibf, cmd_args.idx);
+    if(cmd_args.read_file)
+    {
+        run_multiple_queries(cmd_args, model, ibf);
+        return;
+    }
     run_collection(cmd_args, model, ibf);
 }
 
@@ -244,6 +280,11 @@ void query_hibf_aa(query_arguments &cmd_args, const bool &model)
     omp_set_num_threads(cmd_args.t);
     TetrexIndex<index_structure::HIBF, molecules::peptide> ibf;
     load_ibf(ibf, cmd_args.idx);
+    if(cmd_args.read_file)
+    {
+        run_multiple_queries(cmd_args, model, ibf);
+        return;
+    }
     run_collection(cmd_args, model, ibf);
 }
 
