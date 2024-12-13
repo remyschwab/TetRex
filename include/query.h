@@ -134,17 +134,6 @@ void iter_disk_search(const bitvector &hits, std::string &query, const TetrexInd
 }
 
 template<index_structure::is_valid flavor, molecules::is_molecule mol_t>
-bitvector process_query(const std::vector<std::string> &queries, TetrexIndex<flavor, mol_t> &ibf)
-{
-    bitvector hit_vector(ibf.getBinCount(), true);
-    for(auto query: queries)
-    {
-        hit_vector &= process_query(query, ibf);
-    }
-    return hit_vector;
-}
-
-template<index_structure::is_valid flavor, molecules::is_molecule mol_t>
 bitvector process_query(const std::string &regex, TetrexIndex<flavor, mol_t> &ibf)
 {
     std::string rx = regex;
