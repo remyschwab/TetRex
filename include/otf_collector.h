@@ -73,6 +73,62 @@ class OTFCollector
         return kmer_seq;
     }
 
+    void update_downstream_counts(const uint8_t k, std::vector<int> &local_arr, std::vector<int> &down_arr)
+    {
+        for(size_t i = 0; i < k; ++i) down_arr[i] += local_arr[i];
+    }
+
+    void update_local_counts(std::vector<int> &arr, const uint8_t k, size_t &ttl_cmplx)
+    {
+        for(size_t i = k-1; i > 0; --i) arr[i] = arr[i-1];
+        arr[0] = 1;
+        ttl_cmplx += arr[k-1];
+    }
+
+    void build_rank_to_id_map(robin_hood::unordered_map<int, int> &rank_to_id_map)
+    {
+        for(auto i = 0; i < rank_map_.size(); ++i) rank_to_id_map[rank_map_[i]] = i;
+    }
+
+    size_t compute_complexity(const uint8_t ksize)
+    {
+        std::vector<std::vector<int>> counts_matrix(node_count_, std::vector<int>(ksize, 0));
+        robin_hood::unordered_map<int, int> rank_to_id;
+        build_rank_to_id_map(rank_to_id);
+        size_t total_complexity = 0;
+        int down_idx;
+        for(size_t i = 0; i < node_count_; ++i)
+        {
+            int symbol = (*nfa_map_)[NFA_->nodeFromId(rank_to_id[i])];
+            switch(symbol)
+            {
+                case Match:
+                    break;
+                case Ghost:
+                    down_idx = rank_map_[NFA_->id(arc_map_.at(rank_to_id[i]).first)];
+                    update_downstream_counts(ksize, counts_matrix[i], counts_matrix[down_idx]);
+                    break;
+                case Split:
+                    down_idx = rank_map_[NFA_->id(arc_map_.at(rank_to_id[i]).first)];
+                    update_downstream_counts(ksize, counts_matrix[i], counts_matrix[down_idx]);
+                    down_idx = rank_map_[NFA_->id(arc_map_.at(rank_to_id[i]).second)];
+                    update_downstream_counts(ksize, counts_matrix[i], counts_matrix[down_idx]);
+                    break;
+                default:
+                    update_local_counts(counts_matrix[i], ksize, total_complexity);
+                    down_idx = rank_map_[NFA_->id(arc_map_.at(rank_to_id[i]).first)];
+                    update_downstream_counts(ksize, counts_matrix[i], counts_matrix[down_idx]);
+                    break;
+            }
+        }
+        for(auto &[rank, id]: rank_to_id)
+        {
+            seqan3::debug_stream << rank << ", " << id << std::endl;
+        }
+        // seqan3::debug_stream << counts_matrix << std::endl;
+        return total_complexity;
+    }
+
     uint64_t extract_hash(CollectionUtils::CollectorsItem &item)
     {
         uint64_t subhash = (item.kmer_ & submask_);
