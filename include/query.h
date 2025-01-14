@@ -161,7 +161,8 @@ bitvector process_query(const std::string &regex, TetrexIndex<flavor, mol_t> &ib
         std::vector<int> top_rank_map = run_top_sort(*NFA);
         OTFCollector<flavor, mol_t> collector(std::move(NFA), std::move(nfa_map),
                                             ibf,
-                                            std::move(top_rank_map), std::move(arc_map));   
+                                            std::move(top_rank_map), std::move(arc_map));
+        size_t cmplx = collector.compute_complexity(ibf.k_);
         hit_vector = collector.collect();
     }
     else // if the RegEx is shorter than the index kmer size, then prompt user and trigger linear search
