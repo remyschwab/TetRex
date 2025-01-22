@@ -121,10 +121,6 @@ class OTFCollector
                     break;
             }
         }
-        for(auto &[rank, id]: rank_to_id)
-        {
-            seqan3::debug_stream << rank << ", " << id << std::endl;
-        }
         // seqan3::debug_stream << counts_matrix << std::endl;
         return total_complexity;
     }
