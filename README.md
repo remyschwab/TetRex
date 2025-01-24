@@ -64,6 +64,8 @@ tetrex inspect test.ibf
 # DONE
 ```
 
+Note that TetRex allows users to index using either IBF or the HIBF. For now, users must specify the size of the bloom filters with the `-s` argument when using the IBF and specify the `-p` argument when using the HIBF. Improvements to the CLI are under active development.
+
 ### Indexing & Searching the Swissprot Database
 A workflow to download, split, index, and query the Swissprot DB from Uniprot (in a Unix-like Environment)
 ```shell
