@@ -22,7 +22,6 @@ double compute_k_probability(const uint8_t &k)
     return pow(0.25, k);
 }
 
-
 double compute_knut_model(const size_t &query_length, const uint8_t &k, const int &m, const size_t &multiplyer)
 {
     // TODO: What if k and query_length are the same?
@@ -103,6 +102,7 @@ bool validate_regex(const std::string &regex, uint8_t ksize)
     return dot_count >= ksize ? true : false;
 }
 
+
 void reverse_verify_fasta_hit(const gzFile &fasta_handle, const re2::RE2 &crx, std::string const &binid)
 {
     int status;
@@ -129,6 +129,7 @@ void reverse_verify_fasta_hit(const gzFile &fasta_handle, const re2::RE2 &crx, s
     kseq_destroy(record);
 }
 
+
 void verify_fasta_hit(const gzFile &fasta_handle, const re2::RE2 &crx, std::string const &binid)
 {
     int status;
@@ -144,6 +145,7 @@ void verify_fasta_hit(const gzFile &fasta_handle, const re2::RE2 &crx, std::stri
     }
     kseq_destroy(record);
 }
+
 
 // void verify_aa_fasta_hit(const gzFile &fasta_handle, kseq_t *record, re2::RE2 &crx, std::string const &binid, const uint8_t &reduction, std::array<char, 256> residue_map)
 // {
@@ -215,6 +217,30 @@ void verify_reduced_fasta_hit(const gzFile &fasta_handle, const re2::RE2 &crx, s
 }
 
 
+void verify_fasta_set(const gzFile &fasta_handle, const RE2::Set &reg_set, std::string const &binid, const std::vector<std::string> &queries)
+{
+    int status;
+    std::string match;
+    kseq_t* record = kseq_init(fasta_handle);
+    uint8_t count = queries.size();
+    while((status = kseq_read(record)) >= 0)
+    {
+        std::vector<int> matching_rules;
+        if (!reg_set.Match(record->seq.s, &matching_rules)) continue;
+        if(matching_rules.size() == count)
+        {
+            std::osyncstream(std::cout) << binid << "\t>" << record->name.s << "\tN --> ";
+            for(auto rule_index: matching_rules)
+            {
+                std::osyncstream(std::cout) << queries[rule_index] << " --> ";
+            }
+            std::osyncstream(std::cout) << "C" << std::endl;
+        }
+    }
+    kseq_destroy(record);
+}
+
+
 std::vector<std::string> read_regex_from_file(const std::string &file_path)
 {
     std::vector<std::string> queries;
@@ -235,17 +261,30 @@ std::vector<std::string> read_regex_from_file(const std::string &file_path)
     return queries;
 }
 
+std::vector<std::string> split_string(const std::string& str, char delimiter)
+{
+    std::vector<std::string> result;
+    std::stringstream ss(str);
+    std::string token;
+
+    while (std::getline(ss, token, delimiter)) {
+        result.push_back(token);
+    }
+    
+    return result;
+}
+
 
 void query_ibf_dna(query_arguments &cmd_args, const bool &model)
 {
     omp_set_num_threads(cmd_args.t);
     TetrexIndex<index_structure::IBF, molecules::nucleotide> ibf;
     load_ibf(ibf, cmd_args.idx);
-    if(cmd_args.read_file)
-    {
-        run_multiple_queries(cmd_args, model, ibf);
-        return;
-    }
+    // if(cmd_args.read_file)
+    // {
+    //     run_multiple_queries(cmd_args, model, ibf);
+    //     return;
+    // }
     run_collection(cmd_args, model, ibf);
 }
 
@@ -254,11 +293,11 @@ void query_ibf_aa(query_arguments &cmd_args, const bool &model)
     omp_set_num_threads(cmd_args.t);
     TetrexIndex<index_structure::IBF, molecules::peptide> ibf;
     load_ibf(ibf, cmd_args.idx);
-    if(cmd_args.read_file)
-    {
-        run_multiple_queries(cmd_args, model, ibf);
-        return;
-    }
+    // if(cmd_args.read_file)
+    // {
+    //     run_multiple_queries(cmd_args, model, ibf);
+    //     return;
+    // }
     run_collection(cmd_args, model, ibf);
 }
 
@@ -267,11 +306,11 @@ void query_hibf_dna(query_arguments &cmd_args, const bool &model)
     omp_set_num_threads(cmd_args.t);
     TetrexIndex<index_structure::HIBF, molecules::nucleotide> ibf;
     load_ibf(ibf, cmd_args.idx);
-    if(cmd_args.read_file)
-    {
-        run_multiple_queries(cmd_args, model, ibf);
-        return;
-    }
+    // if(cmd_args.read_file)
+    // {
+    //     run_multiple_queries(cmd_args, model, ibf);
+    //     return;
+    // }
     run_collection(cmd_args, model, ibf);
 }
 
@@ -282,7 +321,19 @@ void query_hibf_aa(query_arguments &cmd_args, const bool &model)
     load_ibf(ibf, cmd_args.idx);
     if(cmd_args.read_file)
     {
-        run_multiple_queries(cmd_args, model, ibf);
+        std::vector<std::string> queries = read_regex_from_file(cmd_args.regex);
+        run_multiple_queries(cmd_args, queries, model, ibf);
+        return;
+    }
+    else if(cmd_args.conjunction)
+    {
+        std::vector<std::string> queries = split_string(cmd_args.regex, ':');
+        if(queries.size() == 1)
+        {
+            seqan3::debug_stream << "Did you use the correct delimiter (:)?" << std::endl;
+            return;
+        }
+        run_multiple_queries(cmd_args, queries, model, ibf);
         return;
     }
     run_collection(cmd_args, model, ibf);
