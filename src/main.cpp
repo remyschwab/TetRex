@@ -3,6 +3,7 @@
 #include "index_base.h"
 #include "query.h"
 #include "inspect_idx.h"
+#include "dGramIndex.cpp"
 #include <fstream>
 #include <omp.h>
 #include <stdlib.h>
@@ -89,11 +90,27 @@ void run_model(sharg::parser &parser)
     drive_query(cmd_args, true);
 }
 
+void run_dindex(sharg::parser &parser)
+{
+    dindex_arguments cmd_args{};
+    initialize_dgram_parser(parser, cmd_args);
+    try
+    {
+        parser.parse();
+    }
+    catch(const std::exception& ext)
+    {
+        seqan3::debug_stream << "[Error TetRex Dgram Indexing module " << ext.what() << "\n";
+        return;
+    }
+    drive_dindex(cmd_args);
+}
+
 int main(int argc, char *argv[])
 {
     sharg::parser top_level_parser{"tetrex", argc, argv,
                                              sharg::update_notifications::off,
-                                             {"index", "query", "inspect"}};
+                                             {"index", "query", "inspect", "track"}};
     top_level_parser.info.description.push_back("Index a NA|AA FASTA library or search a regular expression.");
     try
     {
@@ -112,6 +129,8 @@ int main(int argc, char *argv[])
         run_query(sub_parser);
     else if (sub_parser.info.app_name == std::string_view{"tetrex-inspect"})
         run_inspection(sub_parser);
+    else if (sub_parser.info.app_name == std::string_view{"tetrex-track"})
+        run_dindex(sub_parser);
     // else if (sub_parser.info.app_name == std::string_view{"tetrex-model"})
     //     run_model(sub_parser);
     else
