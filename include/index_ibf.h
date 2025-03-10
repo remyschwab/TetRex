@@ -14,10 +14,12 @@ class IBFIndex
 
 private:
     size_t bin_count_{};
-    size_t bin_size_{};
+    float fpr_{};
     uint8_t hash_count_{};
     std::vector<std::string> tech_bins_{};
     seqan::hibf::interleaved_bloom_filter ibf_{};
+    std::vector<std::vector<uint64_t>> user_bin_data_{};
+    size_t bin_size_{};
 
 
 public:
@@ -26,17 +28,15 @@ public:
 
     IBFIndex() = default;
 
-    explicit IBFIndex(size_t bin_size, uint8_t hc, std::vector<std::string> tech_bins, size_t bc) :
+    explicit IBFIndex(size_t bc, float fpr, uint8_t hc, std::vector<std::string> tech_bins) :
             bin_count_{bc},
-            bin_size_{bin_size},
+            fpr_{fpr},
             hash_count_{hc},
             tech_bins_{std::move(tech_bins)},
-            ibf_(seqan::hibf::bin_count{bin_count_},
-             seqan::hibf::bin_size{bin_size_},
-              seqan::hibf::hash_function_count{hash_count_}),
-            hits_(bin_count_, true),
-            agent_{ibf_.membership_agent()}
-    { }
+            hits_(bin_count_, true)
+    {
+        user_bin_data_.resize(bin_count_);
+    }
 
     std::pair<size_t, size_t> getShape() const
     {
@@ -68,12 +68,39 @@ public:
 
     void emplace(uint64_t const val, seqan::hibf::bin_index const idx)
     {
-        ibf_.emplace(val, idx);
+        // ibf_.emplace(val, idx);
+        user_bin_data_[idx.value].push_back(val);
     }
 
     float getFPR() const
     {
-        return 0.05; // Lol gotta fix this I guess...
+        return fpr_; // Lol gotta fix this I guess...
+    }
+
+    size_t find_largest_bin()
+    {
+        size_t max_count = 0;
+        for(auto bin: user_bin_data_)
+        {
+            max_count = bin.size() > max_count ? bin.size() : max_count;
+        }
+        return max_count;
+    }
+
+    void init_ibf()
+    {
+        size_t max_bin = find_largest_bin();
+        size_t bin_size_ = compute_bitcount(max_bin);
+        ibf_{seqan::hibf::bin_count{bin_count_},
+            seqan::hibf::bin_size{bin_size_},
+             seqan::hibf::hash_function_count{hash_count_}};
+        for(size_t idx = 0; idx < user_bin_data_.size(); ++idx)
+        {
+            for(size_t &&val: user_bin_data_[idx])
+            {
+                ibf_.emplace(val, idx);
+            }
+        }
     }
 
     void populate_index(uint8_t const ksize, auto &decomposer, auto &base_ref)
@@ -101,11 +128,21 @@ public:
             kseq_destroy(record);
             gzclose(handle);
         }
+        init_ibf();
         seqan3::debug_stream << "Indexed " << seq_count << " sequences across " << bin_count_ << " bins." << std::endl;
         if(bin_count_ == 1)
         {
             seqan3::debug_stream << "[WARNING] The indexed reference library was not split into bins. The TetRex runtime will be significantly slower." << std::endl;
         }
+    }
+
+    size_t compute_bitcount(const size_t bfn) const
+    {
+        size_t bitcount;
+        double numerator = -static_cast<double>(bfn) * std::log(fpr_);
+        double denominator = std::pow(std::log(2), 2);
+        bitcount = static_cast<size_t>(std::ceil(numerator / denominator));
+        return bitcount;
     }
 
     void spawn_agent()

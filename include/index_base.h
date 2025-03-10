@@ -66,7 +66,7 @@ class TetrexIndex
         {
             permanent_hibf_status_ = false;
             size_t bin_count = acid_libs_.size();
-            ibf_ = IBFIndex(bin_size, hc, acid_libs_, bin_count);
+            ibf_ = IBFIndex(bin_count, bin_size, hc, acid_libs_);
         }
 
         int calculate_m(size_t n, float p)
