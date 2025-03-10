@@ -52,7 +52,7 @@ class TetrexIndex
         }
 
         explicit TetrexIndex(uint8_t k,
-                            size_t bin_size,
+                            float fpr,
                             uint8_t hc,
                             std::string molecule,
                             std::vector<std::string> acid_libs,
@@ -66,7 +66,7 @@ class TetrexIndex
         {
             permanent_hibf_status_ = false;
             size_t bin_count = acid_libs_.size();
-            ibf_ = IBFIndex(bin_count, bin_size, hc, acid_libs_);
+            ibf_ = IBFIndex(bin_count, fpr, hc, acid_libs_);
         }
 
         int calculate_m(size_t n, float p)
@@ -96,8 +96,7 @@ class TetrexIndex
             ibf_.populate_index(k_, decomposer_, *this);
         }
 
-        template<typename idx_t>
-        void emplace(uint64_t const val, idx_t const idx)
+        void emplace(uint64_t const val, size_t const idx)
         {
             ibf_.emplace(val, idx);
         }

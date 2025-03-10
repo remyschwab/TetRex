@@ -33,6 +33,9 @@ public:
             fpr_{fpr},
             hash_count_{hc},
             tech_bins_{std::move(tech_bins)},
+            ibf_(seqan::hibf::bin_count{bin_count_},
+                seqan::hibf::bin_size{bin_size_},
+                 seqan::hibf::hash_function_count{hash_count_}),
             hits_(bin_count_, true)
     {
         user_bin_data_.resize(bin_count_);
@@ -66,15 +69,14 @@ public:
         return ibf_;
     }
 
-    void emplace(uint64_t const val, seqan::hibf::bin_index const idx)
+    void emplace(uint64_t const val, size_t const idx)
     {
-        // ibf_.emplace(val, idx);
-        user_bin_data_[idx.value].push_back(val);
+        user_bin_data_[idx].push_back(val);
     }
 
     float getFPR() const
     {
-        return fpr_; // Lol gotta fix this I guess...
+        return fpr_;
     }
 
     size_t find_largest_bin()
@@ -91,13 +93,15 @@ public:
     {
         size_t max_bin = find_largest_bin();
         size_t bin_size_ = compute_bitcount(max_bin);
-        ibf_{seqan::hibf::bin_count{bin_count_},
-            seqan::hibf::bin_size{bin_size_},
-             seqan::hibf::hash_function_count{hash_count_}};
-        for(size_t idx = 0; idx < user_bin_data_.size(); ++idx)
+        seqan::hibf::interleaved_bloom_filter tmp_ibf{seqan::hibf::bin_count{bin_count_}, seqan::hibf::bin_size{bin_size_}, seqan::hibf::hash_function_count{hash_count_}};
+        ibf_ = tmp_ibf;
+        std::move(tmp_ibf);
+        for(size_t i = 0; i < user_bin_data_.size(); ++i)
         {
-            for(size_t &&val: user_bin_data_[idx])
+            seqan::hibf::bin_index idx{i};
+            for(size_t &&val: user_bin_data_[i])
             {
+
                 ibf_.emplace(val, idx);
             }
         }
@@ -111,7 +115,7 @@ public:
         size_t seq_count{};
         for(size_t i = 0; i < tech_bins_.size(); ++i) // Iterate over bins
         {
-            seqan::hibf::bin_index idx{i};
+            // seqan::hibf::bin_index idx{i};
             handle = gzopen(tech_bins_[i].c_str(), "r");
             record = kseq_init(handle);
             while ((status = kseq_read(record)) >= 0) // Iterate over bin records
@@ -123,7 +127,7 @@ public:
                     continue;
                 }
                 seq_count++;
-                decomposer.decompose_record(record_view, idx, base_ref);
+                decomposer.decompose_record(record_view, i, base_ref);
             }
             kseq_destroy(record);
             gzclose(handle);
