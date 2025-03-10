@@ -3,6 +3,7 @@
 
 #include "utils.h"
 #include "kseq.h"
+#include "hibf/config.hpp"
 
 
 
@@ -42,9 +43,8 @@ class DGramIndex
                 create_residue_maps();
             }
 
-    void track_record(std::vector<std::vector<uint64_t>> &dgrams, const std::string &ref_)
+    void track_record(std::vector<uint64_t> &bin_dgrams, const std::string &ref_)
     {
-        std::vector<uint64_t> inner_list;
         for(size_t i = 0; i < ref_.length()-span_+1; ++i)
         {
             uint64_t dmer = 0;
@@ -55,37 +55,54 @@ class DGramIndex
             dmer |= cterm_residue;
             dmer = dmer<<32;
             dmer |= dist_;
-            inner_list.push_back(dmer);
+            bin_dgrams.push_back(dmer);
         }
-        dgrams.push_back(inner_list);
     }
 
 
     void track_bins()
     {
-        std::vector<std::vector<std::vector<uint64_t>>> multigrams;
+        std::vector<std::vector<uint64_t>> dgrams;
         gzFile handle{};
         kseq_t *record{};
         int status{};
-        size_t seq_count{};
         for(size_t i = 0; i < user_bins_.size(); ++i) // Iterate over bins
         {
+            std::vector<uint64_t> bin_dgrams;
             for(dist_ = l_; dist_ <= u_; ++dist_)
             {
-                seqan3::debug_stream << user_bins_[i].c_str() << " : " << dist_ << std::endl;
                 span_ = dist_ + pad_ + pad_;
-                std::vector<std::vector<uint64_t>> dgrams;
                 handle = gzopen(user_bins_[i].c_str(), "r");
                 record = kseq_init(handle);
-                while ((status = kseq_read(record)) >= 0) // Iterate over bin records
+                while((status = kseq_read(record)) >= 0) // Iterate over bin records
                 {
                     if(record->seq.l < span_) continue;
-                    track_record(dgrams, record->seq.s);
+                    track_record(bin_dgrams, record->seq.s);
                 }
                 kseq_destroy(record);
                 gzclose(handle);
             }
+            dgrams.push_back(bin_dgrams);
         }
+        populate_index(dgrams);
+
+    }
+
+
+    void populate_index(const std::vector<std::vector<uint64_t>> &multigrams)
+    {
+        auto get_user_bin_data = [&](size_t const user_bin_id, seqan::hibf::insert_iterator it)
+        {
+            size_t const kmer_set_num = user_bin_id % 3u;
+            size_t const input_user_bin_idx = user_bin_id / 3u;
+            for(auto value : multigrams[input_user_bin_idx+kmer_set_num]) it = value;
+        };
+        seqan::hibf::config config{.input_fn = get_user_bin_data,
+            .number_of_user_bins = user_bins_.size() * 3u,
+            .number_of_hash_functions = hash_count_,
+            .maximum_fpr = fpr_,
+            .threads = 1u};
+        dibf_ = seqan::hibf::hierarchical_interleaved_bloom_filter{config};
     }
 
 
@@ -132,7 +149,31 @@ class DGramIndex
     void create_distance_maps()
     {
         // No reduction
-        for(size_t i = 0; i < 128; ++i) dmap_[i] = i;
+        // for(size_t i = 0; i < 128; ++i) dmap_[i] = i;
+        for(size_t i = 0; i < 64; ++i) dmap_[i] = i;
+        for(size_t i = 64; i < 128; ++i) dmap_[i] = 64;
+    }
+
+    bitvector populate_bitvector(auto membership_results)
+    {
+        bitvector hits(user_bins_.size());
+        for(auto && id: membership_results)
+        {
+            hits[(id/3)] = 0b1;
+        }
+        return hits;
+    }
+
+    bitvector query(uint64_t const kmer)
+    {
+        std::vector<uint64_t> stupid_vector{kmer};
+        auto &results = agent_->membership_for(stupid_vector, 1u);
+        return populate_bitvector(results);
+    }
+
+    void spawn_agent()
+    {
+        agent_.emplace(dibf_.membership_agent());
     }
 
     // seqan3::interleaved_bloom_filter<seqan3::data_layout::uncompressed> getDIBF()
