@@ -94,8 +94,7 @@ public:
         size_t max_bin = find_largest_bin();
         size_t bin_size_ = compute_bitcount(max_bin);
         seqan::hibf::interleaved_bloom_filter tmp_ibf{seqan::hibf::bin_count{bin_count_}, seqan::hibf::bin_size{bin_size_}, seqan::hibf::hash_function_count{hash_count_}};
-        ibf_ = tmp_ibf;
-        std::move(tmp_ibf);
+        ibf_ = std::move(tmp_ibf);
         for(size_t i = 0; i < user_bin_data_.size(); ++i)
         {
             seqan::hibf::bin_index idx{i};
