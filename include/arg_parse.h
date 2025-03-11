@@ -16,7 +16,6 @@ struct index_arguments
     std::string ibf = idx ? "ibf" : "hibf";
     std::string ofile;
     std::vector<std::filesystem::path> acid_libs{};
-    size_t bin_size = 10000;
     uint8_t hash_count = 3;
     bool dna{false};
     std::string molecule = dna ? "na" : "aa";
@@ -29,7 +28,6 @@ inline void initialise_index_parser(sharg::parser &parser, index_arguments &args
     parser.info.version = "1.0.0";
     parser.add_option(args.k, sharg::config{'k', "ksize", "size of kmers"});
     parser.add_option(args.fpr, sharg::config{'p', "fpr", "Bloom Filter False Positive Rate"});
-    parser.add_option(args.bin_size, sharg::config{'s', "bin_size", "Size of bins"});
     parser.add_option(args.hash_count, sharg::config{'c', "hash_count", "Number of hash functions. NOTE: MORE THAN 4 IS SLOW"});
     parser.add_option(args.t, sharg::config{'t', "threads", "Number of threads"});
     parser.add_flag(args.dna, sharg::config{'n', "nucleic_acid", "Index a library of Nucleic Acids (Default is Amino Acid)"});

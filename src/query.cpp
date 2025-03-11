@@ -280,6 +280,7 @@ void query_ibf_dna(query_arguments &cmd_args, const bool &model)
     omp_set_num_threads(cmd_args.t);
     TetrexIndex<index_structure::IBF, molecules::nucleotide> ibf;
     load_ibf(ibf, cmd_args.idx);
+    ibf.spawn_agent();
     // if(cmd_args.read_file)
     // {
     //     run_multiple_queries(cmd_args, model, ibf);
@@ -293,6 +294,7 @@ void query_ibf_aa(query_arguments &cmd_args, const bool &model)
     omp_set_num_threads(cmd_args.t);
     TetrexIndex<index_structure::IBF, molecules::peptide> ibf;
     load_ibf(ibf, cmd_args.idx);
+    ibf.spawn_agent();
     // if(cmd_args.read_file)
     // {
     //     run_multiple_queries(cmd_args, model, ibf);
