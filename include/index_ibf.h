@@ -13,9 +13,9 @@ class IBFIndex
 {
 
 private:
-    size_t bin_count_{};
-    float fpr_{};
-    uint8_t hash_count_{};
+    size_t bin_count_{1u};
+    float fpr_{.25};
+    uint8_t hash_count_{1u};
     std::vector<std::string> tech_bins_{};
     seqan::hibf::interleaved_bloom_filter ibf_{};
     std::vector<std::vector<uint64_t>> user_bin_data_{};
@@ -27,6 +27,7 @@ public:
     seqan::hibf::interleaved_bloom_filter::membership_agent_type agent_{};
 
     IBFIndex() = default;
+    ~IBFIndex() = default;
 
     explicit IBFIndex(size_t bc, float fpr, uint8_t hc, std::vector<std::string> tech_bins) :
             bin_count_{bc},
@@ -79,13 +80,10 @@ public:
         return fpr_;
     }
 
-    size_t find_largest_bin()
+    size_t find_largest_bin() const
     {
         size_t max_count = 0;
-        for(auto bin: user_bin_data_)
-        {
-            max_count = bin.size() > max_count ? bin.size() : max_count;
-        }
+        for(auto &&bin: user_bin_data_) max_count = bin.size() > max_count ? bin.size() : max_count;
         return max_count;
     }
 
@@ -93,16 +91,12 @@ public:
     {
         size_t max_bin = find_largest_bin();
         size_t bin_size_ = compute_bitcount(max_bin);
-        seqan::hibf::interleaved_bloom_filter tmp_ibf{seqan::hibf::bin_count{bin_count_}, seqan::hibf::bin_size{bin_size_}, seqan::hibf::hash_function_count{hash_count_}};
-        ibf_ = std::move(tmp_ibf);
+        ibf_ = seqan::hibf::interleaved_bloom_filter{seqan::hibf::bin_count{bin_count_}, seqan::hibf::bin_size{bin_size_}, seqan::hibf::hash_function_count{hash_count_}};
+        // ibf_ = std::move(tmp_ibf);
         for(size_t i = 0; i < user_bin_data_.size(); ++i)
         {
             seqan::hibf::bin_index idx{i};
-            for(size_t &&val: user_bin_data_[i])
-            {
-
-                ibf_.emplace(val, idx);
-            }
+            for(auto val: user_bin_data_[i]) ibf_.emplace(val, idx);
         }
     }
 
@@ -114,7 +108,6 @@ public:
         size_t seq_count{};
         for(size_t i = 0; i < tech_bins_.size(); ++i) // Iterate over bins
         {
-            // seqan::hibf::bin_index idx{i};
             handle = gzopen(tech_bins_[i].c_str(), "r");
             record = kseq_init(handle);
             while ((status = kseq_read(record)) >= 0) // Iterate over bin records
@@ -141,10 +134,9 @@ public:
 
     size_t compute_bitcount(const size_t bfn) const
     {
-        size_t bitcount;
         double numerator = -static_cast<double>(bfn) * std::log(fpr_);
         double denominator = std::pow(std::log(2), 2);
-        bitcount = static_cast<size_t>(std::ceil(numerator / denominator));
+        size_t bitcount = static_cast<size_t>(std::ceil(numerator / denominator));
         return bitcount;
     }
 
