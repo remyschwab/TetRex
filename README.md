@@ -1,4 +1,4 @@
-# Search for Regular Expressions in Large Datasets
+# TetRex
 Despite the efficiency of modern day tools for Regular Expression search, their runtime is often dominated by the size of the text. We present TetRex, a novel algorithm for regular expression matching that leverages the (Hierarchical) Interleaved Bloom Filter as an index. Regular Expressions are given as input in the command line and support the following operations:
 
 1. **|** - Or
@@ -107,6 +107,7 @@ tetrex query sprot_split.ibf "LMA(E|Q)GLYN"
 Query Time: 0.007119
 ```
 
+### Critical Note
 The `fasta-splitter.pl` tool is available in the `utils` folder in this repository. The original tool is authored and distributed by [Kirill Kryukov](https://kirill-kryukov.com/study/tools/fasta-splitter/).
 
 Note that, for now, we leave the task of preprocessing the database up to the user. The above example simply splits the database into equal sized bins using `fasta-splitter.pl`. You may choose to use a different program for splitting, cluster your sequences, split the bins into variable sizes, etc. However, the database must **at least** be split into bins in order to see any significant runtime improvements from the `TetRex` algorithm.
