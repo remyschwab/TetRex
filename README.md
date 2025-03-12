@@ -1,11 +1,10 @@
 # TetRex
-Despite the efficiency of modern day tools for Regular Expression search, their runtime is often dominated by the size of the text. We present TetRex, a novel algorithm for regular expression matching that leverages the (Hierarchical) Interleaved Bloom Filter as an index. Regular Expressions are given as input in the command line and support the following operations:
+Despite the efficiency of modern day tools for Regular Expression search, their runtime is often dominated by the size of the text. We present TetRex, a novel algorithm for regular expression matching that leverages the (Hierarchical) Interleaved Bloom Filter as an index. Regular Expressions are given as input in the command line and support extended POSIX style Regular Expressions:
 
 1. **|** - Or
 2. __*__ - Zero or more repetitions
 3. **+** - One or More repetitions
 4. **?** - Optional Character
-
 
 ## Installation
 
