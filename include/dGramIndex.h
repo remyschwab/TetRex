@@ -29,11 +29,11 @@ class DGramIndex
 
     // Rule of 5
     DGramIndex() = default;
-    ~DGramIndex() = default;
     DGramIndex(const DGramIndex &) = default;
-    DGramIndex & operator=(DGramIndex &) = default;
+    DGramIndex & operator=(const DGramIndex &) = default;
     DGramIndex(DGramIndex&&) noexcept = default;
-    DGramIndex & operator=(DGramIndex &&) = default;
+    DGramIndex & operator=(DGramIndex &&) noexcept = default;
+    ~DGramIndex() = default;
     
 
 
@@ -73,10 +73,10 @@ class DGramIndex
         gzFile handle{};
         kseq_t *record{};
         int status{};
-        for(size_t i = 0; i < user_bins_.size(); ++i) // Iterate over bins
+        for(dist_ = l_; dist_ <= u_; ++dist_)
         {
             std::vector<uint64_t> bin_dgrams;
-            for(dist_ = l_; dist_ <= u_; ++dist_)
+            for(size_t i = 0; i < user_bins_.size(); ++i) // Iterate over bins
             {
                 span_ = dist_ + pad_ + pad_;
                 handle = gzopen(user_bins_[i].c_str(), "r");
@@ -156,9 +156,9 @@ class DGramIndex
     void create_distance_maps()
     {
         // No reduction
-        // for(size_t i = 0; i < 128; ++i) dmap_[i] = i;
-        for(size_t i = 0; i < 64; ++i) dmap_[i] = i;
-        for(size_t i = 64; i < 128; ++i) dmap_[i] = 64;
+        for(size_t i = 0; i < 128; ++i) dmap_[i] = i;
+        // for(size_t i = 0; i < 64; ++i) dmap_[i] = i;
+        // for(size_t i = 64; i < 128; ++i) dmap_[i] = 64;
     }
 
     bitvector populate_bitvector(auto membership_results)
@@ -180,7 +180,7 @@ class DGramIndex
         agent_.emplace(dibf_.membership_agent());
     }
 
-    seqan::hibf::hierarchical_interleaved_bloom_filter getDIBF()
+    seqan::hibf::hierarchical_interleaved_bloom_filter & getDIBF()
     {
         return dibf_;
     }
