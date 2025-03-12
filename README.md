@@ -37,7 +37,7 @@ export SDKROOT="$(g++-11 -v 2>&1 | sed -n 's@.*--with-sysroot=\([^ ]*\).*@\1@p')
 `TetRex` offers two main commands [index & query] and one utility command [inspect]:
 ```shell
 ## Construct an HIBF index of nucleic acids, with kmer size = 3, 3 hash functions, & a FPR of 0.05, each input file represents a bin
-tetrex index -m na -k 3 -o test data/dna_example_split/*.fa
+tetrex index -n -k 3 test data/dna_example_split/*.fa
 ## Query RegEx
 tetrex query test.ibf "A(C+|G+)T" 
 #TetRex/data/dna_example_split/sequence1.fa >Sequence1      ACT
@@ -75,7 +75,7 @@ fasta-splitter.pl --n-parts 1024 --out-dir sprot_split uniprot_sprot.fasta
 
 ## Create an HIBF index over the DB
 cd ..
-tetrex index -k 6 -o sprot_split -i hibf -m aa sprot_bins/*.fasta
+tetrex index sprot_split sprot_bins/*.fasta
 
 ## Query a domain
 tetrex query sprot_split.ibf "LMA(E|Q)GLYN"
