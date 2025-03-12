@@ -27,7 +27,14 @@ class DGramIndex
         std::array<uint8_t, 128> dmap_{}; 
 
 
+    // Rule of 5
     DGramIndex() = default;
+    ~DGramIndex() = default;
+    DGramIndex(const DGramIndex &) = default;
+    DGramIndex & operator=(DGramIndex &) = default;
+    DGramIndex(DGramIndex&&) noexcept = default;
+    DGramIndex & operator=(DGramIndex &&) = default;
+    
 
 
     explicit DGramIndex(size_t lower, size_t upper, size_t pad, uint8_t hc, float fpr, std::vector<std::filesystem::path> user_bins) :
@@ -157,10 +164,7 @@ class DGramIndex
     bitvector populate_bitvector(auto membership_results)
     {
         bitvector hits(user_bins_.size());
-        for(auto && id: membership_results)
-        {
-            hits[(id/3)] = 0b1;
-        }
+        for(auto && id: membership_results) hits[(id/3)] = 0b1;
         return hits;
     }
 
@@ -176,15 +180,15 @@ class DGramIndex
         agent_.emplace(dibf_.membership_agent());
     }
 
-    // seqan3::interleaved_bloom_filter<seqan3::data_layout::uncompressed> getDIBF()
-    // {
-    //     return dibf_;
-    // }
+    seqan::hibf::hierarchical_interleaved_bloom_filter getDIBF()
+    {
+        return dibf_;
+    }
 
 
     template<class Archive>
     void serialize(Archive &archive)
     {
-        archive(l_, u_, pad_, hash_count_, fpr_);
+        archive(l_, u_, pad_, hash_count_, fpr_, user_bins_, dibf_);
     }
 };
