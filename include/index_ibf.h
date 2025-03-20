@@ -6,8 +6,6 @@
 
 #include "hibf/interleaved_bloom_filter.hpp"
 
-KSEQ_INIT(gzFile, gzread)
-
 
 class IBFIndex
 {
