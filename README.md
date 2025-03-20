@@ -1,4 +1,4 @@
-# TetRex
+# TetRex [![DOI](https://zenodo.org/badge/534613146.svg)](https://doi.org/10.5281/zenodo.15056085)
 Despite the efficiency of modern day tools for Regular Expression search, their runtime is often dominated by the size of the text. We present TetRex, a novel algorithm for regular expression matching that leverages the (Hierarchical) Interleaved Bloom Filter as an index. Regular Expressions are given as input in the command line and support extended POSIX style Regular Expressions:
 
 1. **|** - Or
