@@ -24,7 +24,7 @@ class DGramIndex
     public:
         std::optional<seqan::hibf::hierarchical_interleaved_bloom_filter::membership_agent_type> agent_{};
         std::array<uint8_t, 256> aamap_{};
-        std::array<uint8_t, 128> dmap_{}; 
+        std::array<uint8_t, 128> dmap_{};
 
 
     // Rule of 5
@@ -35,8 +35,6 @@ class DGramIndex
     DGramIndex & operator=(DGramIndex &&) noexcept = default;
     ~DGramIndex() = default;
     
-
-
     explicit DGramIndex(size_t lower, size_t upper, size_t pad, uint8_t hc, float fpr, std::vector<std::filesystem::path> user_bins) :
             l_{lower},
             u_{upper},
