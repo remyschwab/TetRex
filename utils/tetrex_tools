@@ -1,4 +1,4 @@
-#! /opt/homebrew/bin/python3.10
+#!/usr/bin/env
 
 """
 A small python utility program for typical tasks associated with TetRex including:
