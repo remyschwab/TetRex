@@ -343,6 +343,7 @@ void query_hibf_aa(query_arguments &cmd_args, const bool &model)
 
 void drive_query(query_arguments &cmd_args, const bool &model)
 {
+    if(cmd_args.regex == "-") std::cin >> cmd_args.regex;
     index_params params;
     load_params(params, cmd_args.idx);
     if(!params.is_hibf_ && params.molecule_ == "na")
