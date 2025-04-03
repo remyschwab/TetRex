@@ -112,10 +112,15 @@ The `fasta-splitter.pl` tool is available in the `utils` folder in this reposito
 Note that, for now, we leave the task of preprocessing the database up to the user. The above example simply splits the database into equal sized bins using `fasta-splitter.pl`. You may choose to use a different program for splitting, cluster your sequences, split the bins into variable sizes, etc. However, the database must **at least** be split into bins in order to see any significant runtime improvements from the `TetRex` algorithm.
 
 ### Using the Prosite Pattern to RegEx Converter
-You can use the python executable tetrex_tools.py to convert patterns in the Prosite syntax to POSIX style RegEx's
+You can use the python executable `tetrex_tools` to convert patterns in the Prosite syntax to POSIX style RegEx's
 ```shell
-./tetrex_tools.py '[LIVMFGAC]-[LIVMTADN]-[LIVFSA]-D-[ST]-G-[STAV]-[STAPDENQ]-{GQ}-[LIVMFSTNC]-{EGK}-[LIVMFGTA]'
-(L|I|V|M|F|G|A|C)(L|I|V|M|T|A|D|N)(L|I|V|F|S|A)D(S|T)G(S|T|A|V)(S|T|A|P|D|E|N|Q)(C|I|S|H|T|K|P|A|M|V|Y|E|W|F|R|N|L|D)(L|I|V|M|F|S|T|N|C)(C|I|M|Q|S|Y|V|W|F|H|R|T|N|L|P|A|D)(L|I|V|M|F|G|T|A)
+tetrex_tools convert -s prosite -i 'LMA[EQ]GLYN'
+```
+
+### Reading motifs from `stdin`
+For motifs that become long and complex as POSIX expressions, we recommend piping the output of `tetrex_tools` directly to `tetrex query`
+```shell
+tetrex_tools convert -s prosite -i '[LIVMFGAC]-[LIVMTADN]-[LIVFSA]-D-[ST]-G-[STAV]-[STAPDENQ]-{GQ}-[LIVMFSTNC]-{EGK}-[LIVMFGTA]' | tetrex query $IDX -
 ```
 
 ## Notes
