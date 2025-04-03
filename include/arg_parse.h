@@ -46,7 +46,7 @@ struct query_arguments
     bool conjunction{false};
     int text_length;
     std::filesystem::path idx{};
-    std::string regex;
+    std::string regex = "-";
     std::string query;
 };
 
