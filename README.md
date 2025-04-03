@@ -115,6 +115,7 @@ Note that, for now, we leave the task of preprocessing the database up to the us
 You can use the python executable `tetrex_tools` to convert patterns in the Prosite syntax to POSIX style RegEx's
 ```shell
 tetrex_tools convert -s prosite -i 'LMA[EQ]GLYN'
+LMA(E|Q)GLYN
 ```
 
 ### Reading motifs from `stdin`
