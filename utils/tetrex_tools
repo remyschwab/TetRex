@@ -1,4 +1,4 @@
-#!/usr/bin/env
+#!/usr/bin/env python3
 
 """
 A small python utility program for typical tasks associated with TetRex including:
@@ -11,6 +11,15 @@ Remy Schwab, April 3rd 2025
 
 import sys
 import argparse
+
+MIN_VERSION = (3, 10, 0)
+
+if sys.version_info < MIN_VERSION:
+    raise EnvironmentError(
+        "Python version too low, required at least {}".format(
+            '.'.join(str(n) for n in MIN_VERSION)
+        )
+    )
 
 fourWobble = "AC|GT||."
 
@@ -117,8 +126,8 @@ def convert_prosite_pattern(pattern):
             case 'x(0,1)': ## Optional Wildcard
                 posix_pattern.append("({})?".format(AA_UNION))
             case dis if dis.startswith('['): ## Disjunction
-                posix_pattern.append(make_union_iter(dis))
-            case dis if dis.startswith('{'): ## Negative Disjunction
+                posix_pattern.append(make_union_iter(tkn))
+            case ndis if ndis.startswith('{'): ## Negative Disjunction
                 posix_pattern.append(make_union_iter(AA_SET-set(tkn)))
             case _: ## Just a plain old AA
                 posix_pattern.append(tkn)
