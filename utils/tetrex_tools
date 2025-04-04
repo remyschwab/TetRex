@@ -142,7 +142,7 @@ def main(args):
         if args.style == "prosite":
             print(convert_prosite_pattern(args.input_pattern))
     else:
-        computeRegEx(args.input_pattern)
+        print(computeRegEx(args.input_pattern))
 
 
 if __name__ == "__main__":

@@ -114,7 +114,7 @@ Note that, for now, we leave the task of preprocessing the database up to the us
 ### Using the Prosite Pattern to RegEx Converter
 You can use the python executable `tetrex_tools` to convert patterns in the Prosite syntax to POSIX style RegEx's
 ```shell
-tetrex_tools convert -s prosite -i 'LMA[EQ]GLYN'
+tetrex_tools convert -s prosite -i 'L-M-A-[EQ]-G-L-Y-N'
 LMA(E|Q)GLYN
 ```
 
