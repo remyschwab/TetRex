@@ -112,6 +112,43 @@ def make_union_iter(sub_disjunction):
     return "(" + "|".join([_ for _ in sub_disjunction if _ not in '[]']) + ")"
 
 
+def convert_elm_union(disjunction):
+    """The input to this function is a list that should be treated as a stack!"""
+    capture_group = []
+    negative = False
+    while len(disjunction) > 0:
+        itm = disjunction.pop()
+        if itm == '^':
+            negative = True
+            continue
+        capture_group.append(itm)
+    if negative:
+        return "(" + "|".join(AA_SET-set(capture_group)) + ")"
+    return "(" + "|".join(capture_group) + ")"
+
+
+def convert_elm_pattern(pattern):
+    """ELM motifs are already in a POSIX compliant RegEx but just don't work with TetRex..."""
+    posix = []
+    grouped = False
+    stack = list()
+    for tkn in pattern:
+        match tkn:
+            case '.':
+                posix.append(AA_UNION)
+            case '[':
+                grouped = True
+            case ']':
+                add_to = convert_elm_union(stack)
+                grouped = False
+                posix.append(add_to)
+            case _:
+                if grouped:
+                    stack.append(tkn)
+                    continue
+                posix.append(tkn)
+    return "".join(posix)
+
 def convert_prosite_pattern(pattern):
     """
     Scanning prosite patterns one character at a time is limited
@@ -141,6 +178,8 @@ def main(args):
     if args.subparser == "convert":
         if args.style == "prosite":
             print(convert_prosite_pattern(args.input_pattern))
+        elif args.style == "elm":
+            print(convert_elm_pattern(args.input_pattern))
     else:
         print(computeRegEx(args.input_pattern))
 
