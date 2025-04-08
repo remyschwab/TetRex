@@ -84,3 +84,17 @@ inline void initialise_inspection_parser(sharg::parser &parser, inspection_argum
     parser.info.version = "1.0.0";
     parser.add_positional_option(args.idx, sharg::config{.description="Path to IBF acid index"});
 }
+
+
+struct antibody_index_arguments
+{
+    std::vector<std::filesystem::path> canonical_alignments{};
+};
+
+inline void initialize_antibody_indexing_parser(sharg::parser &parser, antibody_index_arguments &args)
+{
+    parser.info.author = "Remy Schwab";
+    parser.info.version = "1.0.0";
+    parser.add_positional_option(args.canonical_alignments, sharg::config{.description="List of canonical alignments"});
+}
+
