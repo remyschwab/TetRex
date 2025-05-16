@@ -1,6 +1,7 @@
 #include <array>
 #include <string>
 #include <iostream>
+#include <ranges>
 
 #include "seqan3/core/debug_stream/all.hpp"
 #include "arg_parse.h"
@@ -24,7 +25,9 @@ constexpr std::array<unsigned char, UCHAR_MAX + 1> make_aa_lookup_table() {
     table[0] = 27; // Maybe change this? Probably doesn't matter tho
 
     // Amino acids in standard order     01234567890123456789
-    constexpr const char* amino_acids = "ACDEFGHIKLMNPQRSTVWY";
+    constexpr const char* amino_acids = "ACDEFGHIKLMNPQRSTVWY"; // No reduction
+    // constexpr const char* amino_acids = "ACDEFGHIKLMNPQRSTVWY"; // Li reduction
+    // constexpr const char* amino_acids = "ACDEFGHIKLMNPQRSTVWY"; // Murphy reduction
 
     for (unsigned char i = 0; i < 20; ++i) {
         char aa = amino_acids[i];
@@ -87,139 +90,200 @@ namespace Antibody_Utilities
     
     #if defined(__AVX2__) && defined(__x86_64__)
         #include <immintrin.h>
-        int simd_identity(const std::vector<uint8_t>& a, const std::vector<uint8_t>& b) {
-            size_t length = a.size();
-            if (b.size() != length) {
-                throw std::runtime_error("Vectors must be the same length.");
+        #include <vector>
+        #include <cstdint>
+        #include <stdexcept>
+        
+        float compute_sequence_identity(const std::vector<uint8_t>& seq1, const std::vector<uint8_t>& seq2)
+        {
+            if (seq1.size() != seq2.size()) {
+                throw std::invalid_argument("Sequences must be of equal length.");
             }
-    
-            const uint8_t* pa = a.data();
-            const uint8_t* pb = b.data();
-    
-            int matches = 0;
+        
+            size_t matched = 0;
+            size_t valid_positions = 0;
             size_t i = 0;
-    
-            for (; i + 31 < length; i += 32) {
-                __m256i va = _mm256_loadu_si256(reinterpret_cast<const __m256i*>(pa + i));
-                __m256i vb = _mm256_loadu_si256(reinterpret_cast<const __m256i*>(pb + i));
-                __m256i cmp = _mm256_cmpeq_epi8(va, vb);
-                int mask = _mm256_movemask_epi8(cmp);
-                matches += __builtin_popcount(mask);
+            size_t len = seq1.size();
+        
+            const __m256i zero = _mm256_set1_epi8(0);
+            const __m256i skip = _mm256_set1_epi8(124);
+        
+            for (; i + 31 < len; i += 32) {
+                __m256i v1 = _mm256_loadu_si256(reinterpret_cast<const __m256i*>(&seq1[i]));
+                __m256i v2 = _mm256_loadu_si256(reinterpret_cast<const __m256i*>(&seq2[i]));
+        
+                // Compare for equality
+                __m256i eq = _mm256_cmpeq_epi8(v1, v2);
+        
+                // Valid mask: (v1 != 0) & (v1 != 124) & (v2 != 0) & (v2 != 124)
+                __m256i v1_neq_zero = _mm256_cmpgt_epi8(_mm256_xor_si256(v1, zero), zero); // v1 != 0
+                __m256i v1_neq_124  = _mm256_cmpgt_epi8(_mm256_xor_si256(v1, skip), zero); // v1 != 124
+                __m256i v2_neq_zero = _mm256_cmpgt_epi8(_mm256_xor_si256(v2, zero), zero);
+                __m256i v2_neq_124  = _mm256_cmpgt_epi8(_mm256_xor_si256(v2, skip), zero);
+        
+                __m256i valid = _mm256_and_si256(_mm256_and_si256(v1_neq_zero, v1_neq_124),
+                                                _mm256_and_si256(v2_neq_zero, v2_neq_124));
+        
+                // Match only where valid
+                __m256i match = _mm256_and_si256(eq, valid);
+        
+                // Count bits
+                uint32_t match_mask = _mm256_movemask_epi8(match);
+                uint32_t valid_mask = _mm256_movemask_epi8(valid);
+        
+                matched += __builtin_popcount(match_mask);
+                valid_positions += __builtin_popcount(valid_mask);
             }
-    
-            for (; i < length; ++i)
-                if (pa[i] == pb[i]) ++matches;
-    
-            return matches;
+        
+            // Handle remaining elements
+            for (; i < len; ++i) {
+                uint8_t a = seq1[i], b = seq2[i];
+                if ((a != 0 && a != 124) && (b != 0 && b != 124)) {
+                    ++valid_positions;
+                    if (a == b) ++matched;
+                }
+            }
+        
+            return valid_positions > 0 ? static_cast<float>(matched) / valid_positions : 0.0f;
         }
+    
     
     #elif defined(__ARM_NEON) || defined(__aarch64__)
         #include <arm_neon.h>
-        int simd_identity(const std::vector<uint8_t>& a, const std::vector<uint8_t>& b) {
-            size_t length = a.size();
-            if (b.size() != length) {
-                throw std::runtime_error("Vectors must be the same length.");
+        #include <vector>
+        #include <cstdint>
+        #include <stdexcept>
+        
+        float compute_sequence_identity(const std::vector<uint8_t>& seq1, const std::vector<uint8_t>& seq2)
+        {
+            if (seq1.size() != seq2.size()) {
+                throw std::invalid_argument("Sequences must be of equal length.");
             }
-    
-            const uint8_t* pa = a.data();
-            const uint8_t* pb = b.data();
-    
-            int matches = 0;
+        
+            size_t matched = 0;
+            size_t valid_positions = 0;
             size_t i = 0;
-    
-            for (; i + 15 < length; i += 16) {
-                uint8x16_t va = vld1q_u8(pa + i);
-                uint8x16_t vb = vld1q_u8(pb + i);
-                uint8x16_t cmp = vceqq_u8(va, vb);
-    
-                // Accumulate matches (each match is 0xFF)
-                uint64x2_t wide = vpaddlq_u32(vpaddlq_u16(vpaddlq_u8(cmp)));
-                matches += vgetq_lane_u64(wide, 0) / 255;
-                matches += vgetq_lane_u64(wide, 1) / 255;
+            size_t len = seq1.size();
+        
+            const uint8x16_t zero = vdupq_n_u8(0);
+            const uint8x16_t skip = vdupq_n_u8(124);
+        
+            for (; i + 15 < len; i += 16) {
+                uint8x16_t v1 = vld1q_u8(&seq1[i]);
+                uint8x16_t v2 = vld1q_u8(&seq2[i]);
+        
+                uint8x16_t eq = vceqq_u8(v1, v2);
+        
+                uint8x16_t v1_valid = vandq_u8(vcgtq_u8(veorq_u8(v1, zero), zero),
+                                            vcgtq_u8(veorq_u8(v1, skip), zero));
+                uint8x16_t v2_valid = vandq_u8(vcgtq_u8(veorq_u8(v2, zero), zero),
+                                            vcgtq_u8(veorq_u8(v2, skip), zero));
+                uint8x16_t valid = vandq_u8(v1_valid, v2_valid);
+        
+                uint8x16_t match = vandq_u8(eq, valid);
+        
+                // Count set bits
+                for (int j = 0; j < 16; ++j) {
+                    if (valid[j]) {
+                        ++valid_positions;
+                        if (match[j]) ++matched;
+                    }
+                }
             }
-    
-            for (; i < length; ++i)
-                if (pa[i] == pb[i]) ++matches;
-    
-            return matches;
+        
+            for (; i < len; ++i) {
+                uint8_t a = seq1[i], b = seq2[i];
+                if ((a != 0 && a != 124) && (b != 0 && b != 124)) {
+                    ++valid_positions;
+                    if (a == b) ++matched;
+                }
+            }
+        
+            return valid_positions > 0 ? static_cast<float>(matched) / valid_positions : 0.0f;
         }
+    
     
     #else
-        // Scalar fallback
-        int simd_identity(const std::vector<uint8_t>& a, const std::vector<uint8_t>& b) {
-            size_t length = a.size();
-            if (b.size() != length) {
-                throw std::runtime_error("Vectors must be the same length.");
+        float compute_sequence_identity(const std::vector<uint8_t>& seq1,
+                                        const std::vector<uint8_t>& seq2) {
+            if (seq1.size() != seq2.size()) {
+                throw std::invalid_argument("Sequences must be of equal length.");
             }
-    
-            int matches = 0;
-            for (size_t i = 0; i < length; ++i)
-                if (a[i] == b[i]) ++matches;
-    
-            return matches;
+        
+            size_t matched = 0;
+            size_t valid_positions = 0;
+        
+            for (size_t i = 0; i < seq1.size(); ++i) {
+                uint8_t a = seq1[i];
+                uint8_t b = seq2[i];
+        
+                // Ignore positions with 0 or 124 in either sequence
+                if ((a != 0 && a != 124) && (b != 0 && b != 124)) {
+                    ++valid_positions;
+                    if (a == b) {
+                        ++matched;
+                    }
+                }
+            }
+        
+            if (valid_positions == 0) {
+                return 0.0f; // Or NaN if you want to signal invalid comparison
+            }
+        
+            return static_cast<float>(matched) / static_cast<float>(valid_positions);
         }
+    
     #endif
     
-    std::array<std::string, 200> canonical_numbering = {"1", "2",
-        "3", "3A",
-        "4", "5", "6", "7", "8", "9", "10", "11", "12", "13", "14", "15", "16", "17", "18",
-        "19", "20", "21", "22", "23", "24", "25", "26", "27", "28", "29", "30", "31",
-        "32", "32A", "32B", "33C", "33B", "33A", "33",
-        "34", "35", "36", "37", "38", "39",
-        "40", "40A",
-        "41", "42", "43",
-        "44", "44A",
-        "45", "45A",
-        "46", "46A",
-        "47", "47A",
-        "48", "48A", "48B", 
-        "49", "49A",
-        "50",
-        "51", "51A",
-        "52", "53", "54", "55", "56", "57", "58", "59",
-        "60", "60A", "60B", "60C", "60D", "61E", "61D", "61C", "61B", "61A", "61",
-        "62", "63", "64", "65", "66",
-        "67", "67A", "67B", 
-        "68", "68A", "68B", 
-        "69", "69A", "69B",
-        "70", 
-        "71", "71A", "71B", 
-        "72", 
-        "73", "73A", "73B",
-        "74", "75", "76", "77", "78", "79", 
-        "80", "80A", 
-        "81", "81A", "81B", "81C",
-        "82", "82A", 
-        "83", "83A", "83B",
-        "84", 
-        "85", "85A", "85B", "85C", "85D", 
-        "86", "86A", 
-        "87", "88", "89", "90", "91", "92", "93", "94", "95", 
-        "96", "96A",
-        "97", "98", "99", "100", "101", "102", "103", "104", "105", "106", "107", "108", 
-        "109", "110",
-        "111", "111A", "111B", "111C", "111D", "111E", "111F", "111G", "111H", "111I", "111J", 
-        "111K", "111L", "112L",
-        "112K", "112J", "112I", "112H", "112G", "112F", "112E", "112D", "112C", "112B", "112A", "112 ",
-        "113","114","115","116","117","118",
-        "119", "119A",
-        "120","121","122","123","124","125", "126","127","128"
-    };
+    static constexpr std::array<std::pair<std::string_view, uint8_t>, 200> canonical_pairs
+    {{
+        {"1", 0}, {"2", 1}, {"3", 2}, {"3A", 3}, {"4", 4}, {"5", 5}, {"6", 6}, {"7", 7}, {"8", 8}, {"9", 9},
+        {"10", 10}, {"11", 11}, {"12", 12}, {"13", 13}, {"14", 14}, {"15", 15}, {"16", 16}, {"17", 17}, {"18", 18},
+        {"19", 19}, {"20", 20}, {"21", 21}, {"22", 22}, {"23", 23}, {"24", 24}, {"25", 25}, {"26", 26}, {"27", 27},
+        {"28", 28}, {"29", 29}, {"30", 30}, {"31", 31}, {"32", 32}, {"32A", 33}, {"32B", 34}, {"33C", 35},
+        {"33B", 36}, {"33A", 37}, {"33", 38}, {"34", 39}, {"35", 40}, {"36", 41}, {"37", 42}, {"38", 43},
+        {"39", 44}, {"40", 45}, {"40A", 46}, {"41", 47}, {"42", 48}, {"43", 49}, {"44", 50}, {"44A", 51},
+        {"45", 52}, {"45A", 53}, {"46", 54}, {"46A", 55}, {"47", 56}, {"47A", 57}, {"48", 58}, {"48A", 59},
+        {"48B", 60}, {"49", 61}, {"49A", 62}, {"50", 63}, {"51", 64}, {"51A", 65}, {"52", 66}, {"53", 67},
+        {"54", 68}, {"55", 69}, {"56", 70}, {"57", 71}, {"58", 72}, {"59", 73}, {"60", 74}, {"60A", 75},
+        {"60B", 76}, {"60C", 77}, {"60D", 78}, {"61E", 79}, {"61D", 80}, {"61C", 81}, {"61B", 82}, {"61A", 83},
+        {"61", 84}, {"62", 85}, {"63", 86}, {"64", 87}, {"65", 88}, {"66", 89}, {"67", 90}, {"67A", 91},
+        {"67B", 92}, {"68", 93}, {"68A", 94}, {"68B", 95}, {"69", 96}, {"69A", 97}, {"69B", 98}, {"70", 99},
+        {"71", 100}, {"71A", 101}, {"71B", 102}, {"72", 103}, {"73", 104}, {"73A", 105}, {"73B", 106},
+        {"74", 107}, {"75", 108}, {"76", 109}, {"77", 110}, {"78", 111}, {"79", 112}, {"80", 113}, {"80A", 114},
+        {"81", 115}, {"81A", 116}, {"81B", 117}, {"81C", 118}, {"82", 119}, {"82A", 120}, {"83", 121},
+        {"83A", 122}, {"83B", 123}, {"84", 124}, {"85", 125}, {"85A", 126}, {"85B", 127}, {"85C", 128},
+        {"85D", 129}, {"86", 130}, {"86A", 131}, {"87", 132}, {"88", 133}, {"89", 134}, {"90", 135},
+        {"91", 136}, {"92", 137}, {"93", 138}, {"94", 139}, {"95", 140}, {"96", 141}, {"96A", 142},
+        {"97", 143}, {"98", 144}, {"99", 145}, {"100", 146}, {"101", 147}, {"102", 148}, {"103", 149},
+        {"104", 150}, {"105", 151}, {"106", 152}, {"107", 153}, {"108", 154}, {"109", 155}, {"110", 156},
+        {"111", 157}, {"111A", 158}, {"111B", 159}, {"111C", 160}, {"111D", 161}, {"111E", 162}, {"111F", 163},
+        {"111G", 164}, {"111H", 165}, {"111I", 166}, {"111J", 167}, {"111K", 168}, {"111L", 169}, {"112L", 170},
+        {"112K", 171}, {"112J", 172}, {"112I", 173}, {"112H", 174}, {"112G", 175}, {"112F", 176}, {"112E", 177},
+        {"112D", 178}, {"112C", 179}, {"112B", 180}, {"112A", 181}, {"112 ", 182}, {"113", 183}, {"114", 184},
+        {"115", 185}, {"116", 186}, {"117", 187}, {"118", 188}, {"119", 189}, {"119A", 190}, {"120", 191},
+        {"121", 192}, {"122", 193}, {"123", 194}, {"124", 195}, {"125", 196}, {"126", 197}, {"127", 198}, {"128", 199}
+    }};
 
-    robin_hood::unordered_map<std::string, uint8_t> make_numbering_map()
-    {
-        robin_hood::unordered_map<std::string, uint8_t> numbering_map;
-        for(size_t i = 0; i < 200; ++i) numbering_map[canonical_numbering[i]] = i;
-        return numbering_map;
-    }
+    const robin_hood::unordered_flat_map<std::string_view, uint8_t> canonical_map = [] {
+        robin_hood::unordered_flat_map<std::string_view, uint8_t> map;
+        for (const auto& [key, val] : canonical_pairs) {
+            map[key] = val;
+        }
+        return map;
+    }();
 
-    std::string compute_sequence_from_alignment(const std::vector<uint8_t> &cnn_alignment)
+    std::string compute_sequence_from_alignment(const std::vector<uint8_t> &cnn_alignment, const std::vector<uint8_t> &query_alignment)
     {
         std::string abseq;
-        for(uint8_t residue_byte: cnn_alignment)
+        for(auto [ref_res, query_res]: std::views::zip(cnn_alignment, query_alignment))
         {
-            if(residue_byte == 0) residue_byte = 45;
-            abseq += residue_byte;
+            if(ref_res == 0)
+            {
+                if(query_res == 0) continue;
+                abseq += static_cast<unsigned char>(ref_res);
+            }
+            abseq += ref_res;
         }
         return abseq;
     }
@@ -267,7 +331,6 @@ namespace Antibody_Utilities
     using cnn_alignment_t = std::vector<uint8_t>;
     using alignment_it_t = cnn_alignment_t::const_iterator;
     using kmer_vec_t = std::vector<uint64_t>;
-    using numbering_map_t = robin_hood::unordered_map<std::string, uint8_t>;
 
     cnn_alignment_t test_query = {81, 86, 81, 0, 76, 81, 81, 87, 71, 65,  0, 71, 76, 76, 75, 80, 83,
         69, 84, 76, 83, 76, 84, 67, 65, 86, 89, 71, 71, 83, 70,  0,  0,  0,
@@ -382,7 +445,7 @@ namespace Antibody_Utilities
     }
 
 
-    void parse_anarci_output(cnn_alignment_t &query_aln, const numbering_map_t &numbering_map)
+    void parse_anarci_output(cnn_alignment_t &query_aln)
     {
         std::string line;
         while(std::getline(std::cin, line))
@@ -394,12 +457,12 @@ namespace Antibody_Utilities
             if(iss >> numbered_res.chain >> numbered_res.position >> numbered_res.residue)
             {
                 if(numbered_res.residue == 45) continue; // For '-'s
-                query_aln[(numbering_map.find(numbered_res.position))->second] = numbered_res.residue;
+                query_aln[canonical_map.at(numbered_res.position)] = numbered_res.residue;
             }
             else if(iss >> numbered_res.chain >> numbered_res.position >> numbered_res.insertion_code >> numbered_res.residue)
             {
                 std::string insertion_id = numbered_res.position+numbered_res.insertion_code;
-                query_aln[(numbering_map.find(insertion_id))->second] = numbered_res.residue;
+                query_aln[canonical_map.at(insertion_id)] = numbered_res.residue;
             }
             else
             {
@@ -410,11 +473,12 @@ namespace Antibody_Utilities
 
     void drive_antibody_query(const antibody_query_arguments &cmd_args)
     {
-        auto numbering_map = make_numbering_map();
+        std::pair<std::string, float> top_hit = std::make_pair("",0.0);
         cnn_alignment_t query_alignment(200);
+        float kmer_fraction = 1;
         if(cmd_args.anarci_output == "-")
         {
-            parse_anarci_output(query_alignment, numbering_map);
+            parse_anarci_output(query_alignment);
         }
         // seqan3::debug_stream << query_alignment << std::endl;
 
@@ -426,7 +490,8 @@ namespace Antibody_Utilities
         decompose_query(query_kmers, query_alignment);
         // seqan3::debug_stream << query_kmers.size() << std::endl; // 172 kmers
         
-        auto & result1 = agent.membership_for(query_kmers, query_kmers.size());
+        size_t abs_kmer_threshold = std::floor(kmer_fraction*query_kmers.size());
+        auto & result1 = agent.membership_for(query_kmers, abs_kmer_threshold);
         // seqan3::debug_stream << result1 << std::endl;
         std::cout << "Sequence" << "\t" << "Identity" << std::endl;
         for(auto && bin: result1)
@@ -447,10 +512,10 @@ namespace Antibody_Utilities
             for(size_t i = 0; i < num_rows; ++i) std::copy(raw_data + i * num_cols, raw_data + (i + 1) * num_cols, numberings[i].begin());
             for(const cnn_alignment_t &cn_aln: numberings)
             {
-                int identity = simd_identity(query_alignment, cn_aln)/2;
-                std::string abv = compute_sequence_from_alignment(cn_aln);
-                std::cout << abv << "\t" << identity << std::endl;
+                float identity = compute_sequence_identity(query_alignment, cn_aln);
+                if(identity > top_hit.second) top_hit = std::make_pair(compute_sequence_from_alignment(cn_aln, query_alignment), identity);
             }
         }
+        std::cout << top_hit.first << "\t" << top_hit.second << std::endl;
     }
 }
