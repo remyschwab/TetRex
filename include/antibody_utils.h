@@ -46,14 +46,21 @@ constexpr auto AA_LOOKUP = make_aa_lookup_table();
 
 namespace Antibody_Utilities
 {
+    uint64_t bitmask = 8388607; // 3 bits at most significant end for region encoding and 5x5 for encoding the kmer
+    uint64_t preshift = 33554400;
+
+    using numberings_t = std::vector<std::vector<uint8_t>>;
+    using cnn_alignment_t = std::vector<uint8_t>;
+    using alignment_it_t = cnn_alignment_t::const_iterator;
+    using kmer_vec_t = std::vector<uint64_t>;
 
     struct NumberedResidue
     {
-        std::string position;          // IMGT position (e.g., 30, 52)
+        std::string position;           // IMGT position (e.g., 30, 52)
         std::string insertion_code{""};
-        unsigned char residue;         // Amino acid
-        std::string region;            // CDR1, FR1, etc. (optional for now)
-        std::string chain;             // Heavy or Light
+        unsigned char residue;          // Amino acid
+        std::string region;             // CDR1, FR1, etc. (optional for now)
+        std::string chain;              // Heavy or Light
     };
 
     struct QueryMeta
@@ -62,7 +69,7 @@ namespace Antibody_Utilities
         std::string scheme;
     };
 
-    struct Index
+    struct ABIndex
     {
         std::vector<std::string> bins_;
         seqan::hibf::hierarchical_interleaved_bloom_filter hibf_;
@@ -72,21 +79,90 @@ namespace Antibody_Utilities
         }
     };
 
-    template <typename Index>
-    void store_idx(Index const &ibf, std::filesystem::path const &opath)
+    template <typename ABIndex>
+    void store_idx(ABIndex const &ibf, std::filesystem::path const &opath)
     {
         std::ofstream os{opath, std::ios::binary};
         cereal::BinaryOutputArchive oarchive{os};
         oarchive(ibf);
     }
 
-    template <typename Index>
-    void load_idx(Index &ibf, const std::filesystem::path &ipath)
+    template <typename ABIndex>
+    void load_idx(ABIndex &ibf, const std::filesystem::path &ipath)
     {
         std::ifstream is{ipath, std::ios::binary};
         cereal::BinaryInputArchive iarchive{is};
         iarchive(ibf);
     }
+
+    std::array<uint8_t, 200> region_codes = {
+        0, 0, 0, 0, 0, 0, 0, 0, 0, 0,       // FR1
+        0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+        0, 0, 0, 0, 0, 0, 0,
+        1, 1, 1, 1, 1, 1, 1, 1, 1,          // CDR1
+        1, 1, 1, 1, 1, 1, 1, 1,
+        2, 2, 2, 2, 2, 2, 2, 2, 2, 2,       // FR2
+        2, 2, 2, 2, 2, 2, 2, 2, 2, 2,
+        2, 2, 2, 2, 2, 2,
+        3, 3, 3, 3, 3, 3, 3, 3, 3, 3,       // CDR2
+        3, 3, 3, 3, 3, 3, 3, 3, 3,
+        4, 4, 4, 4, 4, 4, 4, 4, 4, 4,       // FR3
+        4, 4, 4, 4, 4, 4, 4, 4, 4, 4,
+        4, 4, 4, 4, 4, 4, 4, 4, 4, 4,
+        4, 4, 4, 4, 4, 4, 4, 4, 4, 4,
+        4, 4, 4, 4, 4, 4, 4, 4, 4, 4,
+        4, 4, 4, 4, 4, 4, 4, 4, 4, 4,
+        4, 4,
+        5, 5, 5, 5, 5, 5, 5, 5, 5, 5,       // CDR3
+        5, 5, 5, 5, 5, 5, 5, 5, 5, 5,
+        5, 5, 5, 5, 5, 5, 5, 5, 5, 5,
+        5, 5, 5, 5, 5, 5, 5,
+        6, 6, 6, 6, 6, 6, 6, 6, 6, 6,       // FR4
+        6, 6
+    };
+
+    static constexpr std::array<std::pair<std::string_view, uint8_t>, 200> canonical_pairs
+    {{
+        {"1", 0}, {"2", 1}, {"3", 2}, {"3A", 3}, {"4", 4}, {"5", 5}, {"6", 6}, {"7", 7}, {"8", 8}, {"9", 9},
+        {"10", 10}, {"11", 11}, {"12", 12}, {"13", 13}, {"14", 14}, {"15", 15}, {"16", 16}, {"17", 17}, {"18", 18},
+        {"19", 19}, {"20", 20}, {"21", 21}, {"22", 22}, {"23", 23}, {"24", 24}, {"25", 25}, {"26", 26}, {"27", 27},
+        {"28", 28}, {"29", 29}, {"30", 30}, {"31", 31}, {"32", 32}, {"32A", 33}, {"32B", 34}, {"33C", 35},
+        {"33B", 36}, {"33A", 37}, {"33", 38}, {"34", 39}, {"35", 40}, {"36", 41}, {"37", 42}, {"38", 43},
+        {"39", 44}, {"40", 45}, {"40A", 46}, {"41", 47}, {"42", 48}, {"43", 49}, {"44", 50}, {"44A", 51},
+        {"45", 52}, {"45A", 53}, {"46", 54}, {"46A", 55}, {"47", 56}, {"47A", 57}, {"48", 58}, {"48A", 59},
+        {"48B", 60}, {"49", 61}, {"49A", 62}, {"50", 63}, {"51", 64}, {"51A", 65}, {"52", 66}, {"53", 67},
+        {"54", 68}, {"55", 69}, {"56", 70}, {"57", 71}, {"58", 72}, {"59", 73}, {"60", 74}, {"60A", 75},
+        {"60B", 76}, {"60C", 77}, {"60D", 78}, {"61E", 79}, {"61D", 80}, {"61C", 81}, {"61B", 82}, {"61A", 83},
+        {"61", 84}, {"62", 85}, {"63", 86}, {"64", 87}, {"65", 88}, {"66", 89}, {"67", 90}, {"67A", 91},
+        {"67B", 92}, {"68", 93}, {"68A", 94}, {"68B", 95}, {"69", 96}, {"69A", 97}, {"69B", 98}, {"70", 99},
+        {"71", 100}, {"71A", 101}, {"71B", 102}, {"72", 103}, {"73", 104}, {"73A", 105}, {"73B", 106},
+        {"74", 107}, {"75", 108}, {"76", 109}, {"77", 110}, {"78", 111}, {"79", 112}, {"80", 113}, {"80A", 114},
+        {"81", 115}, {"81A", 116}, {"81B", 117}, {"81C", 118}, {"82", 119}, {"82A", 120}, {"83", 121},
+        {"83A", 122}, {"83B", 123}, {"84", 124}, {"85", 125}, {"85A", 126}, {"85B", 127}, {"85C", 128},
+        {"85D", 129}, {"86", 130}, {"86A", 131}, {"87", 132}, {"88", 133}, {"89", 134}, {"90", 135},
+        {"91", 136}, {"92", 137}, {"93", 138}, {"94", 139}, {"95", 140}, {"96", 141}, {"96A", 142},
+        {"97", 143}, {"98", 144}, {"99", 145}, {"100", 146}, {"101", 147}, {"102", 148}, {"103", 149},
+        {"104", 150}, {"105", 151}, {"106", 152}, {"107", 153}, {"108", 154}, {"109", 155}, {"110", 156},
+        {"111", 157}, {"111A", 158}, {"111B", 159}, {"111C", 160}, {"111D", 161}, {"111E", 162}, {"111F", 163},
+        {"111G", 164}, {"111H", 165}, {"111I", 166}, {"111J", 167}, {"111K", 168}, {"111L", 169}, {"112L", 170},
+        {"112K", 171}, {"112J", 172}, {"112I", 173}, {"112H", 174}, {"112G", 175}, {"112F", 176}, {"112E", 177},
+        {"112D", 178}, {"112C", 179}, {"112B", 180}, {"112A", 181}, {"112", 182}, {"113", 183}, {"114", 184},
+        {"115", 185}, {"116", 186}, {"117", 187}, {"118", 188}, {"119", 189}, {"119A", 190}, {"120", 191},
+        {"121", 192}, {"122", 193}, {"123", 194}, {"124", 195}, {"125", 196}, {"126", 197}, {"127", 198}, {"128", 199}
+    }};
+
+    cnn_alignment_t test_query = {81, 86, 81, 0, 76, 81, 81, 87, 71, 65,  0, 71, 76, 76, 75, 80, 83,
+        69, 84, 76, 83, 76, 84, 67, 65, 86, 89, 71, 71, 83, 70,  0,  0,  0,
+         0,  0,  0,  0,  0,  0, 83, 71, 89, 89, 87, 83,  0, 87, 73, 82, 81,
+         0, 80,  0, 80,  0, 71,  0, 75,  0,  0, 71,  0, 76, 69,  0, 87, 73,
+        71, 69, 73, 78, 72, 83,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,
+         0, 71, 83, 84, 78, 89,  0,  0, 78,  0,  0, 80,  0,  0, 83, 76,  0,
+         0, 75,  0,  0,  0, 83, 82, 86, 84, 73, 83, 86,  0, 68,  0,  0,  0,
+        84,  0, 83,  0,  0, 75, 78,  0,  0,  0,  0, 81,  0, 70, 83, 76, 75,
+        76, 83, 83, 86, 84, 65,  0, 65, 68, 84, 65, 86, 89, 89, 67, 65, 82,
+        71, 71, 71, 80, 86, 80, 65,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,
+         0,  0,  0,  0,  0,  0,  0,  0,  0, 65, 71, 83, 82, 71, 80, 73, 68,
+        89, 87, 71,  0, 81, 71, 84, 76, 86, 84, 86, 83, 83};
     
     #if defined(__AVX2__) && defined(__x86_64__)
         #include <immintrin.h>
@@ -235,35 +311,6 @@ namespace Antibody_Utilities
     
     #endif
     
-    static constexpr std::array<std::pair<std::string_view, uint8_t>, 200> canonical_pairs
-    {{
-        {"1", 0}, {"2", 1}, {"3", 2}, {"3A", 3}, {"4", 4}, {"5", 5}, {"6", 6}, {"7", 7}, {"8", 8}, {"9", 9},
-        {"10", 10}, {"11", 11}, {"12", 12}, {"13", 13}, {"14", 14}, {"15", 15}, {"16", 16}, {"17", 17}, {"18", 18},
-        {"19", 19}, {"20", 20}, {"21", 21}, {"22", 22}, {"23", 23}, {"24", 24}, {"25", 25}, {"26", 26}, {"27", 27},
-        {"28", 28}, {"29", 29}, {"30", 30}, {"31", 31}, {"32", 32}, {"32A", 33}, {"32B", 34}, {"33C", 35},
-        {"33B", 36}, {"33A", 37}, {"33", 38}, {"34", 39}, {"35", 40}, {"36", 41}, {"37", 42}, {"38", 43},
-        {"39", 44}, {"40", 45}, {"40A", 46}, {"41", 47}, {"42", 48}, {"43", 49}, {"44", 50}, {"44A", 51},
-        {"45", 52}, {"45A", 53}, {"46", 54}, {"46A", 55}, {"47", 56}, {"47A", 57}, {"48", 58}, {"48A", 59},
-        {"48B", 60}, {"49", 61}, {"49A", 62}, {"50", 63}, {"51", 64}, {"51A", 65}, {"52", 66}, {"53", 67},
-        {"54", 68}, {"55", 69}, {"56", 70}, {"57", 71}, {"58", 72}, {"59", 73}, {"60", 74}, {"60A", 75},
-        {"60B", 76}, {"60C", 77}, {"60D", 78}, {"61E", 79}, {"61D", 80}, {"61C", 81}, {"61B", 82}, {"61A", 83},
-        {"61", 84}, {"62", 85}, {"63", 86}, {"64", 87}, {"65", 88}, {"66", 89}, {"67", 90}, {"67A", 91},
-        {"67B", 92}, {"68", 93}, {"68A", 94}, {"68B", 95}, {"69", 96}, {"69A", 97}, {"69B", 98}, {"70", 99},
-        {"71", 100}, {"71A", 101}, {"71B", 102}, {"72", 103}, {"73", 104}, {"73A", 105}, {"73B", 106},
-        {"74", 107}, {"75", 108}, {"76", 109}, {"77", 110}, {"78", 111}, {"79", 112}, {"80", 113}, {"80A", 114},
-        {"81", 115}, {"81A", 116}, {"81B", 117}, {"81C", 118}, {"82", 119}, {"82A", 120}, {"83", 121},
-        {"83A", 122}, {"83B", 123}, {"84", 124}, {"85", 125}, {"85A", 126}, {"85B", 127}, {"85C", 128},
-        {"85D", 129}, {"86", 130}, {"86A", 131}, {"87", 132}, {"88", 133}, {"89", 134}, {"90", 135},
-        {"91", 136}, {"92", 137}, {"93", 138}, {"94", 139}, {"95", 140}, {"96", 141}, {"96A", 142},
-        {"97", 143}, {"98", 144}, {"99", 145}, {"100", 146}, {"101", 147}, {"102", 148}, {"103", 149},
-        {"104", 150}, {"105", 151}, {"106", 152}, {"107", 153}, {"108", 154}, {"109", 155}, {"110", 156},
-        {"111", 157}, {"111A", 158}, {"111B", 159}, {"111C", 160}, {"111D", 161}, {"111E", 162}, {"111F", 163},
-        {"111G", 164}, {"111H", 165}, {"111I", 166}, {"111J", 167}, {"111K", 168}, {"111L", 169}, {"112L", 170},
-        {"112K", 171}, {"112J", 172}, {"112I", 173}, {"112H", 174}, {"112G", 175}, {"112F", 176}, {"112E", 177},
-        {"112D", 178}, {"112C", 179}, {"112B", 180}, {"112A", 181}, {"112 ", 182}, {"113", 183}, {"114", 184},
-        {"115", 185}, {"116", 186}, {"117", 187}, {"118", 188}, {"119", 189}, {"119A", 190}, {"120", 191},
-        {"121", 192}, {"122", 193}, {"123", 194}, {"124", 195}, {"125", 196}, {"126", 197}, {"127", 198}, {"128", 199}
-    }};
 
     const robin_hood::unordered_flat_map<std::string_view, uint8_t> canonical_map = [] {
         robin_hood::unordered_flat_map<std::string_view, uint8_t> map;
@@ -288,65 +335,13 @@ namespace Antibody_Utilities
         return abseq;
     }
     
-    struct CanonicalAlignment
-    {
-        std::array<uint8_t, 200> alignment_data;
-    };
-    
-    std::array<uint8_t, 200> region_codes = {
-        0, 0, 0, 0, 0, 0, 0, 0, 0, 0,       // FR1
-        0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-        0, 0, 0, 0, 0, 0, 0,
-        1, 1, 1, 1, 1, 1, 1, 1, 1,          // CDR1
-        1, 1, 1, 1, 1, 1, 1, 1,
-        2, 2, 2, 2, 2, 2, 2, 2, 2, 2,       // FR2
-        2, 2, 2, 2, 2, 2, 2, 2, 2, 2,
-        2, 2, 2, 2, 2, 2,
-        3, 3, 3, 3, 3, 3, 3, 3, 3, 3,       // CDR2
-        3, 3, 3, 3, 3, 3, 3, 3, 3,
-        4, 4, 4, 4, 4, 4, 4, 4, 4, 4,       // FR3
-        4, 4, 4, 4, 4, 4, 4, 4, 4, 4,
-        4, 4, 4, 4, 4, 4, 4, 4, 4, 4,
-        4, 4, 4, 4, 4, 4, 4, 4, 4, 4,
-        4, 4, 4, 4, 4, 4, 4, 4, 4, 4,
-        4, 4, 4, 4, 4, 4, 4, 4, 4, 4,
-        4, 4,
-        5, 5, 5, 5, 5, 5, 5, 5, 5, 5,       // CDR3
-        5, 5, 5, 5, 5, 5, 5, 5, 5, 5,
-        5, 5, 5, 5, 5, 5, 5, 5, 5, 5,
-        5, 5, 5, 5, 5, 5, 5,
-        6, 6, 6, 6, 6, 6, 6, 6, 6, 6,       // FR4
-        6, 6
-    };
-
     void print_bits(const uint64_t &kmer)
     {
         seqan3::debug_stream << std::bitset<64>(kmer) << std::endl;
     }
 
-    uint64_t bitmask = 8388607; // 3 bits at most significant end for region encoding and 5x5 for encoding the kmer
-    uint64_t preshift = 33554400;
-
-    using numberings_t = std::vector<std::vector<uint8_t>>;
-    using cnn_alignment_t = std::vector<uint8_t>;
-    using alignment_it_t = cnn_alignment_t::const_iterator;
-    using kmer_vec_t = std::vector<uint64_t>;
-
-    cnn_alignment_t test_query = {81, 86, 81, 0, 76, 81, 81, 87, 71, 65,  0, 71, 76, 76, 75, 80, 83,
-        69, 84, 76, 83, 76, 84, 67, 65, 86, 89, 71, 71, 83, 70,  0,  0,  0,
-         0,  0,  0,  0,  0,  0, 83, 71, 89, 89, 87, 83,  0, 87, 73, 82, 81,
-         0, 80,  0, 80,  0, 71,  0, 75,  0,  0, 71,  0, 76, 69,  0, 87, 73,
-        71, 69, 73, 78, 72, 83,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,
-         0, 71, 83, 84, 78, 89,  0,  0, 78,  0,  0, 80,  0,  0, 83, 76,  0,
-         0, 75,  0,  0,  0, 83, 82, 86, 84, 73, 83, 86,  0, 68,  0,  0,  0,
-        84,  0, 83,  0,  0, 75, 78,  0,  0,  0,  0, 81,  0, 70, 83, 76, 75,
-        76, 83, 83, 86, 84, 65,  0, 65, 68, 84, 65, 86, 89, 89, 67, 65, 82,
-        71, 71, 71, 80, 86, 80, 65,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,
-         0,  0,  0,  0,  0,  0,  0,  0,  0, 65, 71, 83, 82, 71, 80, 73, 68,
-        89, 87, 71,  0, 81, 71, 84, 76, 86, 84, 86, 83, 83};
-
     void decompose_alignment(alignment_it_t begin, alignment_it_t end, kmer_vec_t &kmer_vec, const uint8_t region_code)
-    {
+    { // Extract kmers from a piece of a canonical alignment
         uint64_t kmer = 0;
         uint8_t k = 5;
         kmer = (kmer<<k) | aa::AA_LOOKUP[*(begin+0)];
@@ -359,7 +354,7 @@ namespace Antibody_Utilities
         while(it < end)
         {
             kmer = (kmer<<k) & preshift; // Create room for new residue on least significant end
-            kmer = kmer | aa::AA_LOOKUP[*(it)]; // Add the new kmer
+            kmer = kmer | aa::AA_LOOKUP[*(it)]; // Add the new residue
             kmer |= region_code;
             kmer_vec.push_back(kmer);
             ++it;
@@ -370,13 +365,13 @@ namespace Antibody_Utilities
     {
         for(const cnn_alignment_t &alignment: numberings)
         {
-            decompose_alignment(alignment.begin() + 0u,  alignment.begin() + 27u,  bin_kmers, 0u);  // Decompose 0s
-            decompose_alignment(alignment.begin() + 27u, alignment.begin() + 44u,  bin_kmers, 1u);  // Decompose 1s
-            decompose_alignment(alignment.begin() + 44u, alignment.begin() + 70u,  bin_kmers, 2u);  // Decompose 2s
-            decompose_alignment(alignment.begin() + 70u, alignment.begin() + 89u,  bin_kmers, 3u);  // Decompose 3s
-            decompose_alignment(alignment.begin() + 89u, alignment.begin() + 151u, bin_kmers, 4u);  // Decompose 4s
-            decompose_alignment(alignment.begin() + 151u, alignment.begin() + 188u, bin_kmers, 5u); // Decompose 5s
-            decompose_alignment(alignment.begin() + 188u, alignment.begin() + 200u, bin_kmers, 6u); // Decompose 6s
+            decompose_alignment(alignment.begin() + 0u,  alignment.begin() + 27u,  bin_kmers, 0u);  // Decompose FR1
+            decompose_alignment(alignment.begin() + 27u, alignment.begin() + 44u,  bin_kmers, 1u);  // Decompose CDR1
+            decompose_alignment(alignment.begin() + 44u, alignment.begin() + 70u,  bin_kmers, 2u);  // Decompose FR2
+            decompose_alignment(alignment.begin() + 70u, alignment.begin() + 89u,  bin_kmers, 3u);  // Decompose CDR2
+            decompose_alignment(alignment.begin() + 89u, alignment.begin() + 151u, bin_kmers, 4u);  // Decompose FR3
+            decompose_alignment(alignment.begin() + 151u, alignment.begin() + 188u, bin_kmers, 5u); // Decompose CDR3
+            decompose_alignment(alignment.begin() + 188u, alignment.begin() + 200u, bin_kmers, 6u); // Decompose FR4
         }
     }
 
@@ -439,7 +434,7 @@ namespace Antibody_Utilities
         
         seqan::hibf::hierarchical_interleaved_bloom_filter hibf{config};
 
-        Index idx_struct{input_npz_paths, hibf};
+        ABIndex idx_struct{input_npz_paths, hibf};
         seqan3::debug_stream << "[WRITING INDEX TO DISK]" << std::endl;
         store_idx(idx_struct, cmd_args.output_index_path);
     }
@@ -475,14 +470,14 @@ namespace Antibody_Utilities
     {
         std::pair<std::string, float> top_hit = std::make_pair("",0.0);
         cnn_alignment_t query_alignment(200);
-        float kmer_fraction = 1;
+        float kmer_fraction = cmd_args.threshold;
         if(cmd_args.anarci_output == "-")
         {
             parse_anarci_output(query_alignment);
         }
         // seqan3::debug_stream << query_alignment << std::endl;
 
-        Index idx_struct;
+        ABIndex idx_struct;
         load_idx(idx_struct, cmd_args.idx);
         auto agent = idx_struct.hibf_.membership_agent();
         
@@ -493,7 +488,8 @@ namespace Antibody_Utilities
         size_t abs_kmer_threshold = std::floor(kmer_fraction*query_kmers.size());
         auto & result1 = agent.membership_for(query_kmers, abs_kmer_threshold);
         // seqan3::debug_stream << result1 << std::endl;
-        std::cout << "Sequence" << "\t" << "Identity" << std::endl;
+        // seqan3::debug_stream << "[NARROWED SEARCH SPACE TO]: " << result1.size() << " bins" << std::endl;
+        // std::cout << "Sequence" << "\t" << "Identity" << std::endl;
         for(auto && bin: result1)
         {
             std::filesystem::path path = idx_struct.bins_[bin];

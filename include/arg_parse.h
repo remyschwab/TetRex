@@ -105,6 +105,7 @@ struct antibody_query_arguments
 {
     std::filesystem::path idx;
     std::filesystem::path anarci_output = "-";
+    float threshold = 1.0;
 };
 
 
@@ -112,6 +113,7 @@ inline void initialize_antibody_query_parser(sharg::parser &parser, antibody_que
 {
     parser.info.author = "Remy Schwab";
     parser.info.version = "1.0.0";
+    parser.add_option(args.threshold, sharg::config{'x', "threshold", "Fraction of kmers necessary for verification"});
     parser.add_positional_option(args.idx, sharg::config{.description="Path to Index"});
     parser.add_positional_option(args.anarci_output, sharg::config{.description="ANARCI Numbering (Either standard out or path to csv output)"});
 }
