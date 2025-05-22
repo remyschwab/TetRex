@@ -20,7 +20,7 @@ namespace index_structure
 {
     using SeqAnIBF = seqan::hibf::interleaved_bloom_filter;
     using IBF = IBFIndex;
-    using IBF_Agent = seqan::hibf::interleaved_bloom_filter::membership_agent_type;
+    using IBF_Agent = seqan::hibf::interleaved_bloom_filter::containment_agent_type;
     using SeqAnHIBF = seqan::hibf::hierarchical_interleaved_bloom_filter;
     using HIBF = HIBFIndex;
     using HIBF_Agent = seqan::hibf::hierarchical_interleaved_bloom_filter::membership_agent_type;

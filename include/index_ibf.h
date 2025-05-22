@@ -24,7 +24,7 @@ private:
 
 public:
     bitvector hits_{};
-    seqan::hibf::interleaved_bloom_filter::membership_agent_type agent_{};
+    seqan::hibf::interleaved_bloom_filter::containment_agent_type agent_{};
 
     IBFIndex() = default;
     ~IBFIndex() = default;
@@ -142,7 +142,7 @@ public:
 
     void spawn_agent()
     {
-        agent_ = ibf_.membership_agent();
+        agent_ = ibf_.containment_agent();
     }
 
     bitvector & query(uint64_t const kmer)

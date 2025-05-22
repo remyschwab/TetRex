@@ -1,4 +1,4 @@
-cmake_minimum_required (VERSION 3.8)
+cmake_minimum_required (VERSION 3.10)
 
 ## CUSTOMISE
 
@@ -24,18 +24,24 @@ string (ASCII 27 Esc)
 set (FontBold "${Esc}[1m")
 set (FontReset "${Esc}[m")
 
+# RE2 depends on abseil
+list(APPEND CMAKE_PREFIX_PATH "lib/abseil-cpp/CMake")
+find_package(absl REQUIRED CONFIG)
+# message(STATUS "Abseil DIR: ${absl_DIR}")
+
 # Dependency: SeqAn3.
-find_package (SeqAn3 QUIET REQUIRED HINTS lib/seqan3/build_system)
+find_package (SeqAn3 QUIET REQUIRED HINTS lib/seqan3/cmake)
 
 # Dependency: re2
 option(RE2_BUILD_TESTING OFF)
+set(RE2_INSTALL OFF CACHE BOOL "" FORCE)
 add_subdirectory(lib/re2)
 
 # Dependency: HIBF
 add_subdirectory(lib/hibf)
 
 # Dependency: Sharg-Parser
-find_package(sharg REQUIRED HINTS lib/sharg-parser/build_system)
+find_package(sharg REQUIRED HINTS lib/sharg-parser/cmake)
 
 # Dependency: Libfork
 # add_subdirectory(lib/libfork)
@@ -43,9 +49,7 @@ find_package(sharg REQUIRED HINTS lib/sharg-parser/build_system)
 # Allow to include CMake scripts from seqan3.
 list (APPEND CMAKE_MODULE_PATH "${SEQAN3_CLONE_DIR}/test/cmake/")
 
-# Use ccache.
-include (seqan3_require_ccache)
-seqan3_require_ccache ()
+CPMGetPackage (use_ccache) # Speeds up compilation by caching files that have been compiled before.
 
 # Add the application.
 add_subdirectory (src)

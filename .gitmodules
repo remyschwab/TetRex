@@ -22,6 +22,9 @@
 [submodule "lib/sharg-parser"]
 	path = lib/sharg-parser
 	url = git@github.com:seqan/sharg-parser.git
-[submodule "lib/libfork"]
-	path = lib/libfork
-	url = git@github.com:ConorWilliams/libfork.git
+[submodule "lib/cnpy"]
+	path = lib/cnpy
+	url = git@github.com:rogersce/cnpy.git
+[submodule "lib/abseil-cpp"]
+	path = lib/abseil-cpp
+	url = git@github.com:abseil/abseil-cpp.git
