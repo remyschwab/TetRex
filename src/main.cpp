@@ -9,7 +9,6 @@
 #include "index_base.h"
 #include "query.h"
 #include "inspect_idx.h"
-#include "antibody_utils.h"
 
 
 void run_index(sharg::parser &parser)
@@ -75,36 +74,6 @@ void run_inspection(sharg::parser &parser)
     drive_inspection(cmd_args);
 }
 
-void run_ab_index(sharg::parser &parser)
-{
-    antibody_index_arguments cmd_args{};
-    initialize_antibody_indexing_parser(parser, cmd_args);
-    try
-    {
-        parser.parse();
-    }
-    catch(const sharg::parser_error &e)
-    {
-        seqan3::debug_stream << "[Error TetRex Antibody Index module " << e.what() << "\n";
-    }
-    Antibody_Utilities::drive_antibody_index(cmd_args);
-}
-
-void run_ab_query(sharg::parser &parser)
-{
-    antibody_query_arguments cmd_args{};
-    initialize_antibody_query_parser(parser, cmd_args);
-    try
-    {
-        parser.parse();
-    }
-    catch(const sharg::parser_error &e)
-    {
-        seqan3::debug_stream << "[Error TetRex Antibody Query module " << e.what() << "\n";
-    }
-    Antibody_Utilities::drive_antibody_query(cmd_args);
-}
-
 void run_model(sharg::parser &parser)
 {
     // Parse Arguments
@@ -126,7 +95,7 @@ int main(int argc, char *argv[])
 {
     sharg::parser top_level_parser{"tetrex", argc, argv,
                                              sharg::update_notifications::off,
-                                             {"index", "query", "inspect", "ab_index", "ab_query"}};
+                                             {"index", "query", "inspect"}};
     top_level_parser.info.description.push_back("Index a NA|AA FASTA library or search a regular expression.");
     try
     {
@@ -145,10 +114,6 @@ int main(int argc, char *argv[])
         run_query(sub_parser);
     else if (sub_parser.info.app_name == std::string_view{"tetrex-inspect"})
         run_inspection(sub_parser);
-    else if (sub_parser.info.app_name == std::string_view{"tetrex-ab_index"})
-        run_ab_index(sub_parser);
-    else if (sub_parser.info.app_name == std::string_view{"tetrex-ab_query"})
-        run_ab_query(sub_parser);
     else
         std::cout << "Unhandled subparser named " << sub_parser.info.app_name << '\n';
     return 0;
