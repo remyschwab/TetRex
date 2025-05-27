@@ -160,7 +160,6 @@ void quant_procedure(nfa_t &nfa, nfa_stack_t &stack, lmap_t &node_map, const uin
     {
         optional_procedure(nfa, stack, node_map, arc_map);
         --extra;
-        goto max_procedure;
     }
     for(size_t i = 1; i < min; ++i)
     {
@@ -169,17 +168,13 @@ void quant_procedure(nfa_t &nfa, nfa_stack_t &stack, lmap_t &node_map, const uin
         concat_procedure(nfa, node_map, stack, arc_map);
         stack.push(new_subgraph);
     }
-    max_procedure:
-    if(max > min)
+    for(size_t i = 0; i < extra; ++i)
     {
-        for(size_t i = 0; i < extra; ++i)
-        {
-            node_pair_t new_subgraph;
-            copy_subgraph(subgraph, nfa, node_map, new_subgraph, arc_map);
-            stack.push(new_subgraph);
-            optional_procedure(nfa, stack, node_map, arc_map);
-            concat_procedure(nfa, node_map, stack, arc_map);
-        }
+        node_pair_t new_subgraph;
+        copy_subgraph(subgraph, nfa, node_map, new_subgraph, arc_map);
+        stack.push(new_subgraph);
+        optional_procedure(nfa, stack, node_map, arc_map);
+        concat_procedure(nfa, node_map, stack, arc_map);
     }
 }
 
