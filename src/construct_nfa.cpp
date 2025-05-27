@@ -136,6 +136,47 @@ void plus_procedure(nfa_t &nfa, nfa_stack_t &stack, lmap_t &node_map, const uint
 }
 
 
+std::pair<size_t, size_t> parse_quant(const std::string& postfix, size_t quant_start)
+{ // Parse quantifiers that look like {3,4} or {4}
+    std::pair<size_t, size_t> min_max(0,0);
+    size_t comma = postfix.find(',', quant_start);
+    size_t end = postfix.find('}', quant_start);
+    if(comma == std::string::npos) // No comma means no max
+    {
+        min_max.first = std::stoi(postfix.substr(quant_start+1, end - quant_start));
+        return min_max;
+    }
+    min_max.first = std::stoi(postfix.substr(quant_start+1, comma - quant_start));
+    min_max.second = std::stoi(postfix.substr(comma + 1, end - comma - 1));
+    return min_max;
+}
+
+
+void quant_procedure(nfa_t &nfa, nfa_stack_t &stack, lmap_t &node_map, const uint8_t &k, amap_t &arc_map, const size_t min, const size_t max)
+{
+    node_pair_t subgraph = stack.top();
+    for(size_t i = 1; i < min; ++i)
+    {
+        node_pair_t new_subgraph;
+        copy_subgraph(subgraph, nfa, node_map, new_subgraph, arc_map);
+        concat_procedure(nfa, node_map, stack, arc_map);
+        stack.push(new_subgraph);
+    }
+    if(max > min)
+    {
+        size_t extra = max-min;
+        for(size_t i = 0; i < extra; ++i)
+        {
+            node_pair_t new_subgraph;
+            copy_subgraph(subgraph, nfa, node_map, new_subgraph, arc_map);
+            stack.push(new_subgraph);
+            optional_procedure(nfa, stack, node_map, arc_map);
+            concat_procedure(nfa, node_map, stack, arc_map);
+        }
+    }
+}
+
+
 void construct_kgraph(const std::string &postfix, nfa_t &nfa, lmap_t &node_map, amap_t &arc_map, const uint8_t &k)
 {
     nfa_stack_t stack;
@@ -144,6 +185,7 @@ void construct_kgraph(const std::string &postfix, nfa_t &nfa, lmap_t &node_map, 
     for(size_t i = 0; i < postfix.size(); i++)
     {
         int symbol = postfix[i];
+        if(std::isdigit(symbol)) continue;
         switch(symbol)
         {
             default: // Character
@@ -163,6 +205,15 @@ void construct_kgraph(const std::string &postfix, nfa_t &nfa, lmap_t &node_map, 
                 break;
             case '+': // One or More
                 plus_procedure(nfa, stack, node_map, k, arc_map);
+                break;
+            case '{': // Start of Quantifier
+            {
+                std::pair<size_t, size_t> min_max = parse_quant(postfix, i);
+                quant_procedure(nfa, stack, node_map, k, arc_map, min_max.first, min_max.second);
+                break;
+            }
+            case '}': // End of Quantifier
+            case ',':
                 break;
         }
     }

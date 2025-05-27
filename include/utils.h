@@ -247,7 +247,7 @@ private:
             case TokenType::PIPE:
                 return "|";
             case TokenType::CONCAT:
-                return ".";
+                return "-";
             case TokenType::EXACT_OP:
                 return "{" + std::to_string(token.min_count) + "}";
             case TokenType::MINMAX_OP:
