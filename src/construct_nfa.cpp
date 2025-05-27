@@ -155,6 +155,13 @@ std::pair<size_t, size_t> parse_quant(const std::string& postfix, size_t quant_s
 void quant_procedure(nfa_t &nfa, nfa_stack_t &stack, lmap_t &node_map, const uint8_t &k, amap_t &arc_map, const size_t min, const size_t max)
 {
     node_pair_t subgraph = stack.top();
+    size_t extra = max-min;
+    if(min == 0)
+    {
+        optional_procedure(nfa, stack, node_map, arc_map);
+        --extra;
+        goto max_procedure;
+    }
     for(size_t i = 1; i < min; ++i)
     {
         node_pair_t new_subgraph;
@@ -162,9 +169,9 @@ void quant_procedure(nfa_t &nfa, nfa_stack_t &stack, lmap_t &node_map, const uin
         concat_procedure(nfa, node_map, stack, arc_map);
         stack.push(new_subgraph);
     }
+    max_procedure:
     if(max > min)
     {
-        size_t extra = max-min;
         for(size_t i = 0; i < extra; ++i)
         {
             node_pair_t new_subgraph;
@@ -182,6 +189,7 @@ void construct_kgraph(const std::string &postfix, nfa_t &nfa, lmap_t &node_map, 
     nfa_stack_t stack;
     node_t start_node = nfa.addNode(); // I don't know why, but a buffer node is necessary for top sort...
     node_map[start_node] = Ghost;
+    std::pair<size_t, size_t> min_max;
     for(size_t i = 0; i < postfix.size(); i++)
     {
         int symbol = postfix[i];
@@ -207,11 +215,14 @@ void construct_kgraph(const std::string &postfix, nfa_t &nfa, lmap_t &node_map, 
                 plus_procedure(nfa, stack, node_map, k, arc_map);
                 break;
             case '{': // Start of Quantifier
-            {
-                std::pair<size_t, size_t> min_max = parse_quant(postfix, i);
+                min_max = parse_quant(postfix, i);
+                if(min_max == OPT_QUANT) // A special case
+                {
+                    optional_procedure(nfa, stack, node_map, arc_map);
+                    break;
+                }
                 quant_procedure(nfa, stack, node_map, k, arc_map, min_max.first, min_max.second);
                 break;
-            }
             case '}': // End of Quantifier
             case ',':
                 break;

@@ -34,6 +34,8 @@ public:
   }
 };
 
+constexpr std::pair<size_t, size_t> OPT_QUANT(0,1);
+
 using nfa_t = lemon::SmartDigraph;
 using node_t = nfa_t::Node;
 using arc_t = nfa_t::Arc;
