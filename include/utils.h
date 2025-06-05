@@ -20,15 +20,16 @@
 #include "hibf/misc/bit_vector.hpp"
 #include <seqan3/core/debug_stream.hpp>
 
-
+#define DBG(x) seqan3::debug_stream << x << std::endl;
 
 
 /////////////// Type Declarations ///////////////
 using bitvector = seqan::hibf::bit_vector;
 /////////////// ****** END ****** ///////////////
 
-// Token types for our lexer
-enum class TokenType {
+// Token types for lexer
+enum class TokenType
+{
     CHAR,           // Regular character
     DOT,            // . (any character)
     STAR,           // *
@@ -47,7 +48,8 @@ enum class TokenType {
     END_OF_INPUT
 };
 
-struct Token {
+struct Token
+{
     TokenType type;
     std::string value;
     int min_count = 0;  // For quantifier tokens
@@ -57,69 +59,85 @@ struct Token {
     Token(TokenType t, int min_val, int max_val) : type(t), min_count(min_val), max_count(max_val) {}
 };
 
-class RegexLexer {
+class RegexLexer
+{
 private:
     std::string input;
     size_t pos;
     
     // Parse a number from current position
-    int parseNumber() {
+    int parseNumber()
+    {
         int num = 0;
-        while (pos < input.length() && std::isdigit(input[pos])) {
+        while (pos < input.length() && std::isdigit(input[pos]))
+        {
             num = num * 10 + (input[pos] - '0');
             pos++;
         }
         return num;
     }
     
-    // Parse {m,n} or {m} quantifier
-    Token parseQuantifier() {
+    // Parse {m,n} or {m} quantifier with error guards (simplified version during construction)
+    Token parseQuantifier()
+    {
         pos++; // Skip '{'
         
-        if (pos >= input.length() || !std::isdigit(input[pos])) {
+        if (pos >= input.length() || !std::isdigit(input[pos]))
+        {
             throw std::runtime_error("Invalid quantifier: expected number after '{'");
         }
         
         int min_val = parseNumber();
         
-        if (pos >= input.length()) {
+        if (pos >= input.length())
+        {
             throw std::runtime_error("Invalid quantifier: unexpected end of input");
         }
         
-        if (input[pos] == '}') {
+        if (input[pos] == '}')
+        {
             // {m} - exact quantifier
             pos++; // Skip '}'
             return Token(TokenType::EXACT_OP, min_val, min_val);
-        } else if (input[pos] == ',') {
+        }
+        else if (input[pos] == ',')
+        {
             pos++; // Skip ','
             
-            if (pos >= input.length()) {
+            if (pos >= input.length())
+            {
                 throw std::runtime_error("Invalid quantifier: unexpected end after ','");
             }
             
-            if (input[pos] == '}') {
+            if (input[pos] == '}')
+            {
                 // {m,} - min quantifier (not handling this case for now)
                 throw std::runtime_error("Open-ended quantifiers {m,} not supported");
             }
             
-            if (!std::isdigit(input[pos])) {
+            if (!std::isdigit(input[pos]))
+            {
                 throw std::runtime_error("Invalid quantifier: expected number after ','");
             }
             
             int max_val = parseNumber();
             
-            if (pos >= input.length() || input[pos] != '}') {
+            if (pos >= input.length() || input[pos] != '}')
+            {
                 throw std::runtime_error("Invalid quantifier: expected '}' after max value");
             }
             
             pos++; // Skip '}'
             
-            if (min_val > max_val) {
+            if (min_val > max_val)
+            {
                 throw std::runtime_error("Invalid quantifier: min > max");
             }
             
             return Token(TokenType::MINMAX_OP, min_val, max_val);
-        } else {
+        }
+        else
+        {
             throw std::runtime_error("Invalid quantifier: expected ',' or '}' after min value");
         }
     }
@@ -127,7 +145,8 @@ private:
 public:
     RegexLexer(const std::string& regex) : input(regex), pos(0) {}
     
-    std::vector<Token> tokenize() {
+    std::vector<Token> tokenize()
+    {
         std::vector<Token> tokens;
         
         while (pos < input.length()) {
@@ -236,8 +255,9 @@ private:
     std::string tokenToPostfix(const Token& token) {
         switch (token.type) {
             case TokenType::CHAR:
-            case TokenType::DOT:
                 return token.value;
+            case TokenType::DOT:
+                return "FQ|L|T|K|P|A|Y|R|N|H|G|E|C|I|V|D|W|S|M|"; // Wildcards need to be expanded at some point I guess
             case TokenType::STAR:
                 return "*";
             case TokenType::PLUS:

@@ -8,16 +8,22 @@ void paste_to_graph(nfa_t &NFA, lmap_t &node_map, const node_t &reference_node, 
     node_map[paste_node] = symbol;
 }
 
-void copy_subgraph(node_pair_t &subgraph, nfa_t &NFA, lmap_t &node_map, node_pair_t &subgraph_copy, amap_t &arc_map)
+size_t copy_subgraph(node_pair_t &subgraph, nfa_t &NFA, lmap_t &node_map, node_pair_t &subgraph_copy, amap_t &arc_map)
 {
     node_t new_node;
-    paste_to_graph(NFA, node_map, subgraph.first, new_node);
-    subgraph_copy.first = new_node;
+    size_t added_node_count = 0;
+    // paste_to_graph(NFA, node_map, subgraph.first, new_node);
+    paste_to_graph(NFA, node_map, std::get<0>(subgraph), new_node);
+    ++added_node_count;
+    // subgraph_copy.first = new_node;
+    std::get<0>(subgraph_copy) = new_node;
     // If the operand is just a single character then just copy that one node
-    if(subgraph.first == subgraph.second)
+    // if(subgraph.first == subgraph.second)
+    if(std::get<0>(subgraph) == std::get<1>(subgraph))
     {
-        subgraph_copy.second = new_node;
-        return;
+        // subgraph_copy.second = new_node;
+        std::get<1>(subgraph_copy) = new_node;
+        return added_node_count;
     }
     // If the operand is a more complicated subgraph, then traverse with DFS copying nodes and arcs along the way
     nfa_t::NodeMap<node_t> reference_to_copy_map(NFA); // A mapping of nodes in the old subgraph to the new one
@@ -25,14 +31,17 @@ void copy_subgraph(node_pair_t &subgraph, nfa_t &NFA, lmap_t &node_map, node_pai
     
     lemon::Dfs<nfa_t> dfs(NFA);
     dfs.init();
-    dfs.addSource(subgraph.first);
+    // dfs.addSource(subgraph.first);
+    dfs.addSource(std::get<0>(subgraph));
     
-    reference_to_copy_map[subgraph.first] = new_node;
+    // reference_to_copy_map[subgraph.first] = new_node;
+    reference_to_copy_map[std::get<0>(subgraph)] = new_node;
     while(!dfs.emptyQueue())
     {
         arc_t arc = dfs.processNextArc();
         node_t source = NFA.source(arc);
-        if(source == subgraph.second) break; // i don't totally get why this works
+        // if(source == subgraph.second) break;
+        if(source == std::get<1>(subgraph)) break; // i don't totally get why this works
         node_t target = NFA.target(arc);
         node_t source_copy = reference_to_copy_map[source];
         if(copied_targets.find(NFA.id(target)) != copied_targets.end())
@@ -46,7 +55,9 @@ void copy_subgraph(node_pair_t &subgraph, nfa_t &NFA, lmap_t &node_map, node_pai
         copied_targets.insert(NFA.id(target));
         reference_to_copy_map[target] = new_node;
     }
-    subgraph_copy.second = new_node;
+    // subgraph_copy.second = new_node;
+    std::get<1>(subgraph_copy) = new_node;
+    return added_node_count;
 }
 
 std::string generate_kmer_seq(uint64_t &kmer, uint8_t &k)
@@ -70,13 +81,16 @@ std::string generate_kmer_seq(uint64_t &kmer, uint8_t &k)
 }
 
 
-void print_graph(nfa_t &NFA, lmap_t &nmap)
+void print_graph(nfa_t &NFA, lmap_t &nmap, const catsites_t& cats)
 {
     std::fstream f;
     const std::string filename = "kgraph_visualizer.gv";
     f.open(filename, std::ios::out);
     f << "digraph kGraph\n{\n\trankdir=\"LR\";\n";
     // Collect and style all the nodes
+    nfa_t::ArcMap<bool> filter(NFA, true);
+    for(auto && cat: cats) filter[std::get<0>(cat)] = false;
+
     lemon::Bfs<nfa_t>  bfs(NFA);
     bfs.run(NFA.nodeFromId(0));
     for(nfa_t::NodeIt n(NFA); n != lemon::INVALID; ++n)
@@ -102,6 +116,11 @@ void print_graph(nfa_t &NFA, lmap_t &nmap)
             f << "\t" << NFA.id(n) << " [shape=doublecircle label=\"\"];\n";
             continue;
         }
+        if(nmap[n] == Gap)
+        {
+            f << "\t" << NFA.id(n) << " [label=\"GAP\"];\n";
+            continue;
+        }
         f << "\t" << NFA.id(n) << " [label=\"" << (char)nmap[n] << "\"];\n";
     }
     // Traverse the Graph and get all the transitions
@@ -111,7 +130,7 @@ void print_graph(nfa_t &NFA, lmap_t &nmap)
     while (!dfs.emptyQueue())
     {
         nfa_t::Arc arc = dfs.processNextArc();
-        f << "\t" << NFA.id(NFA.source(arc)) << "->" << NFA.id(NFA.target(arc)) << ";" << std::endl;
+        if(filter[arc]) f << "\t" << NFA.id(NFA.source(arc)) << "->" << NFA.id(NFA.target(arc)) << ";" << std::endl;
     }
     f << "}";
     f.close();
@@ -157,12 +176,12 @@ void print_node_ids(nfa_t &NFA, lmap_t &nmap)
 }
 
 
-void update_arc_map(nfa_t &NFA, lmap_t &node_map, amap_t &arc_map, node_t &source, node_t &target)
+arc_t update_arc_map(nfa_t &NFA, lmap_t &node_map, amap_t &arc_map, const node_t &source, const node_t &target)
 {
-    NFA.addArc(source, target); // Update the internal NFA arc map I guess
+    arc_t new_arc = NFA.addArc(source, target); // Update the internal NFA arc map I guess
     int source_id = NFA.id(source);
     int symbol = node_map[source];
-    if(symbol < 258) // If the node is not a split just place the same target in both slots
+    if(symbol < 258 || symbol == Gap) // If the node is not a split just place the same target in both slots
     {
         arc_map[source_id].first = target;
         arc_map[source_id].second = target; // I don't know if this is the best approach but fine for now
@@ -178,20 +197,5 @@ void update_arc_map(nfa_t &NFA, lmap_t &node_map, amap_t &arc_map, node_t &sourc
             arc_map[source_id].second = target; // Place it in the second if we have
         }
     }
-}
-
-
-std::vector<int> run_top_sort(nfa_t &NFA)
-{
-    wmap_t list(NFA);
-    lemon::topologicalSort(NFA, list);
-    std::vector<int> priority_map;
-    priority_map.resize(NFA.nodeNum());
-    size_t rank = 1; // Start node is always at 0
-    for(auto &&it: list.order)
-    {
-        priority_map[NFA.id(it)] = rank;
-        rank++;
-    }
-    return priority_map;
+    return new_arc;
 }
