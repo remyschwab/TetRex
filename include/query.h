@@ -15,7 +15,7 @@
 #include "otf_collector.h"
 #include "construction_tools.h"
 #include "construct_nfa.h"
-#include "construct_reduced_nfa.h"
+// #include "construct_reduced_nfa.h"
 
 double compute_k_probability(const uint8_t &k);
 
@@ -174,12 +174,11 @@ void iter_disk_search_set(const bitvector &hits, const std::vector<std::string> 
 }
 
 template<index_structure::is_valid flavor, molecules::is_molecule mol_t>
-bitvector process_query(const std::string &regex, TetrexIndex<flavor, mol_t> &ibf, const bool draw)
+bitvector process_query(const std::string &regex, TetrexIndex<flavor, mol_t> &ibf, const bool draw, const bool augment)
 {
     std::string rx = regex;
     std::string query;
     preprocess_query(rx, query, ibf);
-    // seqan3::debug_stream << query << std::endl;
     bool valid = validate_regex(query, ibf.k_);
     bitvector hit_vector(ibf.getBinCount(), true);
     if(valid)
@@ -187,23 +186,20 @@ bitvector process_query(const std::string &regex, TetrexIndex<flavor, mol_t> &ib
         std::unique_ptr<nfa_t> NFA = std::make_unique<nfa_t>();
         std::unique_ptr<lmap_t> nfa_map =  std::make_unique<lmap_t>(*NFA);
         amap_t arc_map;
-        
+        catsites_t catsites;
         if(ibf.reduction_ == Base)
         {
-            construct_kgraph(query, *NFA, *nfa_map, arc_map, ibf.k_);
+            catsites = construct_kgraph(query, *NFA, *nfa_map, arc_map, ibf.k_);
         }
         else
         {
-            construct_reduced_kgraph(query, *NFA, *nfa_map, arc_map, ibf.k_);
+            // construct_reduced_kgraph(query, *NFA, *nfa_map, arc_map, ibf.k_);
         }
 
-        if(draw) print_graph(*NFA, *nfa_map);
 
-        std::vector<int> top_rank_map = run_top_sort(*NFA);
-        OTFCollector<flavor, mol_t> collector(std::move(NFA), std::move(nfa_map),
-                                            ibf,
-                                            std::move(top_rank_map), std::move(arc_map));
-        size_t cmplx = collector.compute_complexity(ibf.k_);
+        OTFCollector<flavor, mol_t> collector(std::move(NFA), std::move(nfa_map), ibf, std::move(arc_map));
+        if(augment) collector.augment(catsites);
+        if(draw) collector.draw_graph(catsites);
         hit_vector = collector.collect();
     }
     else // if the RegEx is shorter than the index kmer size, then prompt user and trigger linear search
@@ -223,7 +219,7 @@ void run_collection(query_arguments &cmd_args, const bool &model, TetrexIndex<fl
     bitvector hit_vector(ibf.getBinCount(), true);
     if(ibf.getBinCount() > 1u) // If someone forgot to split up their DB into bins then there's no point in the TetRex algorithm
     {
-        hit_vector &= process_query(rx, ibf, cmd_args.draw);
+        hit_vector &= process_query(rx, ibf, cmd_args.draw, cmd_args.augment);
     }
     else
     {
@@ -257,7 +253,7 @@ void run_conjunction(query_arguments &cmd_args, const std::vector<std::string> &
     bitvector hit_vector(ibf.getBinCount(), true);
     if(ibf.getBinCount() > 1u) // If someone forgot to split up their DB into bins then there's no point in the TetRex algorithm
     {
-        for(auto rx: queries) hit_vector &= process_query(rx, ibf,cmd_args.draw);
+        for(auto rx: queries) hit_vector &= process_query(rx, ibf,cmd_args.draw, cmd_args.augment);
     }
     else
     {

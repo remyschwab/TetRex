@@ -44,6 +44,7 @@ struct query_arguments
     bool draw{false};
     bool read_file{false};
     bool conjunction{false};
+    bool augment{false};
     int text_length;
     std::filesystem::path idx{};
     std::string regex = "-";
@@ -59,6 +60,7 @@ inline void initialise_query_parser(sharg::parser &parser, query_arguments &args
     parser.add_flag(args.verbose, sharg::config{'v', "verbose", "Log verbose output"});
     parser.add_flag(args.read_file, sharg::config{'f', "file", "Interpret last argument as a file containing RegEx"});
     parser.add_flag(args.conjunction, sharg::config{'c', "conj", "Search multiple queries delimited with ':'"});
+    parser.add_flag(args.augment, sharg::config{'a', "augment", "Skip over high complexity regions of RegEx"});
     parser.add_positional_option(args.idx, sharg::config{.description="Path to IBF acid index"});
     parser.add_positional_option(args.regex, sharg::config{.description="Input Regex"});
 }
@@ -83,38 +85,5 @@ inline void initialise_inspection_parser(sharg::parser &parser, inspection_argum
     parser.info.author = "Remy Schwab";
     parser.info.version = "1.0.0";
     parser.add_positional_option(args.idx, sharg::config{.description="Path to IBF acid index"});
-}
-
-
-struct antibody_index_arguments
-{
-    std::vector<std::filesystem::path> canonical_alignments{};
-    std::filesystem::path output_index_path{};
-};
-
-inline void initialize_antibody_indexing_parser(sharg::parser &parser, antibody_index_arguments &args)
-{
-    parser.info.author = "Remy Schwab";
-    parser.info.version = "1.0.0";
-    parser.add_positional_option(args.output_index_path, sharg::config{.description="Output path of index on disk"});
-    parser.add_positional_option(args.canonical_alignments, sharg::config{.description="List of canonical alignments"});
-}
-
-
-struct antibody_query_arguments
-{
-    std::filesystem::path idx;
-    std::filesystem::path anarci_output = "-";
-    float threshold = 1.0;
-};
-
-
-inline void initialize_antibody_query_parser(sharg::parser &parser, antibody_query_arguments &args)
-{
-    parser.info.author = "Remy Schwab";
-    parser.info.version = "1.0.0";
-    parser.add_option(args.threshold, sharg::config{'x', "threshold", "Fraction of kmers necessary for verification"});
-    parser.add_positional_option(args.idx, sharg::config{.description="Path to Index"});
-    parser.add_positional_option(args.anarci_output, sharg::config{.description="ANARCI Numbering (Either standard out or path to csv output)"});
 }
 

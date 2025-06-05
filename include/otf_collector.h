@@ -6,6 +6,7 @@
 #include "index_base.h"
 #include "construct_nfa.h"
 #include "lemon/core.h"
+#include "lemon/list_graph.h"
 
 
 namespace CollectionUtils
@@ -23,6 +24,7 @@ namespace CollectionUtils
         path_t path_;
     };
     using comp_table_t = std::vector<robin_hood::unordered_map<uint64_t, CollectorsItem>>;
+    using cmplx_t = std::vector<std::vector<int>>;
 }
 
 template<index_structure::is_valid flavor, molecules::is_molecule mol_t>
@@ -38,6 +40,8 @@ class OTFCollector
         CollectionUtils::rank_t rank_map_{};
         uint64_t submask_{};
         CollectionUtils::cache_t kmer_cache_{};
+        // gmap_t gap_map_{};
+        // CollectionUtils::cmplx_t cmplx_mtrx_{};
     
     public:
         OTFCollector() = default;
@@ -45,15 +49,12 @@ class OTFCollector
         explicit OTFCollector(std::unique_ptr<nfa_t> nfa,
                             std::unique_ptr<lmap_t> nfa_map,
                             TetrexIndex<flavor, mol_t> &ibf,
-                            CollectionUtils::rank_t &&rank_map,
                             amap_t const &&arc_map) :
                     NFA_(std::move(nfa)),
                     nfa_map_(std::move(nfa_map)),
                     node_count_{NFA_->nodeNum()},
                     ibf_{&ibf},
-                    arc_map_{std::move(arc_map)},
-                    comp_table_{node_count_},
-                    rank_map_{std::move(rank_map)}
+                    arc_map_{std::move(arc_map)}
         {
             create_selection_bitmask();
             ibf_->spawn_agent(); // Not done by the IBFIndex constructor during deserialization
@@ -87,13 +88,14 @@ class OTFCollector
 
     void build_rank_to_id_map(robin_hood::unordered_map<int, int> &rank_to_id_map)
     {
-        for(auto i = 0; i < rank_map_.size(); ++i) rank_to_id_map[rank_map_[i]] = i;
+        for(auto i = 0; i < rank_map_.size(); ++i) rank_to_id_map[rank_map_[i]] = i; // I don't need hashing here
     }
 
-    size_t compute_complexity(const uint8_t ksize)
+    CollectionUtils::cmplx_t compute_complexity(const uint8_t ksize)
     {
         std::vector<std::vector<int>> counts_matrix(node_count_, std::vector<int>(ksize, 0));
         robin_hood::unordered_map<int, int> rank_to_id;
+        // std::array<int, rank_map_.size()> rank_to_id;
         build_rank_to_id_map(rank_to_id);
         size_t total_complexity = 0;
         int down_idx;
@@ -121,8 +123,8 @@ class OTFCollector
                     break;
             }
         }
-        // seqan3::debug_stream << counts_matrix << std::endl;
-        return total_complexity;
+        // seqan3::debug_stream << total_complexity << std::endl;
+        return counts_matrix;
     }
 
     uint64_t extract_hash(CollectionUtils::CollectorsItem &item)
@@ -232,10 +234,26 @@ class OTFCollector
         return sum;
     }
 
+    void determine_top_sort()
+    {
+        wmap_t list(*NFA_);
+        lemon::topologicalSort(*NFA_, list);
+        rank_map_.resize(NFA_->nodeNum());
+        size_t rank = 1; // Start node is always at 0
+        for(auto &&it: list.order)
+        {
+            rank_map_[NFA_->id(it)] = rank;
+            rank++;
+        }
+    }
+
     bitvector collect()
     {
         bitvector path_matrix(ibf_->getBinCount());
         bitvector hit_vector(ibf_->getBinCount(), true);
+
+        comp_table_.resize(node_count_);
+        determine_top_sort();
 
         int id = 0;
         CollectionUtils::kmer_t kmer_init = 0;
@@ -263,6 +281,12 @@ class OTFCollector
                     case Split:
                         split_procedure(id, top);
                         break;
+                    case Gap:
+                        ibf_->set_stores(0u, 0u); // Not sure I need to do this
+                        next = arc_map_.at(id).first;
+                        item = {next, NFA_->id(next), 0, kmer_init, top.path_};
+                        push(item);
+                        break;
                     default:
                         update_path(top, symbol);
                         if(top.path_.none()) break; // Immediately get rid of deadend paths
@@ -273,7 +297,45 @@ class OTFCollector
                 }
             }
         }
-        // seqan3::debug_stream << path_matrix << std::endl;
         return path_matrix;
     }
+
+    void add_gap(const node_t& src, const node_t& downstream_node)
+    {
+        node_t gap_node = NFA_->addNode();
+        ++node_count_; // Can't forget this!
+        (*nfa_map_)[gap_node] = Gap;
+        update_arc_map(*NFA_, *nfa_map_, arc_map_, src, gap_node);
+        update_arc_map(*NFA_, *nfa_map_, arc_map_, gap_node, downstream_node);
+    }
+
+    void augment(const catsites_t& catsites) // This needs to update both the internal arcs and the arc map that gets used for collection
+    {
+        DBG("[AUGMENTING]");
+        for(auto &&cat: catsites)
+        {
+            arc_t cat_arc = std::get<0>(cat);
+            node_t leftmost = NFA_->source(cat_arc);
+            node_t leftmid = NFA_->target(cat_arc);
+            node_t rightmid = std::get<1>(cat);
+            node_t rightmost = arc_map_.find(NFA_->id(rightmid))->second.first;
+            add_gap(leftmost, rightmost);
+        }
+    }
+
+    void refine() // Do a second pass of the graph after augmenting to find augmentations that occur consecutively
+    {
+        DBG("[REFINING]");
+        return;
+    }
+
+    void draw_graph(const catsites_t& cats)
+    {
+        print_graph(*NFA_, *nfa_map_, cats);
+    }
 };
+
+// "LMAEGLYNHSVRVRSDIEEDEED"
+// "LMAEGLYN.......DIEEDEED"
+// "LMAEGLYN.{7}DIEEDEED"
+
