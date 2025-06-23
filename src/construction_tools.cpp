@@ -81,7 +81,7 @@ std::string generate_kmer_seq(uint64_t &kmer, uint8_t &k)
 }
 
 
-void print_graph(nfa_t &NFA, lmap_t &nmap, const catsites_t& cats)
+void print_graph(nfa_t &NFA, lmap_t &nmap, const catsites_t& cats, const bool& augment)
 {
     std::fstream f;
     const std::string filename = "kgraph_visualizer.gv";
@@ -89,8 +89,7 @@ void print_graph(nfa_t &NFA, lmap_t &nmap, const catsites_t& cats)
     f << "digraph kGraph\n{\n\trankdir=\"LR\";\n";
     // Collect and style all the nodes
     nfa_t::ArcMap<bool> filter(NFA, true);
-    for(auto && cat: cats) filter[std::get<0>(cat)] = false;
-
+    if(augment) for(auto && cat: cats) filter[std::get<0>(cat)] = false;
     lemon::Bfs<nfa_t>  bfs(NFA);
     bfs.run(NFA.nodeFromId(0));
     for(nfa_t::NodeIt n(NFA); n != lemon::INVALID; ++n)

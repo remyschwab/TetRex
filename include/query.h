@@ -106,7 +106,7 @@ void iter_disk_search(const bitvector &hits, std::string &query, const TetrexInd
             throw std::runtime_error("File not found. Did you move/rename an indexed file?");
         }
         verify_fasta_hit(lib_path, compiled_regex, ibf.acid_libs_[hit]);
-	lib_path = gzopen(ibf.acid_libs_[hit].c_str(), "r");
+	    lib_path = gzopen(ibf.acid_libs_[hit].c_str(), "r");
         reverse_verify_fasta_hit(lib_path, compiled_regex, ibf.acid_libs_[hit]);
         gzclose(lib_path);
     }
@@ -117,7 +117,7 @@ void iter_disk_search(const bitvector &hits, std::string &query, const TetrexInd
 {
     std::vector<size_t> bins = compute_set_bins(hits, ibf.acid_libs_);
     query = "(" + query + ")"; // Capture entire RegEx
-    re2::RE2 compiled_regex(query);
+    re2::RE2 compiled_regex(query, re2::RE2::POSIX);
     assert(compiled_regex.ok());
     #pragma omp parallel for
     for(size_t hit: bins)
@@ -179,6 +179,7 @@ bitvector process_query(const std::string &regex, TetrexIndex<flavor, mol_t> &ib
     std::string rx = regex;
     std::string query;
     preprocess_query(rx, query, ibf);
+    // DBG(query);
     bool valid = validate_regex(query, ibf.k_);
     bitvector hit_vector(ibf.getBinCount(), true);
     if(valid)
@@ -195,11 +196,11 @@ bitvector process_query(const std::string &regex, TetrexIndex<flavor, mol_t> &ib
         {
             // construct_reduced_kgraph(query, *NFA, *nfa_map, arc_map, ibf.k_);
         }
-
-
-        OTFCollector<flavor, mol_t> collector(std::move(NFA), std::move(nfa_map), ibf, std::move(arc_map));
-        if(augment) collector.augment(catsites);
-        if(draw) collector.draw_graph(catsites);
+        std::unique_ptr<gmap_t> gap_map = std::make_unique<gmap_t>(*NFA);
+        OTFCollector<flavor, mol_t> collector(std::move(NFA), std::move(nfa_map), ibf, std::move(arc_map), std::move(gap_map));
+        collector.analyze_complexity();
+        if(augment && catsites.size() > 0) collector.augment(catsites);
+        if(draw) collector.draw_graph(catsites, augment);
         hit_vector = collector.collect();
     }
     else // if the RegEx is shorter than the index kmer size, then prompt user and trigger linear search

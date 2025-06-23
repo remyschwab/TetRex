@@ -20,7 +20,7 @@ void concat_procedure(nfa_t &nfa, lmap_t &node_map, nfa_stack_t &stack, amap_t &
     size_t combined_node_count = std::get<2>(node2)+std::get<2>(node1);
     // arc_t cat_arc = update_arc_map(nfa, node_map, arc_map, node1.second, node2.first);
     arc_t cat_arc = update_arc_map(nfa, node_map, arc_map, std::get<1>(node1), std::get<0>(node2));
-    if(std::get<2>(node2) > 10) cats.push_back(std::make_tuple(cat_arc, std::get<1>(node2)));
+    if(std::get<2>(node2) >= 20) cats.push_back(std::make_tuple(cat_arc, std::get<1>(node2)));
     // node_pair_t node_pair = std::make_tuple(node1.first, node2.second, combined_node_count);
     node_pair_t node_pair = std::make_tuple(std::get<0>(node1), std::get<1>(node2), combined_node_count);
     stack.push(node_pair);

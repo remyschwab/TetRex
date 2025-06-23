@@ -61,7 +61,7 @@ enum
 
 using buffer_t = std::stack<int>;
 
-void print_graph(nfa_t &NFA, lmap_t &nmap, const catsites_t& cats);
+void print_graph(nfa_t &NFA, lmap_t &nmap, const catsites_t& cats, const bool& augment);
 
 std::string generate_kmer_seq(uint64_t &kmer, uint8_t &k);
 

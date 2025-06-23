@@ -15,7 +15,7 @@ target_compile_options ("${PROJECT_NAME}_interface" INTERFACE "-pedantic" "-Wall
 
 
 # An object library (without main) to be used in multiple targets.
-add_library ("${PROJECT_NAME}_lib" STATIC utils.cpp index_base.cpp query.cpp inspect_idx.cpp construct_nfa.cpp construction_tools.cpp)
+add_library ("${PROJECT_NAME}_lib" STATIC utils.cpp index_base.cpp query.cpp inspect_idx.cpp construct_nfa.cpp construction_tools.cpp dGramIndex.cpp)
 target_link_libraries ("${PROJECT_NAME}_lib" PUBLIC "${PROJECT_NAME}_interface" seqan::hibf 
     re2::re2
     absl::absl_check

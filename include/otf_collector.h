@@ -40,8 +40,9 @@ class OTFCollector
         CollectionUtils::rank_t rank_map_{};
         uint64_t submask_{};
         CollectionUtils::cache_t kmer_cache_{};
-        // gmap_t gap_map_{};
-        // CollectionUtils::cmplx_t cmplx_mtrx_{};
+        std::unique_ptr<gmap_t> gap_map_{};
+        CollectionUtils::cmplx_t cmplx_mtrx_{};
+        std::vector<size_t> rank_to_id_{};
     
     public:
         OTFCollector() = default;
@@ -49,14 +50,22 @@ class OTFCollector
         explicit OTFCollector(std::unique_ptr<nfa_t> nfa,
                             std::unique_ptr<lmap_t> nfa_map,
                             TetrexIndex<flavor, mol_t> &ibf,
-                            amap_t const &&arc_map) :
+                            amap_t const &&arc_map, std::unique_ptr<gmap_t>gap_map) :
                     NFA_(std::move(nfa)),
                     nfa_map_(std::move(nfa_map)),
                     node_count_{NFA_->nodeNum()},
                     ibf_{&ibf},
-                    arc_map_{std::move(arc_map)}
+                    arc_map_{std::move(arc_map)},
+                    comp_table_{},
+                    rank_map_{},
+                    submask_{},
+                    kmer_cache_{},
+                    gap_map_{std::move(gap_map)},
+                    cmplx_mtrx_{}
         {
             create_selection_bitmask();
+            comp_table_.resize(node_count_);
+            determine_top_sort();
             ibf_->spawn_agent(); // Not done by the IBFIndex constructor during deserialization
         }
 
@@ -86,44 +95,47 @@ class OTFCollector
         ttl_cmplx += arr[k-1];
     }
 
-    void build_rank_to_id_map(robin_hood::unordered_map<int, int> &rank_to_id_map)
+    void build_rank_to_id_map()
     {
-        for(auto i = 0; i < rank_map_.size(); ++i) rank_to_id_map[rank_map_[i]] = i; // I don't need hashing here
+        for(auto i = 0; i < rank_map_.size(); ++i) rank_to_id_[rank_map_[i]] = i; // I don't need hashing here
     }
 
     CollectionUtils::cmplx_t compute_complexity(const uint8_t ksize)
     {
         std::vector<std::vector<int>> counts_matrix(node_count_, std::vector<int>(ksize, 0));
-        robin_hood::unordered_map<int, int> rank_to_id;
-        // std::array<int, rank_map_.size()> rank_to_id;
-        build_rank_to_id_map(rank_to_id);
+        // robin_hood::unordered_map<int, int> rank_to_id;
+        rank_to_id_.resize(rank_map_.size());
+        build_rank_to_id_map();
         size_t total_complexity = 0;
         int down_idx;
         for(size_t i = 0; i < node_count_; ++i)
         {
-            int symbol = (*nfa_map_)[NFA_->nodeFromId(rank_to_id[i])];
+            int symbol = (*nfa_map_)[NFA_->nodeFromId(rank_to_id_[i])];
             switch(symbol)
             {
                 case Match:
                     break;
                 case Ghost:
-                    down_idx = rank_map_[NFA_->id(arc_map_.at(rank_to_id[i]).first)];
+                    down_idx = rank_map_[NFA_->id(arc_map_.at(rank_to_id_[i]).first)];
                     update_downstream_counts(ksize, counts_matrix[i], counts_matrix[down_idx]);
+                    seqan3::debug_stream << "•:" << counts_matrix[i] << std::endl;
                     break;
                 case Split:
-                    down_idx = rank_map_[NFA_->id(arc_map_.at(rank_to_id[i]).first)];
+                    down_idx = rank_map_[NFA_->id(arc_map_.at(rank_to_id_[i]).first)];
                     update_downstream_counts(ksize, counts_matrix[i], counts_matrix[down_idx]);
-                    down_idx = rank_map_[NFA_->id(arc_map_.at(rank_to_id[i]).second)];
+                    down_idx = rank_map_[NFA_->id(arc_map_.at(rank_to_id_[i]).second)];
                     update_downstream_counts(ksize, counts_matrix[i], counts_matrix[down_idx]);
+                    seqan3::debug_stream << "Ø:" << counts_matrix[i] << std::endl;
                     break;
                 default:
                     update_local_counts(counts_matrix[i], ksize, total_complexity);
-                    down_idx = rank_map_[NFA_->id(arc_map_.at(rank_to_id[i]).first)];
+                    down_idx = rank_map_[NFA_->id(arc_map_.at(rank_to_id_[i]).first)];
                     update_downstream_counts(ksize, counts_matrix[i], counts_matrix[down_idx]);
+                    seqan3::debug_stream << static_cast<char>(symbol) << ":" << counts_matrix[i] << std::endl;
                     break;
             }
         }
-        // seqan3::debug_stream << total_complexity << std::endl;
+        // DBG(counts_matrix);
         return counts_matrix;
     }
 
@@ -247,13 +259,15 @@ class OTFCollector
         }
     }
 
+    uint64_t collect_dgram()
+    {
+        
+    }
+
     bitvector collect()
     {
         bitvector path_matrix(ibf_->getBinCount());
         bitvector hit_vector(ibf_->getBinCount(), true);
-
-        comp_table_.resize(node_count_);
-        determine_top_sort();
 
         int id = 0;
         CollectionUtils::kmer_t kmer_init = 0;
@@ -300,38 +314,137 @@ class OTFCollector
         return path_matrix;
     }
 
-    void add_gap(const node_t& src, const node_t& downstream_node)
+    void add_gap(const node_t& src, const node_t& downstream_node, const size_t gapsize)
     {
         node_t gap_node = NFA_->addNode();
         ++node_count_; // Can't forget this!
         (*nfa_map_)[gap_node] = Gap;
+        (*gap_map_)[gap_node] = gapsize;
         update_arc_map(*NFA_, *nfa_map_, arc_map_, src, gap_node);
         update_arc_map(*NFA_, *nfa_map_, arc_map_, gap_node, downstream_node);
     }
 
-    void augment(const catsites_t& catsites) // This needs to update both the internal arcs and the arc map that gets used for collection
+    std::pair<node_t, node_t> add_guard(const node_t& src, const node_t& downstream_node)
     {
-        DBG("[AUGMENTING]");
+        node_t split_node = NFA_->addNode();
+        ++node_count_; // Can't forget this!
+        node_t ghost_node = NFA_->addNode();
+        ++node_count_; // Can't forget this!
+        (*nfa_map_)[split_node] = Split;
+        (*nfa_map_)[ghost_node] = Ghost;
+        update_arc_map(*NFA_, *nfa_map_, arc_map_, src, split_node);
+        update_arc_map(*NFA_, *nfa_map_, arc_map_, ghost_node, downstream_node);
+        return {split_node, ghost_node};
+    }
+
+    void determine_all_gaps(const node_t& source, const node_t &target, robin_hood::unordered_set<size_t>& gaps)
+    {
+        std::stack<std::pair<size_t, node_t>> stack;
+        size_t path_count = 1;
+        robin_hood::unordered_map<size_t, size_t> path_length_map;
+        path_length_map[path_count] = 0;
+        node_t current;
+        stack.push(std::make_pair(path_count, source));
+        while(!stack.empty())
+        {
+            size_t path_id = stack.top().first;
+            current = stack.top().second;
+            int id = NFA_->id(current);
+            stack.pop();
+            if(current == target) continue; // Stopping case
+            int symbol = (*nfa_map_)[current];
+            switch(symbol)
+            {
+                case Ghost: // Just move onto the next node
+                    current = arc_map_.at(id).first;
+                    stack.push(std::make_pair(path_id, current));
+                    break;
+                case Split: // Increment the number of paths and push both onto the stack
+                    ++path_count;
+                    current = arc_map_.at(id).first;
+                    stack.push(std::make_pair(path_id, current));
+                    current = arc_map_.at(id).second;
+                    stack.push(std::make_pair(path_count, current));
+                    path_length_map[path_count] = path_length_map.find(path_id)->second;
+                    break;
+                default:
+                    ++path_length_map.find(path_id)->second;
+                    current = arc_map_.at(id).first;
+                    stack.push(std::make_pair(path_id, current));
+                    break;
+            }
+        }
+        for(auto const[id, length]: path_length_map) gaps.insert(length);
+    }
+
+    void analyze_complexity()
+    {
+        comp_table_.resize(node_count_);
+        determine_top_sort();
+        // cmplx_mtrx_ = compute_complexity(ibf_->k_);
+        return;
+    }
+
+    void merge_catsites(catsites_t& cats)
+    {
+        std::sort(cats.begin(), cats.end(), [&](const auto& a, const auto& b) {
+            return rank_map_[NFA_->id(NFA_->target(std::get<0>(a)))] < rank_map_[NFA_->id(NFA_->target(std::get<0>(b)))];
+        });
+
+        bool done = false;
+        catsites_t merged;
+
+        for (int i = 0; i < cats.size(); i++)
+        {
+            size_t currentStart = rank_map_[NFA_->id(NFA_->target(std::get<0>(cats[i])))]; // Oh my god...
+            size_t currentEnd = rank_map_[NFA_->id(std::get<1>(cats[i]))];
+            if (merged.empty() || (currentStart-rank_map_[NFA_->id(std::get<1>(merged.back()))]) > ibf_->k_)
+            {
+                merged.push_back(cats[i]);
+                continue;
+            }
+            std::get<1>(merged.back()) = std::get<1>(cats[i]);
+            done = true;
+        }
+        if(done) cats = merged;
+    }
+
+    void augment(catsites_t& catsites)
+    {
+        // This updates only the external arc map that is used for collection
+        // It doesn't deal with the internal, lemon arc map
+        // This is acceptable for now because we only replace gaps between concatentation operators
+        // Lemon algos like DFS are only being called within subgraphs (I think)
+        merge_catsites(catsites);
+        seqan3::debug_stream << "[AUGMENTING " << catsites.size() << " EDGE(S)]" << std::endl;
         for(auto &&cat: catsites)
         {
+            robin_hood::unordered_set<size_t> gaps;
             arc_t cat_arc = std::get<0>(cat);
             node_t leftmost = NFA_->source(cat_arc);
             node_t leftmid = NFA_->target(cat_arc);
             node_t rightmid = std::get<1>(cat);
             node_t rightmost = arc_map_.find(NFA_->id(rightmid))->second.first;
-            add_gap(leftmost, rightmost);
+            determine_all_gaps(leftmid, rightmid, gaps);
+            if(gaps.size() == 1) add_gap(leftmost, rightmost, *gaps.begin());
+            else
+            {
+                std::pair<node_t, node_t> guard = add_guard(leftmost, rightmost);
+                for(auto&& gap: gaps) add_gap(guard.first, guard.second, gap);
+            }
         }
+        comp_table_.resize(node_count_);
+        determine_top_sort();
     }
 
-    void refine() // Do a second pass of the graph after augmenting to find augmentations that occur consecutively
+    void draw_graph(const catsites_t& cats, const bool& augment)
     {
-        DBG("[REFINING]");
-        return;
+        print_graph(*NFA_, *nfa_map_, cats, augment);
     }
 
-    void draw_graph(const catsites_t& cats)
+    size_t get_node_count()
     {
-        print_graph(*NFA_, *nfa_map_, cats);
+        return node_count_;
     }
 };
 
