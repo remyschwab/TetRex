@@ -124,5 +124,8 @@ For motifs that become long and complex as POSIX expressions, we recommend pipin
 tetrex_tools convert -s prosite -i '[LIVMFGAC]-[LIVMTADN]-[LIVFSA]-D-[ST]-G-[STAV]-[STAPDENQ]-{GQ}-[LIVMFSTNC]-{EGK}-[LIVMFGTA]' | tetrex query $IDX -
 ```
 
+### Citing TetRex
+If you use TetRex for your research, please cite [this paper](https://academic.oup.com/nargab/article/7/2/lqaf039/8115380).
+
 ## Notes
 This app was generated from the [SeqAn App Template](https://github.com/seqan/app-template) and makes heavy use of the [SeqAn library](https://github.com/seqan/seqan3/tree/4668203ee1526b4ac3dbdc47869bee72253f684c).
