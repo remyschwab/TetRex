@@ -1,10 +1,5 @@
 # TetRex [![DOI](https://zenodo.org/badge/534613146.svg)](https://doi.org/10.5281/zenodo.15056085)
-Despite the efficiency of modern day tools for Regular Expression search, their runtime is often dominated by the size of the text. We present TetRex, a novel algorithm for regular expression matching that leverages the (Hierarchical) Interleaved Bloom Filter as an index. Regular Expressions are given as input in the command line and support extended POSIX style Regular Expressions:
-
-1. **|** - Or
-2. __*__ - Zero or more repetitions
-3. **+** - One or More repetitions
-4. **?** - Optional Character
+Regular Expressions provide a convenient way to model protein signatures, domains, and interaction sites. Despite the efficiency of modern day tools for Regular Expression search, their runtime is often dominated by the size of the text. We present TetRex, a novel algorithm for regular expression matching that leverages the (Hierarchical) Interleaved Bloom Filter as an index. This allows for ultra-fast queries of large sequence collections.
 
 ## Installation
 
@@ -33,6 +28,13 @@ export SDKROOT="$(g++-11 -v 2>&1 | sed -n 's@.*--with-sysroot=\([^ ]*\).*@\1@p')
 ```
 
 ## Usage
+Regular Expressions are given as input in the command line and support extended POSIX style Regular Expressions:
+
+1. **|** - Or
+2. __*__ - Zero or more repetitions
+3. **+** - One or More repetitions
+4. **?** - Optional Character
+
 ### A Small Example
 `TetRex` offers two main commands [index & query] and one utility command [inspect]:
 ```shell
