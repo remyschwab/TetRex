@@ -56,8 +56,8 @@ class DGramIndex
         // std::vector<std::pair<std::string, uint64_t>> dgram_buffer_;
         size_t bc_;
         std::vector<std::vector<uint64_t>> dgram_buffer_;
-        seqan::hibf::hierarchical_interleaved_bloom_filter dibf_{};
-        seqan::hibf::hierarchical_interleaved_bloom_filter::membership_agent_type agent_{};
+        seqan::hibf::interleaved_bloom_filter dibf_{};
+        seqan::hibf::interleaved_bloom_filter::membership_agent_type agent_{};
 
 
 
@@ -91,10 +91,10 @@ class DGramIndex
             size_t max_bin = find_largest_bin();
             size_t bin_size_ = compute_bitcount(max_bin);
             dibf_ = seqan::hibf::interleaved_bloom_filter{seqan::hibf::bin_count{bc_}, seqan::hibf::bin_size{bin_size_}, seqan::hibf::hash_function_count{hc_}};
-            for(size_t i = 0; i < user_bin_data_.size(); ++i)
+            for(size_t i = 0; i < dgram_buffer_.size(); ++i)
             {
                 seqan::hibf::bin_index idx{i};
-                for(auto val: user_bin_data_[i]) dibf_.emplace(val, idx);
+                for(auto val: dgram_buffer_[i]) dibf_.emplace(val, idx);
             }
         }
 
@@ -149,18 +149,18 @@ class DGramIndex
         }
     };
 
-    void store_dindex(const DGramIndex& dindex, const std::filesystem::path& opath)
-    {
-        std::ofstream os{opath, std::ios::binary};
-        cereal::BinaryOutputArchive oarchive{os};
-        oarchive(dindex);
-    }
+    // void store_dindex(const DGramIndex& dindex, const std::filesystem::path& opath)
+    // {
+    //     std::ofstream os{opath, std::ios::binary};
+    //     cereal::BinaryOutputArchive oarchive{os};
+    //     oarchive(dindex);
+    // }
 
-    void load_dindex(const DGramIndex& dindex, const std::filesystem::path& ipath)
-    {
-        std::ifstream is{ipath, std::ios::binary};
-        cereal::BinaryInputArchive iarchive{is};
-        iarchive(dindex);
-    }
+    // void load_dindex(const DGramIndex& dindex, const std::filesystem::path& ipath)
+    // {
+    //     std::ifstream is{ipath, std::ios::binary};
+    //     cereal::BinaryInputArchive iarchive{is};
+    //     iarchive(dindex);
+    // }
 
 void drive_dindex(const dindex_arguments &cmd_args);

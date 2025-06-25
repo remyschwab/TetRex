@@ -314,17 +314,17 @@ class OTFCollector
         return path_matrix;
     }
 
-    void add_gap(const node_t& src, const node_t& downstream_node, const size_t gapsize)
+    void add_gap(const Catsite& cat, const size_t gapsize)
     {
         node_t gap_node = NFA_->addNode();
         ++node_count_; // Can't forget this!
         (*nfa_map_)[gap_node] = Gap;
         (*gap_map_)[gap_node] = gapsize;
-        update_arc_map(*NFA_, *nfa_map_, arc_map_, src, gap_node);
-        update_arc_map(*NFA_, *nfa_map_, arc_map_, gap_node, downstream_node);
+        update_arc_map(*NFA_, *nfa_map_, arc_map_, cat.cleavage_site_, gap_node);
+        update_arc_map(*NFA_, *nfa_map_, arc_map_, gap_node, cat.downstream_);
     }
 
-    std::pair<node_t, node_t> add_guard(const node_t& src, const node_t& downstream_node)
+    std::pair<node_t, node_t> add_guard(const Catsite& cat)
     {
         node_t split_node = NFA_->addNode();
         ++node_count_; // Can't forget this!
@@ -332,26 +332,26 @@ class OTFCollector
         ++node_count_; // Can't forget this!
         (*nfa_map_)[split_node] = Split;
         (*nfa_map_)[ghost_node] = Ghost;
-        update_arc_map(*NFA_, *nfa_map_, arc_map_, src, split_node);
-        update_arc_map(*NFA_, *nfa_map_, arc_map_, ghost_node, downstream_node);
+        update_arc_map(*NFA_, *nfa_map_, arc_map_, cat.cleavage_site_, split_node);
+        update_arc_map(*NFA_, *nfa_map_, arc_map_, ghost_node, cat.downstream_);
         return {split_node, ghost_node};
     }
 
-    void determine_all_gaps(const node_t& source, const node_t &target, robin_hood::unordered_set<size_t>& gaps)
+    void determine_all_gaps(const Catsite& cat, robin_hood::unordered_set<size_t>& gaps)
     {
         std::stack<std::pair<size_t, node_t>> stack;
         size_t path_count = 1;
         robin_hood::unordered_map<size_t, size_t> path_length_map;
         path_length_map[path_count] = 0;
         node_t current;
-        stack.push(std::make_pair(path_count, source));
+        stack.push(std::make_pair(path_count, cat.cleavage_site_));
         while(!stack.empty())
         {
             size_t path_id = stack.top().first;
             current = stack.top().second;
             int id = NFA_->id(current);
             stack.pop();
-            if(current == target) continue; // Stopping case
+            if(current == cat.cleavage_start_) continue; // Stopping case
             int symbol = (*nfa_map_)[current];
             switch(symbol)
             {
@@ -388,7 +388,7 @@ class OTFCollector
     void merge_catsites(catsites_t& cats)
     {
         std::sort(cats.begin(), cats.end(), [&](const auto& a, const auto& b) {
-            return rank_map_[NFA_->id(NFA_->target(std::get<0>(a)))] < rank_map_[NFA_->id(NFA_->target(std::get<0>(b)))];
+            return rank_map_[a.cleavage_start_id_] < rank_map_[b.cleavage_start_id_];
         });
 
         bool done = false;
@@ -396,14 +396,14 @@ class OTFCollector
 
         for (int i = 0; i < cats.size(); i++)
         {
-            size_t currentStart = rank_map_[NFA_->id(NFA_->target(std::get<0>(cats[i])))]; // Oh my god...
-            size_t currentEnd = rank_map_[NFA_->id(std::get<1>(cats[i]))];
-            if (merged.empty() || (currentStart-rank_map_[NFA_->id(std::get<1>(merged.back()))]) > ibf_->k_)
+            size_t currentStart = rank_map_[cats[i].cleavage_start_id_];
+            size_t currentEnd = rank_map_[cats[i].cleavage_end_id_];
+            if (merged.empty() || (currentStart-rank_map_[merged.back().cleavage_end_id_]) > ibf_->k_)
             {
                 merged.push_back(cats[i]);
                 continue;
             }
-            std::get<1>(merged.back()) = std::get<1>(cats[i]);
+            merged.back().cleavage_end_ = cats[i].cleavage_end_;
             done = true;
         }
         if(done) cats = merged;
@@ -420,17 +420,15 @@ class OTFCollector
         for(auto &&cat: catsites)
         {
             robin_hood::unordered_set<size_t> gaps;
-            arc_t cat_arc = std::get<0>(cat);
-            node_t leftmost = NFA_->source(cat_arc);
-            node_t leftmid = NFA_->target(cat_arc);
-            node_t rightmid = std::get<1>(cat);
-            node_t rightmost = arc_map_.find(NFA_->id(rightmid))->second.first;
-            determine_all_gaps(leftmid, rightmid, gaps);
-            if(gaps.size() == 1) add_gap(leftmost, rightmost, *gaps.begin());
+            determine_all_gaps(cat, gaps);
+            cat.complete(*NFA_, arc_map_);
+            if(gaps.size() == 1) add_gap(cat, *gaps.begin());
             else
             {
-                std::pair<node_t, node_t> guard = add_guard(leftmost, rightmost);
-                for(auto&& gap: gaps) add_gap(guard.first, guard.second, gap);
+                std::pair<node_t, node_t> guard = add_guard(cat);
+                cat.cleavage_site_ = guard.first; // NOTE: This doesn't update any of the IDs
+                cat.downstream_ = guard.second;   // Should be ok...
+                for(const auto& gap: gaps) add_gap(cat, gap);
             }
         }
         comp_table_.resize(node_count_);

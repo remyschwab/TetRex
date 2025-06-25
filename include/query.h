@@ -15,7 +15,7 @@
 #include "otf_collector.h"
 #include "construction_tools.h"
 #include "construct_nfa.h"
-// #include "construct_reduced_nfa.h"
+#include "construct_reduced_nfa.h"
 
 double compute_k_probability(const uint8_t &k);
 
@@ -194,7 +194,7 @@ bitvector process_query(const std::string &regex, TetrexIndex<flavor, mol_t> &ib
         }
         else
         {
-            // construct_reduced_kgraph(query, *NFA, *nfa_map, arc_map, ibf.k_);
+            catsites = construct_reduced_kgraph(query, *NFA, *nfa_map, arc_map, ibf.k_);
         }
         std::unique_ptr<gmap_t> gap_map = std::make_unique<gmap_t>(*NFA);
         OTFCollector<flavor, mol_t> collector(std::move(NFA), std::move(nfa_map), ibf, std::move(arc_map), std::move(gap_map));
