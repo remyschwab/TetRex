@@ -16,15 +16,15 @@ void concat_procedure(nfa_t &nfa, lmap_t &node_map, nfa_stack_t &stack, amap_t &
     stack.pop();
     Subgraph subgraph1 = stack.top();
     stack.pop();
-    size_t combined_node_count = subgraph1.split_run_count + subgraph2.split_run_count;
     arc_t cat_arc = update_arc_map(nfa, node_map, arc_map, subgraph1.end, subgraph2.start);
-    if(subgraph2.split_run_count >= 20)
+    if(subgraph2.split_run_count >= 18)
     {
         Catsite catsite{subgraph1.end, subgraph2.start, subgraph2.end, cat_arc};
         catsite.addIDs(nfa); // These need to be added now so they can be merged first
         cats.push_back(catsite);
     }
-    Subgraph subgraph{subgraph1.start, subgraph2.end, combined_node_count, combined_node_count, Concat};
+    size_t new_split_runcount = std::max(subgraph1.split_run_count, subgraph2.split_run_count);
+    Subgraph subgraph{subgraph1.start, subgraph2.end, new_split_runcount, 0u, Concat};
     stack.push(subgraph);
 }
 
@@ -35,7 +35,8 @@ void union_procedure(nfa_t &nfa, nfa_stack_t &stack, lmap_t &node_map, amap_t &a
     stack.pop();
     Subgraph subgraph1 = stack.top();
     stack.pop();
-    size_t combined_node_count = subgraph1.split_run_count + subgraph2.split_run_count;
+    size_t split_run_count = subgraph1.split_run_count + subgraph2.split_run_count;
+    if(split_run_count == 0) ++split_run_count;
 
     node_t split_node = nfa.addNode();
     node_map[split_node] = Split;
@@ -47,8 +48,9 @@ void union_procedure(nfa_t &nfa, nfa_stack_t &stack, lmap_t &node_map, amap_t &a
     update_arc_map(nfa, node_map, arc_map, subgraph1.end, ghost_node);
     update_arc_map(nfa, node_map, arc_map, subgraph2.end, ghost_node);
 
-    if(node_map[subgraph1.start] == Split) ++combined_node_count; // For the Split
-    Subgraph new_subgraph{split_node, ghost_node, combined_node_count, 0u, Union};
+    if(node_map[subgraph1.start] == Split) ++split_run_count; // For the Split
+    // DBG(split_run_count);
+    Subgraph new_subgraph{split_node, ghost_node, split_run_count, 0u, Union};
     stack.push(new_subgraph);
 }
 

@@ -12,16 +12,11 @@ size_t copy_subgraph(Subgraph &subgraph, nfa_t &NFA, lmap_t &node_map, Subgraph 
 { // Lord help anyone who ever needs to debug this method
     node_t new_node;
     size_t added_node_count = 0;
-    // paste_to_graph(NFA, node_map, subgraph.first, new_node);
     paste_to_graph(NFA, node_map, subgraph.start, new_node);
-    ++added_node_count;
-    // subgraph_copy.first = new_node;
     subgraph_copy.start = new_node;
     // If the operand is just a single character then just copy that one node
-    // if(subgraph.first == subgraph.second)
     if(subgraph.start == subgraph.end)
     {
-        // subgraph_copy.second = new_node;
         subgraph_copy.end = new_node;
         return added_node_count;
     }
@@ -31,16 +26,13 @@ size_t copy_subgraph(Subgraph &subgraph, nfa_t &NFA, lmap_t &node_map, Subgraph 
     
     lemon::Dfs<nfa_t> dfs(NFA);
     dfs.init();
-    // dfs.addSource(subgraph.first);
     dfs.addSource(subgraph.start);
     
-    // reference_to_copy_map[subgraph.first] = new_node;
     reference_to_copy_map[subgraph.start] = new_node;
     while(!dfs.emptyQueue())
     {
         arc_t arc = dfs.processNextArc();
         node_t source = NFA.source(arc);
-        // if(source == subgraph.second) break;
         if(source == subgraph.end) break; // i don't totally get why this works
         node_t target = NFA.target(arc);
         node_t source_copy = reference_to_copy_map[source];

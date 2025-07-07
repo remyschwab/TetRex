@@ -37,41 +37,6 @@ void reduce_query_alphabet(std::string &regex, const std::array<char, 256> &redu
 
 std::vector<std::string> read_regex_from_file(const std::string &file_path);
 
-template<index_structure::is_valid flavor, molecules::is_peptide mol_type>
-void preprocess_query(std::string &rx_query, std::string &postfix_query, const TetrexIndex<flavor, mol_type> &ibf)
-{
-    // We don't want to generate kmers from something with anchors
-
-    // We want the entire query to be in one capture group
-    // But we need to account for the case where the user tried that themselves
-    // size_t query_length = rx_query.length();
-    // if(rx_query[0] != "(" && rx_query[query_length-1] != ")") // Default case where there is just a query
-    // {
-    //     postfix_query = translate(rx_query);
-    //     rx_query = "(" + rx_query + ")";
-    // }
-    // seqan3::debug_stream << rx_query << std::endl;
-    if(ibf.reduction_ > 0) reduce_query_alphabet(rx_query, ibf.decomposer_.decomposer_.redmap_);
-    postfix_query = translate(rx_query);
-}
-
-template<index_structure::is_valid flavor, molecules::is_dna mol_type>
-void preprocess_query(std::string &rx_query, std::string &postfix_query, const TetrexIndex<flavor, mol_type> &ibf)
-{
-    // We don't want to generate kmers from something with anchors
-
-    // We want the entire query to be in one capture group
-    // But we need to account for the case where the user tried that themselves
-    // size_t query_length = rx_query.length();
-    // if(rx_query[0] != "(" && rx_query[query_length-1] != ")") // Default case where there is just a query
-    // {
-    //     postfix_query = translate(rx_query);
-    //     rx_query = "(" + rx_query + ")";
-    // }
-    // seqan3::debug_stream << rx_query << std::endl;
-    postfix_query = translate(rx_query);
-}
-
 std::string compute_reverse_complement(std::string &regex);
 
 std::string complementBasesInRegex(const std::string &regex);
@@ -88,13 +53,28 @@ void verify_fasta_set(const gzFile &fasta_handle, const RE2::Set &reg_set, std::
 
 std::vector<size_t> compute_set_bins(const bitvector &hits, const std::vector<std::string> &acid_lib);
 
+template<index_structure::is_valid flavor, molecules::is_molecule mol_type>
+void preprocess_query(std::string &rx_query, std::string &postfix_query, const TetrexIndex<flavor, mol_type> &ibf)
+{
+    if(ibf.reduction_ > 0) reduce_query_alphabet(rx_query, ibf.decomposer_.decomposer_.redmap_);
+    postfix_query = translate(rx_query);
+}
+
+
+template<index_structure::is_valid flavor, molecules::is_dna mol_type>
+void preprocess_query(std::string &rx_query, std::string &postfix_query, const TetrexIndex<flavor, mol_type> &ibf)
+{
+    postfix_query = translate(rx_query);
+}
+
+
 template<index_structure::is_valid flavor, molecules::is_dna mol_type>
 void iter_disk_search(const bitvector &hits, std::string &query, const TetrexIndex<flavor, mol_type> &ibf)
 {
     std::vector<size_t> bins = compute_set_bins(hits, ibf.acid_libs_);
     std::string forward_and_reverse = query;
     forward_and_reverse = "(" + forward_and_reverse + ")"; // Capture entire RegEx
-
+    DBG("HERE");
     re2::RE2 compiled_regex(forward_and_reverse);
     assert(compiled_regex.ok());
     #pragma omp parallel for
@@ -111,6 +91,7 @@ void iter_disk_search(const bitvector &hits, std::string &query, const TetrexInd
         gzclose(lib_path);
     }
 }
+
 
 template<index_structure::is_valid flavor, molecules::is_peptide mol_type>
 void iter_disk_search(const bitvector &hits, std::string &query, const TetrexIndex<flavor, mol_type> &ibf)
@@ -228,7 +209,6 @@ void run_collection(query_arguments &cmd_args, const bool &model, TetrexIndex<fl
     }
 
     if(cmd_args.verbose) seqan3::debug_stream << "Narrowed Search to " << OTFCollector<flavor, mol_t>::sumBitVector(hit_vector) << " possible bins" << std::endl;
-    
     if(!hit_vector.none())
     {
         try

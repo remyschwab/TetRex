@@ -107,10 +107,7 @@ namespace molecules
                 uint64_t reverse_complement = revComplement(initial_encoding, k_); // Compute the reverse compelement
                 base_ref.set_stores(initial_encoding, reverse_complement); // Remember both strands
                 base_ref.emplace((initial_encoding <= reverse_complement ? initial_encoding : reverse_complement), tech_bin_id); // MinHash
-                for(auto symbol : record_seq)
-                {
-                    rollover_nuc_hash(symbol, tech_bin_id, base_ref);
-                }
+                for(auto symbol : record_seq) rollover_nuc_hash(symbol, tech_bin_id, base_ref);
             }
 
             uint64_t update_kmer(const int &symbol, uint64_t &kmer)

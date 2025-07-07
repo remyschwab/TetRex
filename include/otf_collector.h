@@ -246,6 +246,13 @@ class OTFCollector
         return sum;
     }
 
+    size_t sumComplexity(const CollectionUtils::cmplx_t& mtrx)
+    {
+        size_t complexity = 0;
+        for(const auto& window: mtrx) complexity += window.back();
+        return complexity;
+    }
+
     void determine_top_sort()
     {
         wmap_t list(*NFA_);
@@ -261,7 +268,7 @@ class OTFCollector
 
     uint64_t collect_dgram()
     {
-        
+        return 0ULL;
     }
 
     bitvector collect()
@@ -400,10 +407,12 @@ class OTFCollector
             size_t currentEnd = rank_map_[cats[i].cleavage_end_id_];
             if (merged.empty() || (currentStart-rank_map_[merged.back().cleavage_end_id_]) > ibf_->k_)
             {
+                // DBG("HERE");
                 merged.push_back(cats[i]);
                 continue;
             }
             merged.back().cleavage_end_ = cats[i].cleavage_end_;
+            merged.back().cleavage_end_id_ = cats[i].cleavage_end_id_;
             done = true;
         }
         if(done) cats = merged;
@@ -416,7 +425,7 @@ class OTFCollector
         // This is acceptable for now because we only replace gaps between concatentation operators
         // Lemon algos like DFS are only being called within subgraphs (I think)
         merge_catsites(catsites);
-        seqan3::debug_stream << "[AUGMENTING " << catsites.size() << " EDGE(S)]" << std::endl;
+        // seqan3::debug_stream << "[AUGMENTING " << catsites.size() << " EDGE(S)]" << std::endl;
         for(auto &&cat: catsites)
         {
             robin_hood::unordered_set<size_t> gaps;
