@@ -1,127 +1,166 @@
 #pragma once
+#include <unordered_map>
+#include <stdint.h>
+#include <stdexcept>
+
+#include "utils.h"
+#include "arg_parse.h"
+#include "hibf/interleaved_bloom_filter.hpp"
 
 
-class DGramIndex
+
+class DGramIndex 
 {
-    private:
-        size_t bin_count_;
-        size_t bin_size_{};
-        uint8_t hash_count_{};
-        seqan3::interleaved_bloom_filter<seqan3::data_layout::uncompressed> dibf_;
-
     public:
-        std::vector<unsigned char> alphabet_;
-        std::vector<int> tracker_;
-        std::vector<uint8_t> bin_cache_;
-
-
-    DGramIndex() = default;
-
-
-    explicit DGramIndex(size_t bc, size_t bs, uint8_t hc) :
-        bin_count_{bc},
-        bin_size_{bs},
-        hash_count_{hc},
-        dibf_{seqan3::bin_count{bin_count_}, seqan3::bin_size{bin_size_}, seqan3::hash_function_count{hash_count_}}
-    {
-        make_alphabet();
-        tracker_.resize(UCHAR_MAX);
-        reset_tracker();
-        bin_cache_.resize(UINT32_MAX);
-    }
-
-
-    void make_alphabet()
-    {
-        std::string alpha_str = "acdefghiklmnpqrstvwy";
-        for(auto &residue: alpha_str)
-            alphabet_.push_back(toupper(residue));
-    }
-
-
-    void reset_tracker()
-    {
-        tracker_['A'] = -1;
-        tracker_['B'] = -1;
-        tracker_['C'] = -1;
-        tracker_['D'] = -1;
-        tracker_['E'] = -1;
-        tracker_['F'] = -1;
-        tracker_['G'] = -1;
-        tracker_['H'] = -1;
-        tracker_['I'] = -1;
-        tracker_['J'] = -1;
-        tracker_['K'] = -1;
-        tracker_['L'] = -1;
-        tracker_['M'] = -1;
-        tracker_['N'] = -1;
-        tracker_['O'] = -1;
-        tracker_['P'] = -1;
-        tracker_['Q'] = -1;
-        tracker_['R'] = -1;
-        tracker_['S'] = -1;
-        tracker_['T'] = -1;
-        tracker_['U'] = -1;
-        tracker_['V'] = -1;
-        tracker_['W'] = -1;
-        tracker_['X'] = -1;
-        tracker_['Y'] = -1;
-        tracker_['Z'] = -1;
-    }
-
-
-    void init_bin_cache()
-    {
-        std::fill(bin_cache_.begin(), bin_cache_.end(), 0);
-    }
-
-
-    size_t getBinCount()
-    {
-        return bin_count_;
-    }
-
-
-    void emplace(uint64_t val, size_t idx)
-    {
-        dibf_.emplace(val, seqan3::bin_index{idx});
-    }
-
-
-    void track_record(const size_t &record_idx, const unsigned char &residue, const size_t &bin_idx)
-    {
-        uint32_t dgram_encoding = 0;
-        uint16_t distance;
-        for(unsigned char &alpha: alphabet_) // Only iterate over alphabetical indices
+        struct Dgram
         {
-            if(tracker_[alpha] >= 0) // If this residue/base has been seen before
+            unsigned char a, b;
+            size_t gap;
+        };
+
+        // Rule of 5
+        DGramIndex() = default;
+        DGramIndex(const DGramIndex &) = default;
+        DGramIndex & operator=(const DGramIndex &) = default;
+        DGramIndex(DGramIndex&&) noexcept = default;
+        DGramIndex & operator=(DGramIndex &&) noexcept = default;
+        ~DGramIndex() = default;
+
+        explicit DGramIndex(size_t min_gap, size_t max_gap, size_t pad, size_t hc, float fpr, std::vector<std::filesystem::path> bins)
+            : min_gap_(min_gap), max_gap_(max_gap), pad_(pad), hc_(hc), fpr_(fpr), bins_(bins)
+        {
+            init_alphabet();
+            bc_ = bins_.size();
+        }
+
+        void populate()
+        {
+            dgram_buffer_.resize(bc_);
+            FLOOP(bc_)
             {
-                dgram_encoding = (dgram_encoding | residue)<<8;
-                dgram_encoding = (dgram_encoding | alpha)<<8;
-                distance = record_idx-tracker_[alpha];
-                dgram_encoding = (dgram_encoding<<16) | distance;
-                seqan3::debug_stream << static_cast<char>(residue) << " " << static_cast<char>(alpha) << " " << distance << " " << dgram_encoding << std::endl;
-                if(bin_cache_[dgram_encoding] == 0) // Avoid computing hashes for dgrams seen in a bin
+                add_fasta(i);
+            }
+        }
+
+        // Optional accessor for testing
+        const std::vector<std::vector<uint64_t>>& dgrams() const
+        {
+            return dgram_buffer_;
+        }
+
+    private:
+        size_t min_gap_, max_gap_, pad_, hc_;
+        float fpr_;
+        std::vector<std::filesystem::path> bins_;
+        std::unordered_map<char, uint8_t> alpha_map_;
+        // std::vector<std::pair<std::string, uint64_t>> dgram_buffer_;
+        size_t bc_;
+        std::vector<std::vector<uint64_t>> dgram_buffer_;
+        seqan::hibf::interleaved_bloom_filter dibf_{};
+        seqan::hibf::interleaved_bloom_filter::membership_agent_type agent_{};
+
+
+
+        void init_alphabet()
+        {
+            std::string alphabet = "ACDEFGHIKLMNPQRSTVWY";
+            for (size_t i = 0; i < alphabet.size(); ++i)
+            {
+                alpha_map_[alphabet[i]] = static_cast<uint8_t>(i);
+            }
+        }
+
+        size_t find_largest_bin() const
+        {
+            size_t max_count = 0;
+            for(auto &&bin: dgram_buffer_) max_count = bin.size() > max_count ? bin.size() : max_count;
+            return max_count;
+        }
+
+        size_t compute_bitcount(const size_t bfn) const
+        {
+            size_t bitcount;
+            double numerator = -static_cast<double>(bfn) * std::log(fpr_);
+            double denominator = std::pow(std::log(2), 2);
+            bitcount = static_cast<size_t>(std::ceil(numerator / denominator));
+            return bitcount;
+        }
+
+        void init_ibf()
+        {
+            size_t max_bin = find_largest_bin();
+            size_t bin_size_ = compute_bitcount(max_bin);
+            dibf_ = seqan::hibf::interleaved_bloom_filter{seqan::hibf::bin_count{bc_}, seqan::hibf::bin_size{bin_size_}, seqan::hibf::hash_function_count{hc_}};
+            for(size_t i = 0; i < dgram_buffer_.size(); ++i)
+            {
+                seqan::hibf::bin_index idx{i};
+                for(auto val: dgram_buffer_[i]) dibf_.emplace(val, idx);
+            }
+        }
+
+        void process_sequence(const std::string& seq, const size_t bin_id)
+        {
+            for (size_t i = 0; i + min_gap_ + 1 < seq.size(); ++i)
+            {
+                char a = seq[i];
+                if (alpha_map_.find(a) == alpha_map_.end()) continue;
+
+                for (size_t gap = min_gap_; gap <= max_gap_; ++gap)
                 {
-                    emplace(dgram_encoding, bin_idx);
-                    bin_cache_[dgram_encoding] = 1;
-                    // seqan3::debug_stream << static_cast<char>(residue) << " " << static_cast<char>(alpha) << " " << distance << std::endl;
+                    size_t j = i + gap + 1;
+                    if (j >= seq.size()) break;
+
+                    char b = seq[j];
+                    if (alpha_map_.find(b) == alpha_map_.end()) continue;
+
+                    uint8_t code_a = alpha_map_[a];
+                    uint8_t code_b = alpha_map_[b];
+                    uint64_t code = static_cast<uint64_t>(gap) * 400ULL
+                                + static_cast<uint64_t>(code_a) * 20ULL
+                                + static_cast<uint64_t>(code_b);
+
+                    dgram_buffer_[bin_id].emplace_back(code);
                 }
             }
         }
-        tracker_[residue] = record_idx;
-    }
 
+        void add_fasta(size_t bin_id)
+        {
+            std::filesystem::path filename = bins_[bin_id];
+            gzFile fp = gzopen(filename.c_str(), "r");
+            if (!fp)
+            {
+                throw std::runtime_error("Failed to open file: ");
+            }
 
-    seqan3::interleaved_bloom_filter<seqan3::data_layout::uncompressed> getDIBF()
-    {
-        return dibf_;
-    }
+            kseq_t* seq = kseq_init(fp);
+            while (kseq_read(seq) >= 0)
+            {
+                process_sequence(seq->seq.s, bin_id);
+            }
+            kseq_destroy(seq);
+            gzclose(fp);
+        }
 
+        template<class Archive>
+        void serialize(Archive &archive)
+        {
+            archive(min_gap_, max_gap_, pad_, hc_, fpr_, bins_);
+        }
+    };
 
-    template<class Archive>
-    void serialize(Archive &archive)
-    {
-        archive(bin_count_, bin_size_, hash_count_, dibf_);
-    }
-};
+    // void store_dindex(const DGramIndex& dindex, const std::filesystem::path& opath)
+    // {
+    //     std::ofstream os{opath, std::ios::binary};
+    //     cereal::BinaryOutputArchive oarchive{os};
+    //     oarchive(dindex);
+    // }
+
+    // void load_dindex(const DGramIndex& dindex, const std::filesystem::path& ipath)
+    // {
+    //     std::ifstream is{ipath, std::ios::binary};
+    //     cereal::BinaryInputArchive iarchive{is};
+    //     iarchive(dindex);
+    // }
+
+void drive_dindex(const dindex_arguments &cmd_args);

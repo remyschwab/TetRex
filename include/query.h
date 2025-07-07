@@ -15,7 +15,7 @@
 #include "otf_collector.h"
 #include "construction_tools.h"
 #include "construct_nfa.h"
-// #include "construct_reduced_nfa.h"
+#include "construct_reduced_nfa.h"
 
 double compute_k_probability(const uint8_t &k);
 
@@ -37,41 +37,6 @@ void reduce_query_alphabet(std::string &regex, const std::array<char, 256> &redu
 
 std::vector<std::string> read_regex_from_file(const std::string &file_path);
 
-template<index_structure::is_valid flavor, molecules::is_peptide mol_type>
-void preprocess_query(std::string &rx_query, std::string &postfix_query, const TetrexIndex<flavor, mol_type> &ibf)
-{
-    // We don't want to generate kmers from something with anchors
-
-    // We want the entire query to be in one capture group
-    // But we need to account for the case where the user tried that themselves
-    // size_t query_length = rx_query.length();
-    // if(rx_query[0] != "(" && rx_query[query_length-1] != ")") // Default case where there is just a query
-    // {
-    //     postfix_query = translate(rx_query);
-    //     rx_query = "(" + rx_query + ")";
-    // }
-    // seqan3::debug_stream << rx_query << std::endl;
-    if(ibf.reduction_ > 0) reduce_query_alphabet(rx_query, ibf.decomposer_.decomposer_.redmap_);
-    postfix_query = translate(rx_query);
-}
-
-template<index_structure::is_valid flavor, molecules::is_dna mol_type>
-void preprocess_query(std::string &rx_query, std::string &postfix_query, const TetrexIndex<flavor, mol_type> &ibf)
-{
-    // We don't want to generate kmers from something with anchors
-
-    // We want the entire query to be in one capture group
-    // But we need to account for the case where the user tried that themselves
-    // size_t query_length = rx_query.length();
-    // if(rx_query[0] != "(" && rx_query[query_length-1] != ")") // Default case where there is just a query
-    // {
-    //     postfix_query = translate(rx_query);
-    //     rx_query = "(" + rx_query + ")";
-    // }
-    // seqan3::debug_stream << rx_query << std::endl;
-    postfix_query = translate(rx_query);
-}
-
 std::string compute_reverse_complement(std::string &regex);
 
 std::string complementBasesInRegex(const std::string &regex);
@@ -88,13 +53,28 @@ void verify_fasta_set(const gzFile &fasta_handle, const RE2::Set &reg_set, std::
 
 std::vector<size_t> compute_set_bins(const bitvector &hits, const std::vector<std::string> &acid_lib);
 
+template<index_structure::is_valid flavor, molecules::is_molecule mol_type>
+void preprocess_query(std::string &rx_query, std::string &postfix_query, const TetrexIndex<flavor, mol_type> &ibf)
+{
+    if(ibf.reduction_ > 0) reduce_query_alphabet(rx_query, ibf.decomposer_.decomposer_.redmap_);
+    postfix_query = translate(rx_query);
+}
+
+
+template<index_structure::is_valid flavor, molecules::is_dna mol_type>
+void preprocess_query(std::string &rx_query, std::string &postfix_query, const TetrexIndex<flavor, mol_type> &ibf)
+{
+    postfix_query = translate(rx_query);
+}
+
+
 template<index_structure::is_valid flavor, molecules::is_dna mol_type>
 void iter_disk_search(const bitvector &hits, std::string &query, const TetrexIndex<flavor, mol_type> &ibf)
 {
     std::vector<size_t> bins = compute_set_bins(hits, ibf.acid_libs_);
     std::string forward_and_reverse = query;
     forward_and_reverse = "(" + forward_and_reverse + ")"; // Capture entire RegEx
-
+    DBG("HERE");
     re2::RE2 compiled_regex(forward_and_reverse);
     assert(compiled_regex.ok());
     #pragma omp parallel for
@@ -106,18 +86,19 @@ void iter_disk_search(const bitvector &hits, std::string &query, const TetrexInd
             throw std::runtime_error("File not found. Did you move/rename an indexed file?");
         }
         verify_fasta_hit(lib_path, compiled_regex, ibf.acid_libs_[hit]);
-	lib_path = gzopen(ibf.acid_libs_[hit].c_str(), "r");
+	    lib_path = gzopen(ibf.acid_libs_[hit].c_str(), "r");
         reverse_verify_fasta_hit(lib_path, compiled_regex, ibf.acid_libs_[hit]);
         gzclose(lib_path);
     }
 }
+
 
 template<index_structure::is_valid flavor, molecules::is_peptide mol_type>
 void iter_disk_search(const bitvector &hits, std::string &query, const TetrexIndex<flavor, mol_type> &ibf)
 {
     std::vector<size_t> bins = compute_set_bins(hits, ibf.acid_libs_);
     query = "(" + query + ")"; // Capture entire RegEx
-    re2::RE2 compiled_regex(query);
+    re2::RE2 compiled_regex(query, re2::RE2::POSIX);
     assert(compiled_regex.ok());
     #pragma omp parallel for
     for(size_t hit: bins)
@@ -179,6 +160,7 @@ bitvector process_query(const std::string &regex, TetrexIndex<flavor, mol_t> &ib
     std::string rx = regex;
     std::string query;
     preprocess_query(rx, query, ibf);
+    // DBG(query);
     bool valid = validate_regex(query, ibf.k_);
     bitvector hit_vector(ibf.getBinCount(), true);
     if(valid)
@@ -193,13 +175,13 @@ bitvector process_query(const std::string &regex, TetrexIndex<flavor, mol_t> &ib
         }
         else
         {
-            // construct_reduced_kgraph(query, *NFA, *nfa_map, arc_map, ibf.k_);
+            catsites = construct_reduced_kgraph(query, *NFA, *nfa_map, arc_map, ibf.k_);
         }
-
-
-        OTFCollector<flavor, mol_t> collector(std::move(NFA), std::move(nfa_map), ibf, std::move(arc_map));
-        if(augment) collector.augment(catsites);
-        if(draw) collector.draw_graph(catsites);
+        std::unique_ptr<gmap_t> gap_map = std::make_unique<gmap_t>(*NFA);
+        OTFCollector<flavor, mol_t> collector(std::move(NFA), std::move(nfa_map), ibf, std::move(arc_map), std::move(gap_map));
+        collector.analyze_complexity();
+        if(augment && catsites.size() > 0) collector.augment(catsites);
+        if(draw) collector.draw_graph(catsites, augment);
         hit_vector = collector.collect();
     }
     else // if the RegEx is shorter than the index kmer size, then prompt user and trigger linear search
@@ -227,7 +209,6 @@ void run_collection(query_arguments &cmd_args, const bool &model, TetrexIndex<fl
     }
 
     if(cmd_args.verbose) seqan3::debug_stream << "Narrowed Search to " << OTFCollector<flavor, mol_t>::sumBitVector(hit_vector) << " possible bins" << std::endl;
-    
     if(!hit_vector.none())
     {
         try

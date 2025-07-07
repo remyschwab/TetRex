@@ -8,21 +8,16 @@ void paste_to_graph(nfa_t &NFA, lmap_t &node_map, const node_t &reference_node, 
     node_map[paste_node] = symbol;
 }
 
-size_t copy_subgraph(node_pair_t &subgraph, nfa_t &NFA, lmap_t &node_map, node_pair_t &subgraph_copy, amap_t &arc_map)
-{
+size_t copy_subgraph(Subgraph &subgraph, nfa_t &NFA, lmap_t &node_map, Subgraph &subgraph_copy, amap_t &arc_map)
+{ // Lord help anyone who ever needs to debug this method
     node_t new_node;
     size_t added_node_count = 0;
-    // paste_to_graph(NFA, node_map, subgraph.first, new_node);
-    paste_to_graph(NFA, node_map, std::get<0>(subgraph), new_node);
-    ++added_node_count;
-    // subgraph_copy.first = new_node;
-    std::get<0>(subgraph_copy) = new_node;
+    paste_to_graph(NFA, node_map, subgraph.start, new_node);
+    subgraph_copy.start = new_node;
     // If the operand is just a single character then just copy that one node
-    // if(subgraph.first == subgraph.second)
-    if(std::get<0>(subgraph) == std::get<1>(subgraph))
+    if(subgraph.start == subgraph.end)
     {
-        // subgraph_copy.second = new_node;
-        std::get<1>(subgraph_copy) = new_node;
+        subgraph_copy.end = new_node;
         return added_node_count;
     }
     // If the operand is a more complicated subgraph, then traverse with DFS copying nodes and arcs along the way
@@ -31,17 +26,14 @@ size_t copy_subgraph(node_pair_t &subgraph, nfa_t &NFA, lmap_t &node_map, node_p
     
     lemon::Dfs<nfa_t> dfs(NFA);
     dfs.init();
-    // dfs.addSource(subgraph.first);
-    dfs.addSource(std::get<0>(subgraph));
+    dfs.addSource(subgraph.start);
     
-    // reference_to_copy_map[subgraph.first] = new_node;
-    reference_to_copy_map[std::get<0>(subgraph)] = new_node;
+    reference_to_copy_map[subgraph.start] = new_node;
     while(!dfs.emptyQueue())
     {
         arc_t arc = dfs.processNextArc();
         node_t source = NFA.source(arc);
-        // if(source == subgraph.second) break;
-        if(source == std::get<1>(subgraph)) break; // i don't totally get why this works
+        if(source == subgraph.end) break; // i don't totally get why this works
         node_t target = NFA.target(arc);
         node_t source_copy = reference_to_copy_map[source];
         if(copied_targets.find(NFA.id(target)) != copied_targets.end())
@@ -55,8 +47,7 @@ size_t copy_subgraph(node_pair_t &subgraph, nfa_t &NFA, lmap_t &node_map, node_p
         copied_targets.insert(NFA.id(target));
         reference_to_copy_map[target] = new_node;
     }
-    // subgraph_copy.second = new_node;
-    std::get<1>(subgraph_copy) = new_node;
+    subgraph_copy.end = new_node;
     return added_node_count;
 }
 
@@ -81,7 +72,7 @@ std::string generate_kmer_seq(uint64_t &kmer, uint8_t &k)
 }
 
 
-void print_graph(nfa_t &NFA, lmap_t &nmap, const catsites_t& cats)
+void print_graph(nfa_t &NFA, lmap_t &nmap, const catsites_t& cats, const bool& augment)
 {
     std::fstream f;
     const std::string filename = "kgraph_visualizer.gv";
@@ -89,8 +80,7 @@ void print_graph(nfa_t &NFA, lmap_t &nmap, const catsites_t& cats)
     f << "digraph kGraph\n{\n\trankdir=\"LR\";\n";
     // Collect and style all the nodes
     nfa_t::ArcMap<bool> filter(NFA, true);
-    for(auto && cat: cats) filter[std::get<0>(cat)] = false;
-
+    if(augment) for(auto && cat: cats) filter[cat.arc_] = false;
     lemon::Bfs<nfa_t>  bfs(NFA);
     bfs.run(NFA.nodeFromId(0));
     for(nfa_t::NodeIt n(NFA); n != lemon::INVALID; ++n)

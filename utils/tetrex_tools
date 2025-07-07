@@ -159,7 +159,7 @@ def convert_prosite_pattern(pattern):
     for tkn in tkn_lst:
         match tkn:
             case 'x': ## Wildcard
-                posix_pattern.append(AA_UNION)
+                posix_pattern.append(".")
             case 'x(0,1)': ## Optional Wildcard
                 posix_pattern.append("({})?".format(AA_UNION))
             case dis if dis.startswith('['): ## Disjunction
