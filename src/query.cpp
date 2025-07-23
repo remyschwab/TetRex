@@ -165,7 +165,7 @@ void verify_reduced_fasta_hit(const gzFile &fasta_handle, const re2::RE2 &crx, s
             if(crx.Match(bin_content, startpos, bin_content.size(), RE2::UNANCHORED, &match, 1))
             {
                 std::osyncstream(std::cout) << binid << "\t>" << record->name.s << "\t" << seq_copy.substr(startpos, match.size()) << std::endl;
-                startpos += match.size();
+                startpos++;
                 continue;
             }
             startpos++;

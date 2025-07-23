@@ -113,6 +113,7 @@ void iter_disk_search(const bitvector &hits, std::string &query, const TetrexInd
         if(ibf.reduction_ > Base)
         {
             verify_reduced_fasta_hit(lib_path, compiled_regex, ibf.acid_libs_[hit], ibf.reduction_, ibf.decomposer_.decomposer_.redmap_);
+            gzclose(lib_path);
             continue;
         }
         verify_fasta_hit(lib_path, compiled_regex, ibf.acid_libs_[hit]);
@@ -156,12 +157,10 @@ void iter_disk_search_set(const bitvector &hits, const std::vector<std::string> 
 }
 
 template<index_structure::is_valid flavor, molecules::is_molecule mol_t>
-bitvector process_query(const std::string &regex, TetrexIndex<flavor, mol_t> &ibf, const bool draw, const bool augment)
+bitvector process_query(std::string &regex, TetrexIndex<flavor, mol_t> &ibf, const bool draw, const bool augment)
 {
-    std::string rx = regex;
     std::string query;
-    preprocess_query(rx, query, ibf);
-    // DBG(query);
+    preprocess_query(regex, query, ibf);
     bool valid = validate_regex(query, ibf.k_);
     bitvector hit_vector(ibf.getBinCount(), true);
     if(valid)
