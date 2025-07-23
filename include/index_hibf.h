@@ -100,9 +100,9 @@ public:
                 // std::string record_view = record->seq.s;
                 if(record->seq.l < ksize)
                 {
-                    std::cout << ">" << record->name.s << " " << record->comment.s << std::endl;
-                    std::cout << record->seq.s << std::endl;
-                    // seqan3::debug_stream << "RECORD TOO SHORT " << record->comment.s << std::endl;
+                    // std::cout << ">" << record->name.s << " " << record->comment.s << std::endl;
+                    // std::cout << record->seq.s << std::endl;
+                    seqan3::debug_stream << "[RECORD TOO SHORT]: " << record->comment.s << std::endl;
                     continue;
                 }
                 seq_count++;

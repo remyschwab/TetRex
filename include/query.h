@@ -57,6 +57,7 @@ template<index_structure::is_valid flavor, molecules::is_molecule mol_type>
 void preprocess_query(std::string &rx_query, std::string &postfix_query, const TetrexIndex<flavor, mol_type> &ibf)
 {
     if(ibf.reduction_ > 0) reduce_query_alphabet(rx_query, ibf.decomposer_.decomposer_.redmap_);
+    // DBG(rx_query);
     postfix_query = translate(rx_query);
 }
 
