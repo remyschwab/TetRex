@@ -176,8 +176,7 @@ std::pair<size_t, size_t> parse_quant(const std::string& postfix, size_t quant_s
 void quant_procedure(nfa_t &nfa, nfa_stack_t &stack, lmap_t &node_map, const uint8_t &k, amap_t &arc_map, const size_t min, const size_t max, catsites_t& cats)
 {
     Subgraph subgraph = stack.top();
-    size_t extra = max-min;
-    assert(max != 0);
+    size_t extra = (max == 0) ? 0 : (max-min);
     if(min == 0)
     {
         optional_procedure(nfa, stack, node_map, arc_map);

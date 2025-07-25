@@ -53,6 +53,8 @@ void verify_fasta_set(const gzFile &fasta_handle, const RE2::Set &reg_set, std::
 
 std::vector<size_t> compute_set_bins(const bitvector &hits, const std::vector<std::string> &acid_lib);
 
+using alphamap = std::array<char, 256>;
+
 template<index_structure::is_valid flavor, molecules::is_molecule mol_type>
 void preprocess_query(std::string &rx_query, std::string &postfix_query, const TetrexIndex<flavor, mol_type> &ibf)
 {
@@ -75,7 +77,6 @@ void iter_disk_search(const bitvector &hits, std::string &query, const TetrexInd
     std::vector<size_t> bins = compute_set_bins(hits, ibf.acid_libs_);
     std::string forward_and_reverse = query;
     forward_and_reverse = "(" + forward_and_reverse + ")"; // Capture entire RegEx
-    DBG("HERE");
     re2::RE2 compiled_regex(forward_and_reverse);
     assert(compiled_regex.ok());
     #pragma omp parallel for

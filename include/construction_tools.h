@@ -8,6 +8,7 @@
 #include "lemon/maps.h"
 #include "lemon/connectivity.h"
 #include "lemon/dfs.h"
+#include "lemon/bfs.h"
 #include "lemon/adaptors.h"
 #include "utils.h"
 

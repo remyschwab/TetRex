@@ -11,14 +11,14 @@ void paste_to_graph(nfa_t &NFA, lmap_t &node_map, const node_t &reference_node, 
 size_t copy_subgraph(Subgraph &subgraph, nfa_t &NFA, lmap_t &node_map, Subgraph &subgraph_copy, amap_t &arc_map)
 { // Lord help anyone who ever needs to debug this method
     node_t new_node;
-    size_t added_node_count = 0;
+    size_t split_run_count = 0;
     paste_to_graph(NFA, node_map, subgraph.start, new_node);
     subgraph_copy.start = new_node;
     // If the operand is just a single character then just copy that one node
     if(subgraph.start == subgraph.end)
     {
         subgraph_copy.end = new_node;
-        return added_node_count;
+        return split_run_count;
     }
     // If the operand is a more complicated subgraph, then traverse with DFS copying nodes and arcs along the way
     nfa_t::NodeMap<node_t> reference_to_copy_map(NFA); // A mapping of nodes in the old subgraph to the new one
@@ -47,8 +47,10 @@ size_t copy_subgraph(Subgraph &subgraph, nfa_t &NFA, lmap_t &node_map, Subgraph 
         copied_targets.insert(NFA.id(target));
         reference_to_copy_map[target] = new_node;
     }
-    subgraph_copy.end = new_node;
-    return added_node_count;
+    // subgraph_copy.end = new_node;
+    subgraph_copy.end = reference_to_copy_map[subgraph.end];
+    subgraph_copy.split_run_count = subgraph.split_run_count;
+    return split_run_count;
 }
 
 std::string generate_kmer_seq(uint64_t &kmer, uint8_t &k)
