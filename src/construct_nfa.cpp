@@ -71,7 +71,7 @@ void optional_procedure(nfa_t &nfa, nfa_stack_t &stack, lmap_t &node_map, amap_t
     // update_arc_map(nfa, node_map, arc_map, node.second, ghost_node);
     update_arc_map(nfa, node_map, arc_map, subgraph.end, ghost_node);
     
-    size_t new_split_run_count = node_map[subgraph.start] == Split ? (subgraph.split_run_count+1) : subgraph.split_run_count;
+    size_t new_split_run_count = subgraph.split_run_count + 1;
     Subgraph new_subgraph{split_node, ghost_node, new_split_run_count, 0u, Optional};
     stack.push(new_subgraph);
 }
@@ -104,7 +104,7 @@ void kleene_procedure(nfa_t &nfa, nfa_stack_t &stack, lmap_t &node_map, const ui
         update_arc_map(nfa, node_map, arc_map, inner_split, ghost_node);
 
         Subgraph new_subgraph;
-        subgraph_node_count += copy_subgraph(subgraph, nfa, node_map, new_subgraph, arc_map);
+        copy_subgraph(subgraph, nfa, node_map, new_subgraph, arc_map);
         // Copy the subgraph before connecting it to anything downstream
         // so that the DFS in the copy routine doesn't go beyond the subgraph
         update_arc_map(nfa, node_map, arc_map, back_node, inner_split);
@@ -139,9 +139,8 @@ void plus_procedure(nfa_t &nfa, nfa_stack_t &stack, lmap_t &node_map, const uint
     {
         Subgraph new_subgraph;
         node_t inner_split = nfa.addNode();
-        ++subgraph_node_count;
         node_map[inner_split] = Split;
-        subgraph_node_count += copy_subgraph(subgraph, nfa, node_map, new_subgraph, arc_map);
+        copy_subgraph(subgraph, nfa, node_map, new_subgraph, arc_map);
         update_arc_map(nfa, node_map, arc_map, back_node, inner_split);
         update_arc_map(nfa, node_map, arc_map, inner_split, ghost_node);
         update_arc_map(nfa, node_map, arc_map, inner_split, new_subgraph.start);
@@ -176,6 +175,7 @@ std::pair<size_t, size_t> parse_quant(const std::string& postfix, size_t quant_s
 void quant_procedure(nfa_t &nfa, nfa_stack_t &stack, lmap_t &node_map, const uint8_t &k, amap_t &arc_map, const size_t min, const size_t max, catsites_t& cats)
 {
     Subgraph subgraph = stack.top();
+    concat_procedure(nfa, node_map, stack, arc_map, cats);
     size_t extra = (max == 0) ? 0 : (max-min);
     if(min == 0)
     {
@@ -186,8 +186,8 @@ void quant_procedure(nfa_t &nfa, nfa_stack_t &stack, lmap_t &node_map, const uin
     {
         Subgraph new_subgraph;
         copy_subgraph(subgraph, nfa, node_map, new_subgraph, arc_map);
-        concat_procedure(nfa, node_map, stack, arc_map, cats);
         stack.push(new_subgraph);
+        concat_procedure(nfa, node_map, stack, arc_map, cats);
     }
     for(size_t i = 0; i < extra; ++i)
     {
@@ -195,6 +195,7 @@ void quant_procedure(nfa_t &nfa, nfa_stack_t &stack, lmap_t &node_map, const uin
         copy_subgraph(subgraph, nfa, node_map, new_subgraph, arc_map);
         stack.push(new_subgraph);
         optional_procedure(nfa, stack, node_map, arc_map);
+        if(i == (extra-1)) break; // Postfix will already have a concat operator
         concat_procedure(nfa, node_map, stack, arc_map, cats);
     }
 }

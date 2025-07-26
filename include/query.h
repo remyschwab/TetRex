@@ -162,6 +162,7 @@ bitvector process_query(std::string &regex, TetrexIndex<flavor, mol_t> &ibf, con
 {
     std::string query;
     preprocess_query(regex, query, ibf);
+    // DBG(query);
     bool valid = validate_regex(query, ibf.k_);
     bitvector hit_vector(ibf.getBinCount(), true);
     if(valid)

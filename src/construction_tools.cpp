@@ -1,56 +1,138 @@
 #include "construction_tools.h"
 
 
-void paste_to_graph(nfa_t &NFA, lmap_t &node_map, const node_t &reference_node, node_t &paste_node)
-{
-    int symbol = node_map[reference_node];
-    paste_node = NFA.addNode();
-    node_map[paste_node] = symbol;
-}
+// void paste_to_graph(nfa_t &NFA, lmap_t &node_map, const node_t &reference_node, node_t &paste_node)
+// {
+//     int symbol = node_map[reference_node];
+//     paste_node = NFA.addNode();
+//     node_map[paste_node] = symbol;
+// }
 
-size_t copy_subgraph(Subgraph &subgraph, nfa_t &NFA, lmap_t &node_map, Subgraph &subgraph_copy, amap_t &arc_map)
-{ // Lord help anyone who ever needs to debug this method
-    node_t new_node;
-    size_t split_run_count = 0;
-    paste_to_graph(NFA, node_map, subgraph.start, new_node);
-    subgraph_copy.start = new_node;
-    // If the operand is just a single character then just copy that one node
-    if(subgraph.start == subgraph.end)
-    {
-        subgraph_copy.end = new_node;
-        return split_run_count;
-    }
-    // If the operand is a more complicated subgraph, then traverse with DFS copying nodes and arcs along the way
-    nfa_t::NodeMap<node_t> reference_to_copy_map(NFA); // A mapping of nodes in the old subgraph to the new one
-    robin_hood::unordered_set<int> copied_targets; // It's possible that paths converge to the same (ghost) node and we don't want to copy it twice
+// size_t copy_subgraph(Subgraph &subgraph, nfa_t &NFA, lmap_t &node_map, Subgraph &subgraph_copy, amap_t &arc_map)
+// { // Lord help anyone who ever needs to debug this method
+//     node_t new_node;
+//     size_t split_run_count = 0;
+//     paste_to_graph(NFA, node_map, subgraph.start, new_node);
+//     subgraph_copy.start = new_node;
+//     // If the operand is just a single character then just copy that one node
+//     if(subgraph.start == subgraph.end)
+//     {
+//         subgraph_copy.end = new_node;
+//         return split_run_count;
+//     }
+//     // If the operand is a more complicated subgraph, then traverse with DFS copying nodes and arcs along the way
+//     nfa_t::NodeMap<node_t> reference_to_copy_map(NFA); // A mapping of nodes in the old subgraph to the new one
+//     robin_hood::unordered_set<int> copied_targets; // It's possible that paths converge to the same (ghost) node and we don't want to copy it twice
     
-    lemon::Dfs<nfa_t> dfs(NFA);
-    dfs.init();
-    dfs.addSource(subgraph.start);
+//     lemon::Dfs<nfa_t> dfs(NFA);
+//     dfs.init();
+//     dfs.addSource(subgraph.start);
     
-    reference_to_copy_map[subgraph.start] = new_node;
-    while(!dfs.emptyQueue())
+//     reference_to_copy_map[subgraph.start] = new_node;
+//     while(!dfs.emptyQueue())
+//     {
+//         arc_t arc = dfs.processNextArc();
+//         node_t source = NFA.source(arc);
+//         if(source == subgraph.end) break; // i don't totally get why this works
+//         node_t target = NFA.target(arc);
+//         node_t source_copy = reference_to_copy_map[source];
+//         if(copied_targets.find(NFA.id(target)) != copied_targets.end())
+//         {
+//             new_node = reference_to_copy_map[target];
+//             update_arc_map(NFA, node_map, arc_map, source_copy, new_node);
+//             continue;
+//         }
+//         paste_to_graph(NFA, node_map, target, new_node);
+//         update_arc_map(NFA, node_map, arc_map, source_copy, new_node);
+//         copied_targets.insert(NFA.id(target));
+//         reference_to_copy_map[target] = new_node;
+//     }
+//     // subgraph_copy.end = new_node;
+//     subgraph_copy.end = reference_to_copy_map[subgraph.end];
+//     subgraph_copy.split_run_count = subgraph.split_run_count;
+//     return split_run_count;
+// }
+
+
+struct InplaceDuplicateResult {
+    std::vector<lemon::SmartDigraph::Node> old2newNode; // size = old maxNodeId+1
+    std::vector<lemon::SmartDigraph::Arc>  old2newArc;  // size = old maxArcId+1
+    lemon::SmartDigraph::Node s_copy{lemon::INVALID};
+    lemon::SmartDigraph::Node t_copy{lemon::INVALID};
+};
+
+void copy_subgraph(const Subgraph& subgraph, nfa_t& NFA, lmap_t& node_map, Subgraph& subgraph_copy, amap_t& arc_map)
+{
+    using namespace lemon;
+    using Digraph = SmartDigraph;
+
+    if(subgraph.start == subgraph.end) // Copying is very simple if the subgraph is just a single node
     {
-        arc_t arc = dfs.processNextArc();
-        node_t source = NFA.source(arc);
-        if(source == subgraph.end) break; // i don't totally get why this works
-        node_t target = NFA.target(arc);
-        node_t source_copy = reference_to_copy_map[source];
-        if(copied_targets.find(NFA.id(target)) != copied_targets.end())
-        {
-            new_node = reference_to_copy_map[target];
-            update_arc_map(NFA, node_map, arc_map, source_copy, new_node);
-            continue;
-        }
-        paste_to_graph(NFA, node_map, target, new_node);
-        update_arc_map(NFA, node_map, arc_map, source_copy, new_node);
-        copied_targets.insert(NFA.id(target));
-        reference_to_copy_map[target] = new_node;
+        node_t new_twin = NFA.addNode();
+        node_map[new_twin] = node_map[subgraph.start];
+        subgraph_copy.start = new_twin;
+        subgraph_copy.end = new_twin;
+        subgraph_copy.split_run_count = subgraph.split_run_count;
+        return;
     }
-    // subgraph_copy.end = new_node;
-    subgraph_copy.end = reference_to_copy_map[subgraph.end];
+
+    // --- Keep snapshots of the original nodes/arcs (ids are dense & stable in SmartDigraph)
+    std::vector<Digraph::Node> origNodes;
+    for (Digraph::NodeIt n(NFA); n != INVALID; ++n) origNodes.push_back(n);
+
+    std::vector<Digraph::Arc> origArcs;
+    for (Digraph::ArcIt a(NFA); a != INVALID; ++a) origArcs.push_back(a);
+
+    const int maxN = NFA.maxNodeId() + 1;
+    const int maxA = NFA.maxArcId() + 1;
+
+    node_t s = subgraph.start;
+    node_t t = subgraph.end;
+
+    // --- Reachability from s
+    Dfs<Digraph> dfs_f(NFA);
+    dfs_f.run(s);
+
+    // --- Reachability to t via reverse graph
+    ReverseDigraph<const Digraph> RG(NFA);
+    Dfs<ReverseDigraph<const Digraph>> dfs_b(RG);
+    dfs_b.run(t);
+
+    // --- Mark nodes on any s->t path
+    Digraph::NodeMap<bool> on_path(NFA, false);
+    for (auto n : origNodes) {
+        if (dfs_f.reached(n) && dfs_b.reached(n)) on_path[n] = true;
+    }
+
+    InplaceDuplicateResult res;
+    res.old2newNode.assign(maxN, Digraph::Node(INVALID));
+    res.old2newArc.assign(maxA,  Digraph::Arc(INVALID));
+
+    // --- Duplicate nodes
+    for (auto n : origNodes) {
+        if (!on_path[n]) continue;
+        auto nn = NFA.addNode();
+        res.old2newNode[NFA.id(n)] = nn;
+        node_map[nn] = node_map[n];
+    }
+
+    res.s_copy = res.old2newNode[NFA.id(s)];
+    res.t_copy = res.old2newNode[NFA.id(t)];
+
+    // --- Duplicate arcs whose endpoints are both on_path
+    for (auto a : origArcs) {
+        auto u = NFA.source(a);
+        auto v = NFA.target(a);
+        if (!on_path[u] || !on_path[v]) continue;
+
+        auto uu = res.old2newNode[NFA.id(u)];
+        auto vv = res.old2newNode[NFA.id(v)];
+        arc_t aa = update_arc_map(NFA, node_map, arc_map, uu, vv);
+        res.old2newArc[NFA.id(a)] = aa;
+    }
+    subgraph_copy.start = res.s_copy;
+    subgraph_copy.end = res.t_copy;
     subgraph_copy.split_run_count = subgraph.split_run_count;
-    return split_run_count;
 }
 
 std::string generate_kmer_seq(uint64_t &kmer, uint8_t &k)

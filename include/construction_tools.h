@@ -8,7 +8,6 @@
 #include "lemon/maps.h"
 #include "lemon/connectivity.h"
 #include "lemon/dfs.h"
-#include "lemon/bfs.h"
 #include "lemon/adaptors.h"
 #include "utils.h"
 
@@ -131,6 +130,4 @@ void print_kgraph_arcs(const nfa_t &NFA);
 
 void print_node_ids(nfa_t &NFA, lmap_t &nmap);
 
-void export_nfa_img(nfa_t &nfa, std::string &title);
-
-size_t copy_subgraph(Subgraph &subgraph, nfa_t &NFA, lmap_t &node_map, Subgraph &subgraph_copy, amap_t &arc_map);
+void copy_subgraph(const Subgraph &subgraph, nfa_t &NFA, lmap_t &node_map, Subgraph &subgraph_copy, amap_t &arc_map);

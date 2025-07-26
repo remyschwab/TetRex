@@ -398,6 +398,7 @@ class OTFCollector
             return rank_map_[a.cleavage_start_id_] < rank_map_[b.cleavage_start_id_];
         });
 
+        
         bool done = false;
         catsites_t merged;
 
@@ -407,7 +408,6 @@ class OTFCollector
             size_t currentEnd = rank_map_[cats[i].cleavage_end_id_];
             if (merged.empty() || (currentStart-rank_map_[merged.back().cleavage_end_id_]) > ibf_->k_)
             {
-                // DBG("HERE");
                 merged.push_back(cats[i]);
                 continue;
             }
