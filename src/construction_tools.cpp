@@ -1,60 +1,9 @@
 #include "construction_tools.h"
 
 
-// void paste_to_graph(nfa_t &NFA, lmap_t &node_map, const node_t &reference_node, node_t &paste_node)
-// {
-//     int symbol = node_map[reference_node];
-//     paste_node = NFA.addNode();
-//     node_map[paste_node] = symbol;
-// }
 
-// size_t copy_subgraph(Subgraph &subgraph, nfa_t &NFA, lmap_t &node_map, Subgraph &subgraph_copy, amap_t &arc_map)
-// { // Lord help anyone who ever needs to debug this method
-//     node_t new_node;
-//     size_t split_run_count = 0;
-//     paste_to_graph(NFA, node_map, subgraph.start, new_node);
-//     subgraph_copy.start = new_node;
-//     // If the operand is just a single character then just copy that one node
-//     if(subgraph.start == subgraph.end)
-//     {
-//         subgraph_copy.end = new_node;
-//         return split_run_count;
-//     }
-//     // If the operand is a more complicated subgraph, then traverse with DFS copying nodes and arcs along the way
-//     nfa_t::NodeMap<node_t> reference_to_copy_map(NFA); // A mapping of nodes in the old subgraph to the new one
-//     robin_hood::unordered_set<int> copied_targets; // It's possible that paths converge to the same (ghost) node and we don't want to copy it twice
-    
-//     lemon::Dfs<nfa_t> dfs(NFA);
-//     dfs.init();
-//     dfs.addSource(subgraph.start);
-    
-//     reference_to_copy_map[subgraph.start] = new_node;
-//     while(!dfs.emptyQueue())
-//     {
-//         arc_t arc = dfs.processNextArc();
-//         node_t source = NFA.source(arc);
-//         if(source == subgraph.end) break; // i don't totally get why this works
-//         node_t target = NFA.target(arc);
-//         node_t source_copy = reference_to_copy_map[source];
-//         if(copied_targets.find(NFA.id(target)) != copied_targets.end())
-//         {
-//             new_node = reference_to_copy_map[target];
-//             update_arc_map(NFA, node_map, arc_map, source_copy, new_node);
-//             continue;
-//         }
-//         paste_to_graph(NFA, node_map, target, new_node);
-//         update_arc_map(NFA, node_map, arc_map, source_copy, new_node);
-//         copied_targets.insert(NFA.id(target));
-//         reference_to_copy_map[target] = new_node;
-//     }
-//     // subgraph_copy.end = new_node;
-//     subgraph_copy.end = reference_to_copy_map[subgraph.end];
-//     subgraph_copy.split_run_count = subgraph.split_run_count;
-//     return split_run_count;
-// }
-
-
-struct InplaceDuplicateResult {
+struct InplaceDuplicateResult
+{
     std::vector<lemon::SmartDigraph::Node> old2newNode; // size = old maxNodeId+1
     std::vector<lemon::SmartDigraph::Arc>  old2newArc;  // size = old maxArcId+1
     lemon::SmartDigraph::Node s_copy{lemon::INVALID};

@@ -174,19 +174,20 @@ std::pair<size_t, size_t> parse_quant(const std::string& postfix, size_t quant_s
 
 void quant_procedure(nfa_t &nfa, nfa_stack_t &stack, lmap_t &node_map, const uint8_t &k, amap_t &arc_map, const size_t min, const size_t max, catsites_t& cats)
 {
+    if(min == 0)
+    {
+        kleene_procedure(nfa, stack, node_map, (max+1), arc_map);
+        return;
+    }
     Subgraph subgraph = stack.top();
     concat_procedure(nfa, node_map, stack, arc_map, cats);
     size_t extra = (max == 0) ? 0 : (max-min);
-    if(min == 0)
-    {
-        optional_procedure(nfa, stack, node_map, arc_map);
-        --extra;
-    }
     for(size_t i = 1; i < min; ++i)
     {
         Subgraph new_subgraph;
         copy_subgraph(subgraph, nfa, node_map, new_subgraph, arc_map);
         stack.push(new_subgraph);
+        if(i == (min-1) && max == 0) break; // Postfix will already have a concat operator
         concat_procedure(nfa, node_map, stack, arc_map, cats);
     }
     for(size_t i = 0; i < extra; ++i)

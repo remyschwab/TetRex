@@ -86,7 +86,7 @@ struct Catsite
     downstream_id_ = nfa.id(downstream_);
   }
 
-  void dumpInfo(const std::vector<int>& ranks)
+  void dumpInfo(const std::vector<int>& ranks) const
   {
     seqan3::debug_stream << "FUSE: " << ranks[cleavage_site_id_] << " CLEAVE START: " << ranks[cleavage_start_id_]<< " CLEAVE END: " << ranks[cleavage_end_id_] << " FUSE END: " << ranks[downstream_id_] << std::endl; 
   }

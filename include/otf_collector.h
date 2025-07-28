@@ -351,14 +351,14 @@ class OTFCollector
         robin_hood::unordered_map<size_t, size_t> path_length_map;
         path_length_map[path_count] = 0;
         node_t current;
-        stack.push(std::make_pair(path_count, cat.cleavage_site_));
+        stack.push(std::make_pair(path_count, cat.cleavage_start_));
         while(!stack.empty())
         {
             size_t path_id = stack.top().first;
             current = stack.top().second;
             int id = NFA_->id(current);
             stack.pop();
-            if(current == cat.cleavage_start_) continue; // Stopping case
+            if(current == cat.cleavage_end_) continue; // Stopping case
             int symbol = (*nfa_map_)[current];
             switch(symbol)
             {
@@ -430,6 +430,7 @@ class OTFCollector
         {
             robin_hood::unordered_set<size_t> gaps;
             determine_all_gaps(cat, gaps);
+            // DBG(gaps);
             cat.complete(*NFA_, arc_map_);
             if(gaps.size() == 1) add_gap(cat, *gaps.begin());
             else
