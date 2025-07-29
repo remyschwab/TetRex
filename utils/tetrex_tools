@@ -127,28 +127,6 @@ def convert_elm_union(disjunction):
     return "(" + "|".join(capture_group) + ")"
 
 
-def convert_elm_pattern(pattern):
-    """ELM motifs are already in a POSIX compliant RegEx but just don't work with TetRex..."""
-    posix = []
-    grouped = False
-    stack = list()
-    for tkn in pattern:
-        match tkn:
-            case '.':
-                posix.append(AA_UNION)
-            case '[':
-                grouped = True
-            case ']':
-                add_to = convert_elm_union(stack)
-                grouped = False
-                posix.append(add_to)
-            case _:
-                if grouped:
-                    stack.append(tkn)
-                    continue
-                posix.append(tkn)
-    return "".join(posix)
-
 def convert_prosite_pattern(pattern):
     """
     Scanning prosite patterns one character at a time is limited
@@ -160,10 +138,13 @@ def convert_prosite_pattern(pattern):
         match tkn:
             case 'x': ## Wildcard
                 posix_pattern.append(".")
-            case 'x(0,1)': ## Optional Wildcard
-                posix_pattern.append("({})?".format(AA_UNION))
+            case quant if '(' in tkn:
+                tkn = tkn.replace('x', '.')
+                tkn = tkn.replace('(', '{')
+                tkn = tkn.replace(')', '}')
+                posix_pattern.append(tkn)
             case dis if dis.startswith('['): ## Disjunction
-                posix_pattern.append(make_union_iter(tkn))
+                posix_pattern.append(tkn)
             case ndis if ndis.startswith('{'): ## Negative Disjunction
                 posix_pattern.append(make_union_iter(AA_SET-set(tkn)))
             case _: ## Just a plain old AA
@@ -176,10 +157,7 @@ def convert_prosite_pattern(pattern):
 
 def main(args):
     if args.subparser == "convert":
-        if args.style == "prosite":
-            print(convert_prosite_pattern(args.input_pattern))
-        elif args.style == "elm":
-            print(convert_elm_pattern(args.input_pattern))
+        print(convert_prosite_pattern(args.input_pattern))
     else:
         print(computeRegEx(args.input_pattern))
 
@@ -188,7 +166,6 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser(prog="tetrex_tools", description="A small python utility program for typical tasks associated with TetRex like generating DNA Codon RegExs from an amino acid sequence or converting different regex styles to POSIX")
     subparsers = parser.add_subparsers(dest="subparser")
     posixgen_subparser = subparsers.add_parser("convert")
-    posixgen_subparser.add_argument("-s", "--style", default="prosite", choices=["prosite","elm"])
     posixgen_subparser.add_argument("-i", "--input_pattern", required=True)
     rev_translate_subparser = subparsers.add_parser("rev_translate")
     rev_translate_subparser.add_argument("-i", "--input_pattern", required=True)
