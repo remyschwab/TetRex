@@ -1,4 +1,4 @@
-#include "construct_nfa.h"
+#include "construct_reduced_nfa.h"
 
 
 bool redundancy_test(buffer_t &buffer)
@@ -194,12 +194,43 @@ void plus_procedure(nfa_t &nfa, nfa_stack_t &stack, lmap_t &node_map, const uint
 }
 
 
+void quant_procedure(nfa_t &nfa, nfa_stack_t &stack, lmap_t &node_map, const uint8_t &k, amap_t &arc_map, const size_t min, const size_t max, catsites_t& cats, buffer_t& buffer)
+{
+    if(min == 0)
+    {
+        kleene_procedure(nfa, stack, node_map, (max+1), arc_map, buffer);
+        return;
+    }
+    Subgraph subgraph = stack.top();
+    concat_procedure(nfa, node_map, stack, arc_map, buffer, cats);
+    size_t extra = (max == 0) ? 0 : (max-min);
+    for(size_t i = 1; i < min; ++i)
+    {
+        Subgraph new_subgraph;
+        copy_subgraph(subgraph, nfa, node_map, new_subgraph, arc_map);
+        stack.push(new_subgraph);
+        if(i == (min-1) && max == 0) break; // Postfix will already have a concat operator
+        concat_procedure(nfa, node_map, stack, arc_map, buffer, cats);
+    }
+    for(size_t i = 0; i < extra; ++i)
+    {
+        Subgraph new_subgraph;
+        copy_subgraph(subgraph, nfa, node_map, new_subgraph, arc_map);
+        stack.push(new_subgraph);
+        optional_procedure(nfa, stack, node_map, arc_map, buffer);
+        if(i == (extra-1)) break; // Postfix will already have a concat operator
+        concat_procedure(nfa, node_map, stack, arc_map, buffer, cats);
+    }
+}
+
+
 catsites_t construct_reduced_kgraph(const std::string &postfix, nfa_t &nfa, lmap_t &node_map, amap_t &arc_map, const uint8_t &k)
 {
     nfa_stack_t stack;
     buffer_t buffer;
     node_t start_node = nfa.addNode(); // I don't know why, but a buffer node is necessary for top sort...
     node_map[start_node] = Ghost;
+    std::pair<size_t, size_t> min_max;
     catsites_t catsites;
     for(size_t i = 0; i < postfix.size(); i++)
     {
@@ -224,6 +255,18 @@ catsites_t construct_reduced_kgraph(const std::string &postfix, nfa_t &nfa, lmap
                 break;
             case '+': // One or More
                 plus_procedure(nfa, stack, node_map, k, arc_map, buffer);
+                break;
+            case '{': // Start of Quantifier
+                min_max = parse_quant(postfix, i);
+                if(min_max == OPT_QUANT) // A special case
+                {
+                    optional_procedure(nfa, stack, node_map, arc_map, buffer);
+                    break;
+                }
+                quant_procedure(nfa, stack, node_map, k, arc_map, min_max.first, min_max.second, catsites, buffer);
+                break;
+            case '}': // End of Quantifier
+            case ',':
                 break;
         }
     }

@@ -12,6 +12,8 @@
 #include "utils.h"
 
 
+
+
 template< typename GR >
 class SerializingWriteMap
 {
@@ -45,8 +47,6 @@ using arc_t = nfa_t::Arc;
 using lmap_t = nfa_t::NodeMap<int>;
 using gmap_t = nfa_t::NodeMap<size_t>;
 using amap_t = robin_hood::unordered_map<int, std::pair<node_t, node_t>>;
-// using node_pair_t = std::pair<node_t, node_t>;
-// using node_pair_t = std::tuple<node_t, node_t, size_t>;
 
 struct Subgraph
 {
@@ -129,5 +129,7 @@ void print_node_pointers(const amap_t &arc_map, nfa_t &nfa);
 void print_kgraph_arcs(const nfa_t &NFA);
 
 void print_node_ids(nfa_t &NFA, lmap_t &nmap);
+
+std::pair<size_t, size_t> parse_quant(const std::string& postfix, size_t quant_start);
 
 void copy_subgraph(const Subgraph &subgraph, nfa_t &NFA, lmap_t &node_map, Subgraph &subgraph_copy, amap_t &arc_map);

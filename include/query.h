@@ -13,9 +13,9 @@
 #include "index_base.h"
 #include "arg_parse.h"
 #include "otf_collector.h"
-#include "construction_tools.h"
 #include "construct_nfa.h"
 #include "construct_reduced_nfa.h"
+#include "construction_tools.h"
 
 double compute_k_probability(const uint8_t &k);
 

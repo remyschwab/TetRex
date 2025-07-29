@@ -156,22 +156,6 @@ void plus_procedure(nfa_t &nfa, nfa_stack_t &stack, lmap_t &node_map, const uint
 }
 
 
-std::pair<size_t, size_t> parse_quant(const std::string& postfix, size_t quant_start)
-{ // Parse quantifiers that look like {3,4} or {4}
-    std::pair<size_t, size_t> min_max(0,0);
-    size_t comma = postfix.find(',', quant_start);
-    size_t end = postfix.find('}', quant_start);
-    if(comma == std::string::npos) // No comma means no max
-    {
-        min_max.first = std::stoi(postfix.substr(quant_start+1, end - quant_start));
-        return min_max;
-    }
-    min_max.first = std::stoi(postfix.substr(quant_start+1, comma - quant_start));
-    min_max.second = std::stoi(postfix.substr(comma + 1, end - comma - 1));
-    return min_max;
-}
-
-
 void quant_procedure(nfa_t &nfa, nfa_stack_t &stack, lmap_t &node_map, const uint8_t &k, amap_t &arc_map, const size_t min, const size_t max, catsites_t& cats)
 {
     if(min == 0)
