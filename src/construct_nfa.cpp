@@ -164,8 +164,11 @@ void quant_procedure(nfa_t &nfa, nfa_stack_t &stack, lmap_t &node_map, const uin
         return;
     }
     Subgraph subgraph = stack.top();
-    concat_procedure(nfa, node_map, stack, arc_map, cats);
-    cats.back().min_max_ = {min, max};
+    size_t cat_num = cats.size();
+     // If the quantified subgraph comes first in the RegEx, then don't do the concat procedure
+    if(stack.size() != 1) concat_procedure(nfa, node_map, stack, arc_map, cats);
+    // If the subgraph being min-maxed is problematic, then add the min-max info
+    if(cats.size() == (cat_num+1)) cats.back().min_max_ = {min, max};
     size_t extra = (max == 0) ? 0 : (max-min);
     for(size_t i = 1; i < min; ++i)
     {
