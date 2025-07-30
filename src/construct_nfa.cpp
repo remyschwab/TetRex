@@ -156,17 +156,28 @@ void plus_procedure(nfa_t &nfa, nfa_stack_t &stack, lmap_t &node_map, const uint
 }
 
 
-void quant_procedure(nfa_t &nfa, nfa_stack_t &stack, lmap_t &node_map, const uint8_t &k, amap_t &arc_map, const size_t min, const size_t max, catsites_t& cats)
+bool quant_procedure(nfa_t &nfa, nfa_stack_t &stack, lmap_t &node_map, const uint8_t &k, amap_t &arc_map, const size_t min, const size_t max, catsites_t& cats)
 {
+    bool skip = false;
     if(min == 0)
     {
         kleene_procedure(nfa, stack, node_map, (max+1), arc_map);
-        return;
+        size_t cat_num = cats.size();
+        if(stack.size() != 1)
+        {
+            concat_procedure(nfa, node_map, stack, arc_map, cats);
+            skip = true;
+        }
+        if(cats.size() == (cat_num+1)) cats.back().min_max_ = {min, max};    
+        return skip;
     }
     Subgraph subgraph = stack.top();
     size_t cat_num = cats.size();
-     // If the quantified subgraph comes first in the RegEx, then don't do the concat procedure
-    if(stack.size() != 1) concat_procedure(nfa, node_map, stack, arc_map, cats);
+    if(stack.size() != 1) // Check if the quantified subgraph is the first subgraph
+    {
+        concat_procedure(nfa, node_map, stack, arc_map, cats);
+        skip = true; // If it's not first then skip the next concat operator
+    }
     // If the subgraph being min-maxed is problematic, then add the min-max info
     if(cats.size() == (cat_num+1)) cats.back().min_max_ = {min, max};
     size_t extra = (max == 0) ? 0 : (max-min);
@@ -175,7 +186,6 @@ void quant_procedure(nfa_t &nfa, nfa_stack_t &stack, lmap_t &node_map, const uin
         Subgraph new_subgraph;
         copy_subgraph(subgraph, nfa, node_map, new_subgraph, arc_map);
         stack.push(new_subgraph);
-        if(i == (min-1) && max == 0) break; // Postfix will already have a concat operator
         concat_procedure(nfa, node_map, stack, arc_map, cats);
     }
     for(size_t i = 0; i < extra; ++i)
@@ -184,9 +194,9 @@ void quant_procedure(nfa_t &nfa, nfa_stack_t &stack, lmap_t &node_map, const uin
         copy_subgraph(subgraph, nfa, node_map, new_subgraph, arc_map);
         stack.push(new_subgraph);
         optional_procedure(nfa, stack, node_map, arc_map);
-        if(i == (extra-1)) break; // Postfix will already have a concat operator
         concat_procedure(nfa, node_map, stack, arc_map, cats);
     }
+    return skip;
 }
 
 
@@ -197,6 +207,7 @@ catsites_t construct_kgraph(const std::string &postfix, nfa_t &nfa, lmap_t &node
     node_map[start_node] = Ghost;
     std::pair<size_t, size_t> min_max;
     catsites_t catsites;
+    bool skip = false;
     for(size_t i = 0; i < postfix.size(); i++)
     {
         int symbol = postfix[i];
@@ -207,6 +218,11 @@ catsites_t construct_kgraph(const std::string &postfix, nfa_t &nfa, lmap_t &node
                 default_procedure(nfa, stack, node_map, symbol);
                 break;
             case '-': // Concat
+                if(skip)
+                {
+                    skip = false;
+                    continue;
+                }
                 concat_procedure(nfa, node_map, stack, arc_map, catsites);
                 break;
             case '|': // Or
@@ -228,7 +244,7 @@ catsites_t construct_kgraph(const std::string &postfix, nfa_t &nfa, lmap_t &node
                     optional_procedure(nfa, stack, node_map, arc_map);
                     break;
                 }
-                quant_procedure(nfa, stack, node_map, k, arc_map, min_max.first, min_max.second, catsites);
+                skip = quant_procedure(nfa, stack, node_map, k, arc_map, min_max.first, min_max.second, catsites);
                 break;
             case '}': // End of Quantifier
             case ',':
