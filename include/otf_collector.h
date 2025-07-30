@@ -346,6 +346,11 @@ class OTFCollector
 
     void determine_all_gaps(const Catsite& cat, robin_hood::unordered_set<size_t>& gaps)
     {
+        if(cat.min_max_.second != 0 || cat.min_max_.first != 0)
+        {
+            for(uint8_t i = cat.min_max_.first; i <= cat.min_max_.second; ++i) gaps.insert(i);
+            return;
+        }
         std::stack<std::pair<size_t, node_t>> stack;
         size_t path_count = 1;
         robin_hood::unordered_map<size_t, size_t> path_length_map;

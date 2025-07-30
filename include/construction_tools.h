@@ -72,6 +72,7 @@ struct Catsite
   size_t cleavage_start_id_;
   size_t cleavage_end_id_;
   size_t downstream_id_;
+  std::pair<uint8_t, uint8_t> min_max_{0, 0};
 
   void addIDs(const nfa_t& nfa)
   {

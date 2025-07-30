@@ -165,6 +165,7 @@ void quant_procedure(nfa_t &nfa, nfa_stack_t &stack, lmap_t &node_map, const uin
     }
     Subgraph subgraph = stack.top();
     concat_procedure(nfa, node_map, stack, arc_map, cats);
+    cats.back().min_max_ = {min, max};
     size_t extra = (max == 0) ? 0 : (max-min);
     for(size_t i = 1; i < min; ++i)
     {
