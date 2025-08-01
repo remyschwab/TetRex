@@ -95,7 +95,7 @@ void union_procedure(nfa_t &nfa, nfa_stack_t &stack, lmap_t &node_map, amap_t &a
     update_arc_map(nfa, node_map, arc_map, subgraph1.end, ghost_node);
     update_arc_map(nfa, node_map, arc_map, subgraph2.end, ghost_node);
 
-    Subgraph node_pair{split_node, ghost_node, split_run_count, 0u, Union};
+    Subgraph node_pair{split_node, ghost_node, split_run_count};
     stack.push(node_pair);
 }
 

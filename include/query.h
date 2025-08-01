@@ -163,33 +163,25 @@ bitvector process_query(std::string &regex, TetrexIndex<flavor, mol_t> &ibf, con
     std::string query;
     preprocess_query(regex, query, ibf);
     // DBG(query);
-    bool valid = validate_regex(query, ibf.k_);
     bitvector hit_vector(ibf.getBinCount(), true);
-    if(valid)
+    std::unique_ptr<nfa_t> NFA = std::make_unique<nfa_t>();
+    std::unique_ptr<lmap_t> nfa_map =  std::make_unique<lmap_t>(*NFA);
+    amap_t arc_map;
+    catsites_t catsites;
+    if(ibf.reduction_ == Base)
     {
-        std::unique_ptr<nfa_t> NFA = std::make_unique<nfa_t>();
-        std::unique_ptr<lmap_t> nfa_map =  std::make_unique<lmap_t>(*NFA);
-        amap_t arc_map;
-        catsites_t catsites;
-        if(ibf.reduction_ == Base)
-        {
-            catsites = construct_kgraph(query, *NFA, *nfa_map, arc_map, ibf.k_);
-        }
-        else
-        {
-            catsites = construct_reduced_kgraph(query, *NFA, *nfa_map, arc_map, ibf.k_);
-        }
-        std::unique_ptr<gmap_t> gap_map = std::make_unique<gmap_t>(*NFA);
-        OTFCollector<flavor, mol_t> collector(std::move(NFA), std::move(nfa_map), ibf, std::move(arc_map), std::move(gap_map));
-        collector.analyze_complexity();
-        if(augment && catsites.size() > 0) collector.augment(catsites);
-        if(draw) collector.draw_graph(catsites, augment);
-        hit_vector = collector.collect();
+        catsites = construct_kgraph(query, *NFA, *nfa_map, arc_map, ibf.k_);
     }
-    else // if the RegEx is shorter than the index kmer size, then prompt user and trigger linear search
+    else
     {
-        seqan3::debug_stream << "RegEx is too short to use index. Performing linear scan over whole database" << std::endl;
+        catsites = construct_reduced_kgraph(query, *NFA, *nfa_map, arc_map, ibf.k_);
     }
+    std::unique_ptr<gmap_t> gap_map = std::make_unique<gmap_t>(*NFA);
+    OTFCollector<flavor, mol_t> collector(std::move(NFA), std::move(nfa_map), ibf, std::move(arc_map), std::move(gap_map));
+    collector.analyze_complexity();
+    if(augment && catsites.size() > 0) collector.augment(catsites);
+    if(draw) collector.draw_graph(catsites, augment);
+    hit_vector = collector.collect();
     return hit_vector;
 }
 
@@ -215,7 +207,7 @@ void run_collection(query_arguments &cmd_args, const bool &model, TetrexIndex<fl
     {
         try
         {
-            iter_disk_search(hit_vector, rx, ibf);
+            // iter_disk_search(hit_vector, rx, ibf);
         }
         catch(const std::exception& e)
         {

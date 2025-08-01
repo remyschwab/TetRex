@@ -94,7 +94,7 @@ codon_count_table = {
 
 
 AA_SET = set(codon_count_table.keys())
-AA_UNION = "(" + "|".join([_ for _ in AA_SET]) + ")"
+AA_UNION = "[" + "".join([_ for _ in AA_SET]) + "]"
 
 
 def computeCombos(aa_seq):
@@ -109,7 +109,7 @@ def computeRegEx(aa_sequence):
 
 
 def make_union_iter(sub_disjunction):
-    return "(" + "|".join([_ for _ in sub_disjunction if _ not in '[]']) + ")"
+    return "[" + "".join([_ for _ in sub_disjunction if _ not in '[]']) + "]"
 
 
 def convert_elm_union(disjunction):

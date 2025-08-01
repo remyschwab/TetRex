@@ -344,62 +344,25 @@ class OTFCollector
         return {split_node, ghost_node};
     }
 
-    void determine_all_gaps(const Catsite& cat, robin_hood::unordered_set<size_t>& gaps)
-    {
-        if(cat.min_max_.first!= 0 || cat.min_max_.second != 0)
-        {
-            if(cat.min_max_.second > cat.min_max_.first) // zB. {7,8}
-            {
-                for(uint8_t i = cat.min_max_.first; i <= cat.min_max_.second; ++i) gaps.insert(i);
-                return;
-            }
-            gaps.insert(cat.min_max_.first); // zB. {7}
-            return;
-        }
-        std::stack<std::pair<size_t, node_t>> stack;
-        size_t path_count = 1;
-        robin_hood::unordered_map<size_t, size_t> path_length_map;
-        path_length_map[path_count] = 0;
-        node_t current;
-        stack.push(std::make_pair(path_count, cat.cleavage_start_));
-        while(!stack.empty())
-        {
-            size_t path_id = stack.top().first;
-            current = stack.top().second;
-            int id = NFA_->id(current);
-            stack.pop();
-            if(current == cat.cleavage_end_) continue; // Stopping case
-            int symbol = (*nfa_map_)[current];
-            switch(symbol)
-            {
-                case Ghost: // Just move onto the next node
-                    current = arc_map_.at(id).first;
-                    stack.push(std::make_pair(path_id, current));
-                    break;
-                case Split: // Increment the number of paths and push both onto the stack
-                    ++path_count;
-                    current = arc_map_.at(id).first;
-                    stack.push(std::make_pair(path_id, current));
-                    current = arc_map_.at(id).second;
-                    stack.push(std::make_pair(path_count, current));
-                    path_length_map[path_count] = path_length_map.find(path_id)->second;
-                    break;
-                default:
-                    ++path_length_map.find(path_id)->second;
-                    current = arc_map_.at(id).first;
-                    stack.push(std::make_pair(path_id, current));
-                    break;
-            }
-        }
-        for(auto const[id, length]: path_length_map) gaps.insert(length);
-    }
-
     void analyze_complexity()
     {
         comp_table_.resize(node_count_);
         determine_top_sort();
         // cmplx_mtrx_ = compute_complexity(ibf_->k_);
         return;
+    }
+
+    robin_hood::unordered_set<size_t> sumGaps(const Catsite& c1, const Catsite& c2)
+    {
+        robin_hood::unordered_set<size_t> gaps;
+        for(auto &g: c1.gaps_)
+        {
+            for(auto &gg: c2.gaps_)
+            {
+                gaps.insert(g+gg);
+            }
+        }
+        return gaps;
     }
 
     void merge_catsites(catsites_t& cats)
@@ -416,13 +379,14 @@ class OTFCollector
         {
             size_t currentStart = rank_map_[cats[i].cleavage_start_id_];
             size_t currentEnd = rank_map_[cats[i].cleavage_end_id_];
-            if (merged.empty() || (currentStart-rank_map_[merged.back().cleavage_end_id_]) > ibf_->k_)
+            if (merged.empty() || (currentStart-1 != rank_map_[merged.back().cleavage_end_id_])) // Weird off by one thing here
             {
                 merged.push_back(cats[i]);
                 continue;
             }
             merged.back().cleavage_end_ = cats[i].cleavage_end_;
             merged.back().cleavage_end_id_ = cats[i].cleavage_end_id_;
+            merged.back().gaps_ = sumGaps(merged.back(), cats[i]);
             done = true;
         }
         if(done) cats = merged;
@@ -434,12 +398,13 @@ class OTFCollector
         // It doesn't deal with the internal, lemon arc map
         // This is acceptable for now because we only replace gaps between concatentation operators
         // Lemon algos like DFS are only being called within subgraphs (I think)
+        // for(auto &cat: catsites) cat.dumpInfo(rank_map_);
         merge_catsites(catsites);
+        // for(auto &cat: catsites) cat.dumpInfo(rank_map_);
         // seqan3::debug_stream << "[AUGMENTING " << catsites.size() << " EDGE(S)]" << std::endl;
         for(auto &&cat: catsites)
         {
-            robin_hood::unordered_set<size_t> gaps;
-            determine_all_gaps(cat, gaps);
+            robin_hood::unordered_set<size_t> gaps = cat.gaps_;
             // DBG(gaps);
             cat.complete(*NFA_, arc_map_);
             if(gaps.size() == 1) add_gap(cat, *gaps.begin());

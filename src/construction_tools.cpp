@@ -21,7 +21,6 @@ void copy_subgraph(const Subgraph& subgraph, nfa_t& NFA, lmap_t& node_map, Subgr
         node_map[new_twin] = node_map[subgraph.start];
         subgraph_copy.start = new_twin;
         subgraph_copy.end = new_twin;
-        subgraph_copy.split_run_count = subgraph.split_run_count;
         return;
     }
 
@@ -81,7 +80,7 @@ void copy_subgraph(const Subgraph& subgraph, nfa_t& NFA, lmap_t& node_map, Subgr
     }
     subgraph_copy.start = res.s_copy;
     subgraph_copy.end = res.t_copy;
-    subgraph_copy.split_run_count = subgraph.split_run_count;
+    subgraph_copy.copyMeta(subgraph);
 }
 
 std::pair<size_t, size_t> parse_quant(const std::string& postfix, size_t quant_start)

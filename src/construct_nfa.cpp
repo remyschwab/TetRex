@@ -5,7 +5,7 @@ void default_procedure(nfa_t &nfa, nfa_stack_t &stack, lmap_t &node_map, const i
 {
     node_t node = nfa.addNode();
     node_map[node] = symbol;
-    Subgraph twins = {node, node, 0u, 0u, Default}; // Start and End nodes are the same
+    Subgraph twins = {node, node, 0u, 1u, {1u}, Default}; // Start and End nodes are the same
     stack.push(twins);
 }
 
@@ -17,14 +17,16 @@ void concat_procedure(nfa_t &nfa, lmap_t &node_map, nfa_stack_t &stack, amap_t &
     Subgraph subgraph1 = stack.top();
     stack.pop();
     arc_t cat_arc = update_arc_map(nfa, node_map, arc_map, subgraph1.end, subgraph2.start);
-    if(subgraph2.split_run_count >= 18)
+    if(subgraph2.paths >= 18)
     {
         Catsite catsite{subgraph1.end, subgraph2.start, subgraph2.end, cat_arc};
         catsite.addIDs(nfa); // These need to be added now so they can be merged first
+        catsite.gaps_ = subgraph2.lengths;
         cats.push_back(catsite);
     }
-    size_t new_split_runcount = std::max(subgraph1.split_run_count, subgraph2.split_run_count);
-    Subgraph subgraph{subgraph1.start, subgraph2.end, new_split_runcount, 0u, Concat};
+    Subgraph subgraph{subgraph1.start, subgraph2.end};
+    subgraph.concatInfo(subgraph1, subgraph2);
+    // subgraph.dumpInfo();
     stack.push(subgraph);
 }
 
@@ -35,8 +37,6 @@ void union_procedure(nfa_t &nfa, nfa_stack_t &stack, lmap_t &node_map, amap_t &a
     stack.pop();
     Subgraph subgraph1 = stack.top();
     stack.pop();
-    size_t split_run_count = subgraph1.split_run_count + subgraph2.split_run_count;
-    if(split_run_count == 0) ++split_run_count;
 
     node_t split_node = nfa.addNode();
     node_map[split_node] = Split;
@@ -48,9 +48,8 @@ void union_procedure(nfa_t &nfa, nfa_stack_t &stack, lmap_t &node_map, amap_t &a
     update_arc_map(nfa, node_map, arc_map, subgraph1.end, ghost_node);
     update_arc_map(nfa, node_map, arc_map, subgraph2.end, ghost_node);
 
-    if(node_map[subgraph1.start] == Split) ++split_run_count; // For the Split
-    // DBG(split_run_count);
-    Subgraph new_subgraph{split_node, ghost_node, split_run_count, 0u, Union};
+    Subgraph new_subgraph{split_node, ghost_node};
+    new_subgraph.unionInfo(subgraph1, subgraph2);
     stack.push(new_subgraph);
 }
 
@@ -71,8 +70,8 @@ void optional_procedure(nfa_t &nfa, nfa_stack_t &stack, lmap_t &node_map, amap_t
     // update_arc_map(nfa, node_map, arc_map, node.second, ghost_node);
     update_arc_map(nfa, node_map, arc_map, subgraph.end, ghost_node);
     
-    size_t new_split_run_count = subgraph.split_run_count + 1;
-    Subgraph new_subgraph{split_node, ghost_node, new_split_run_count, 0u, Optional};
+    Subgraph new_subgraph{split_node, ghost_node};
+    new_subgraph.optionInfo(subgraph);
     stack.push(new_subgraph);
 }
 
@@ -120,7 +119,7 @@ void kleene_procedure(nfa_t &nfa, nfa_stack_t &stack, lmap_t &node_map, const ui
         // back_node = new_subgraph.second;
         back_node = new_subgraph.end;
     }
-    Subgraph stack_subgraph{split_node, ghost_node, subgraph_node_count, 0u, Kleene};
+    Subgraph stack_subgraph{split_node, ghost_node};
     stack.push(stack_subgraph);
 }
 
@@ -151,7 +150,7 @@ void plus_procedure(nfa_t &nfa, nfa_stack_t &stack, lmap_t &node_map, const uint
         }
         back_node = new_subgraph.end;
     }
-    Subgraph stack_subgraph{subgraph.start, ghost_node, subgraph_node_count, 0u, Plus};
+    Subgraph stack_subgraph{subgraph.start, ghost_node};
     stack.push(stack_subgraph);
 }
 
@@ -167,19 +166,16 @@ bool quant_procedure(nfa_t &nfa, nfa_stack_t &stack, lmap_t &node_map, const uin
         {
             concat_procedure(nfa, node_map, stack, arc_map, cats);
             skip = true;
-        }
-        if(cats.size() == (cat_num+1)) cats.back().min_max_ = {min, max};    
+        } 
         return skip;
     }
     Subgraph subgraph = stack.top();
     size_t cat_num = cats.size();
-    if(stack.size() != 1) // Check if the quantified subgraph is the first subgraph
+    if(stack.size() != 1) // If there's one item on the stack then the subgraph being copied is the first subgraph in the regex
     {
         concat_procedure(nfa, node_map, stack, arc_map, cats);
         skip = true; // If it's not first then skip the next concat operator
     }
-    // If the subgraph being min-maxed is problematic, then add the min-max info
-    if(cats.size() == (cat_num+1)) cats.back().min_max_ = {min, max};
     size_t extra = (max == 0) ? 0 : (max-min);
     for(size_t i = 1; i < min; ++i)
     {
@@ -264,8 +260,9 @@ catsites_t construct_kgraph(const std::string &postfix, nfa_t &nfa, lmap_t &node
     node_t tail_node = stack.top().end;
     update_arc_map(nfa, node_map, arc_map, tail_node, match_node);
     stack.pop();
-    
+
     // Last but not least...
-    stack.pop();
+    // stack.pop();
+    assert(stack.size() == 0);
     return catsites;
 }

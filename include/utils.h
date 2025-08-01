@@ -5,6 +5,7 @@
 #include <string>
 #include <vector>
 #include <algorithm>
+#include <iterator>
 #include <math.h>
 #include <fstream>
 #include <stack>

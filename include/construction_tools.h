@@ -37,6 +37,24 @@ public:
   }
 };
 
+enum NodeTypes
+{
+    Match = 256,
+    Ghost = 257,
+    Split = 258,
+    Gap = 259
+};
+
+enum Procedures
+{
+  Default = 0,
+  Concat = 1,
+  Union = 2,
+  Optional = 3,
+  Kleene = 4,
+  Plus = 5
+};
+
 constexpr std::pair<size_t, size_t> OPT_QUANT(0,1);
 
 
@@ -53,8 +71,52 @@ struct Subgraph
   node_t start;
   node_t end;
   size_t split_run_count{};
-  size_t raw_split_count{};
+  size_t paths{1};
+  robin_hood::unordered_set<size_t> lengths;
   uint8_t origin;
+
+
+  void concatInfo(const Subgraph& sg1, const Subgraph& sg2)
+  {
+    paths = sg1.paths*sg2.paths;
+    for(auto &l: sg1.lengths)
+      for(auto &j: sg2.lengths) lengths.insert(l+j);
+    split_run_count = std::max(sg1.split_run_count, sg2.split_run_count);
+    origin = Procedures::Concat;
+  }
+
+  void unionInfo(const Subgraph& sg1, const Subgraph& sg2)
+  {
+    std::set_union(
+      sg1.lengths.begin(), sg1.lengths.end(),
+      sg2.lengths.begin(), sg2.lengths.end(),
+      std::inserter(lengths, lengths.begin())
+    );
+    split_run_count = sg1.split_run_count + sg2.split_run_count + 1;
+    paths = sg1.paths + sg2.paths;
+    origin = Procedures::Union;
+  }
+
+  void optionInfo(const Subgraph& sg)
+  {
+    lengths.insert(0);
+    for(auto &l: sg.lengths) lengths.insert(l);
+    split_run_count = sg.split_run_count+1;
+    paths = sg.paths+1;
+    origin = Procedures::Optional;
+  }
+
+  void copyMeta(const Subgraph& ref)
+  {
+    split_run_count = ref.split_run_count;
+    paths = ref.paths;
+    lengths = ref.lengths;
+  }
+
+  void dumpInfo() const
+  {
+    seqan3::debug_stream << "[SPLIT RUN COUNT]: " << split_run_count << " [PATH COUNT]: " << paths << " [LENGTHS]: " << lengths << std::endl;
+  }
 };
 
 using nfa_stack_t = std::stack<Subgraph>;
@@ -72,7 +134,7 @@ struct Catsite
   size_t cleavage_start_id_;
   size_t cleavage_end_id_;
   size_t downstream_id_;
-  std::pair<uint8_t, uint8_t> min_max_{0, 0};
+  robin_hood::unordered_set<size_t> gaps_;
 
   void addIDs(const nfa_t& nfa)
   {
@@ -95,26 +157,6 @@ struct Catsite
 };
 
 using catsites_t = std::vector<Catsite>;
-
-
-
-enum NodeTypes
-{
-    Match = 256,
-    Ghost = 257,
-    Split = 258,
-    Gap = 259
-};
-
-enum Procedures
-{
-  Default = 0,
-  Concat = 1,
-  Union = 2,
-  Optional = 3,
-  Kleene = 4,
-  Plus = 5
-};
 
 
 using buffer_t = std::stack<int>;
