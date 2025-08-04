@@ -106,6 +106,18 @@ struct Subgraph
     origin = Procedures::Optional;
   }
 
+  void kleeneInfo(const Subgraph& sg, const uint8_t& repeats)
+  {
+    for(size_t i = 0; i < repeats; ++i)
+    {
+      for(auto &l: sg.lengths) lengths.insert(i*l);
+    }
+    // DBG(lengths);
+    split_run_count = sg.split_run_count;
+    paths = sg.paths*repeats;
+    origin = Procedures::Kleene;
+  }
+
   void copyMeta(const Subgraph& ref)
   {
     split_run_count = ref.split_run_count;
@@ -113,9 +125,14 @@ struct Subgraph
     lengths = ref.lengths;
   }
 
-  void dumpInfo() const
+  void dumpInfo(const bool splits = false) const
   {
-    seqan3::debug_stream << "[SPLIT RUN COUNT]: " << split_run_count << " [PATH COUNT]: " << paths << " [LENGTHS]: " << lengths << std::endl;
+    if(splits)
+    {
+      seqan3::debug_stream << "[SPLIT RUN COUNT]: " << split_run_count << " [PATH COUNT]: " << paths << " [LENGTHS]: " << lengths << std::endl;
+      return;  
+    }
+    seqan3::debug_stream << "[TOTAL PATH COUNT]: " << paths << " [LENGTH(S)]: " << lengths << std::endl;
   }
 };
 

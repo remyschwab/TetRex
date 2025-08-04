@@ -139,6 +139,8 @@ def convert_prosite_pattern(pattern):
             case 'x': ## Wildcard
                 posix_pattern.append(".")
             case quant if '(' in tkn:
+                if '{' in tkn:
+                    
                 tkn = tkn.replace('x', '.')
                 tkn = tkn.replace('(', '{')
                 tkn = tkn.replace(')', '}')

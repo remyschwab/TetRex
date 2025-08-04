@@ -158,7 +158,7 @@ void iter_disk_search_set(const bitvector &hits, const std::vector<std::string> 
 }
 
 template<index_structure::is_valid flavor, molecules::is_molecule mol_t>
-bitvector process_query(std::string &regex, TetrexIndex<flavor, mol_t> &ibf, const bool draw, const bool augment)
+bitvector process_query(std::string &regex, TetrexIndex<flavor, mol_t> &ibf, const bool draw, const bool augment, const bool verbose)
 {
     std::string query;
     preprocess_query(regex, query, ibf);
@@ -170,7 +170,7 @@ bitvector process_query(std::string &regex, TetrexIndex<flavor, mol_t> &ibf, con
     catsites_t catsites;
     if(ibf.reduction_ == Base)
     {
-        catsites = construct_kgraph(query, *NFA, *nfa_map, arc_map, ibf.k_);
+        catsites = construct_kgraph(query, *NFA, *nfa_map, arc_map, ibf.k_, verbose);
     }
     else
     {
@@ -195,7 +195,7 @@ void run_collection(query_arguments &cmd_args, const bool &model, TetrexIndex<fl
     bitvector hit_vector(ibf.getBinCount(), true);
     if(ibf.getBinCount() > 1u) // If someone forgot to split up their DB into bins then there's no point in the TetRex algorithm
     {
-        hit_vector &= process_query(rx, ibf, cmd_args.draw, cmd_args.augment);
+        hit_vector &= process_query(rx, ibf, cmd_args.draw, cmd_args.augment, cmd_args.verbose);
     }
     else
     {
@@ -228,7 +228,7 @@ void run_conjunction(query_arguments &cmd_args, const std::vector<std::string> &
     bitvector hit_vector(ibf.getBinCount(), true);
     if(ibf.getBinCount() > 1u) // If someone forgot to split up their DB into bins then there's no point in the TetRex algorithm
     {
-        for(auto rx: queries) hit_vector &= process_query(rx, ibf,cmd_args.draw, cmd_args.augment);
+        for(auto rx: queries) hit_vector &= process_query(rx, ibf,cmd_args.draw, cmd_args.augment, cmd_args.verbose);
     }
     else
     {

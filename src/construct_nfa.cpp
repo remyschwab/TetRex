@@ -17,15 +17,24 @@ void concat_procedure(nfa_t &nfa, lmap_t &node_map, nfa_stack_t &stack, amap_t &
     Subgraph subgraph1 = stack.top();
     stack.pop();
     arc_t cat_arc = update_arc_map(nfa, node_map, arc_map, subgraph1.end, subgraph2.start);
-    if(subgraph2.paths >= 18)
+    Subgraph subgraph{subgraph1.start, subgraph2.end};
+    subgraph.concatInfo(subgraph1, subgraph2);
+    if(subgraph2.paths >= 15)
     {
         Catsite catsite{subgraph1.end, subgraph2.start, subgraph2.end, cat_arc};
         catsite.addIDs(nfa); // These need to be added now so they can be merged first
         catsite.gaps_ = subgraph2.lengths;
         cats.push_back(catsite);
+        subgraph.paths = (subgraph.paths/subgraph2.paths)*subgraph2.lengths.size();
     }
-    Subgraph subgraph{subgraph1.start, subgraph2.end};
-    subgraph.concatInfo(subgraph1, subgraph2);
+    else if(subgraph.paths >= 19906560u)
+    {
+        Catsite catsite{subgraph1.end, subgraph2.start, subgraph2.end, cat_arc};
+        catsite.addIDs(nfa); // These need to be added now so they can be merged first
+        catsite.gaps_ = subgraph2.lengths;
+        cats.push_back(catsite);
+        subgraph.paths = (subgraph.paths/subgraph2.paths)*subgraph2.lengths.size();
+    }
     // subgraph.dumpInfo();
     stack.push(subgraph);
 }
@@ -72,6 +81,7 @@ void optional_procedure(nfa_t &nfa, nfa_stack_t &stack, lmap_t &node_map, amap_t
     
     Subgraph new_subgraph{split_node, ghost_node};
     new_subgraph.optionInfo(subgraph);
+    // new_subgraph.dumpInfo();
     stack.push(new_subgraph);
 }
 
@@ -120,6 +130,7 @@ void kleene_procedure(nfa_t &nfa, nfa_stack_t &stack, lmap_t &node_map, const ui
         back_node = new_subgraph.end;
     }
     Subgraph stack_subgraph{split_node, ghost_node};
+    stack_subgraph.kleeneInfo(subgraph, k);
     stack.push(stack_subgraph);
 }
 
@@ -158,10 +169,9 @@ void plus_procedure(nfa_t &nfa, nfa_stack_t &stack, lmap_t &node_map, const uint
 bool quant_procedure(nfa_t &nfa, nfa_stack_t &stack, lmap_t &node_map, const uint8_t &k, amap_t &arc_map, const size_t min, const size_t max, catsites_t& cats)
 {
     bool skip = false;
-    if(min == 0)
+    if(min == 0) // Quants like {0,4}
     {
         kleene_procedure(nfa, stack, node_map, (max+1), arc_map);
-        size_t cat_num = cats.size();
         if(stack.size() != 1)
         {
             concat_procedure(nfa, node_map, stack, arc_map, cats);
@@ -170,7 +180,6 @@ bool quant_procedure(nfa_t &nfa, nfa_stack_t &stack, lmap_t &node_map, const uin
         return skip;
     }
     Subgraph subgraph = stack.top();
-    size_t cat_num = cats.size();
     if(stack.size() != 1) // If there's one item on the stack then the subgraph being copied is the first subgraph in the regex
     {
         concat_procedure(nfa, node_map, stack, arc_map, cats);
@@ -196,7 +205,7 @@ bool quant_procedure(nfa_t &nfa, nfa_stack_t &stack, lmap_t &node_map, const uin
 }
 
 
-catsites_t construct_kgraph(const std::string &postfix, nfa_t &nfa, lmap_t &node_map, amap_t &arc_map, const uint8_t &k)
+catsites_t construct_kgraph(const std::string &postfix, nfa_t &nfa, lmap_t &node_map, amap_t &arc_map, const uint8_t &k, const bool& verbose)
 {
     nfa_stack_t stack;
     node_t start_node = nfa.addNode(); // I don't know why, but a buffer node is necessary for top sort...
@@ -259,6 +268,7 @@ catsites_t construct_kgraph(const std::string &postfix, nfa_t &nfa, lmap_t &node
     // node_t tail_node = stack.top().second;
     node_t tail_node = stack.top().end;
     update_arc_map(nfa, node_map, arc_map, tail_node, match_node);
+    if(verbose) stack.top().dumpInfo();
     stack.pop();
 
     // Last but not least...

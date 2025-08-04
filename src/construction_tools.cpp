@@ -21,6 +21,7 @@ void copy_subgraph(const Subgraph& subgraph, nfa_t& NFA, lmap_t& node_map, Subgr
         node_map[new_twin] = node_map[subgraph.start];
         subgraph_copy.start = new_twin;
         subgraph_copy.end = new_twin;
+        subgraph_copy.copyMeta(subgraph);
         return;
     }
 
@@ -84,11 +85,12 @@ void copy_subgraph(const Subgraph& subgraph, nfa_t& NFA, lmap_t& node_map, Subgr
 }
 
 std::pair<size_t, size_t> parse_quant(const std::string& postfix, size_t quant_start)
-{ // Parse quantifiers that look like {3,4} or {4}
-    std::pair<size_t, size_t> min_max(0,0);
+{ // Parse quantifiers that look like {3,4} or {4} BUT NOT {3,}
+    std::pair<size_t, size_t> min_max = {0,0};
     size_t comma = postfix.find(',', quant_start);
     size_t end = postfix.find('}', quant_start);
-    if(comma == std::string::npos) // No comma means no max
+    // Check to see if there is a comma at all or if it might belong to another quant
+    if(comma == std::string::npos || comma > end)
     {
         min_max.first = std::stoi(postfix.substr(quant_start+1, end - quant_start));
         return min_max;
