@@ -122,6 +122,7 @@ void iter_disk_search(const bitvector &hits, std::string &query, const TetrexInd
     }
 }
 
+
 template<index_structure::is_valid flavor, molecules::is_molecule mol_type>
 void iter_disk_search_set(const bitvector &hits, const std::vector<std::string> &queries, const TetrexIndex<flavor, mol_type> &ibf)
 {
@@ -168,14 +169,8 @@ bitvector process_query(std::string &regex, TetrexIndex<flavor, mol_t> &ibf, con
     std::unique_ptr<lmap_t> nfa_map =  std::make_unique<lmap_t>(*NFA);
     amap_t arc_map;
     catsites_t catsites;
-    if(ibf.reduction_ == Base)
-    {
-        catsites = construct_kgraph(query, *NFA, *nfa_map, arc_map, ibf.k_, verbose);
-    }
-    else
-    {
-        catsites = construct_reduced_kgraph(query, *NFA, *nfa_map, arc_map, ibf.k_);
-    }
+    if(ibf.reduction_ == Base) catsites = construct_kgraph(query, *NFA, *nfa_map, arc_map, ibf.k_, verbose);
+    else catsites = construct_reduced_kgraph(query, *NFA, *nfa_map, arc_map, ibf.k_);
     std::unique_ptr<gmap_t> gap_map = std::make_unique<gmap_t>(*NFA);
     OTFCollector<flavor, mol_t> collector(std::move(NFA), std::move(nfa_map), ibf, std::move(arc_map), std::move(gap_map));
     collector.analyze_complexity();
@@ -265,6 +260,7 @@ void run_multiple_queries(query_arguments &cmd_args, const std::vector<std::stri
     {
         cmd_args.regex = query;
         seqan3::debug_stream << "\n" << query << std::endl;
+        seqan3::debug_stream << query;
         run_collection(cmd_args, model, ibf);
     }
 }

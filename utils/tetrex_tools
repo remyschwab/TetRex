@@ -139,11 +139,7 @@ def convert_prosite_pattern(pattern):
             case 'x': ## Wildcard
                 posix_pattern.append(".")
             case quant if '(' in tkn:
-                if '{' in tkn:
-                    
-                tkn = tkn.replace('x', '.')
-                tkn = tkn.replace('(', '{')
-                tkn = tkn.replace(')', '}')
+                tkn = tkn.replace('{', '[^').replace('}', ']').replace('x', '.').replace('(', '{').replace(')', '}')
                 posix_pattern.append(tkn)
             case dis if dis.startswith('['): ## Disjunction
                 posix_pattern.append(tkn)
