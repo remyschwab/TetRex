@@ -48,8 +48,8 @@ struct query_arguments
     int text_length;
     size_t complexity = 10;
     std::filesystem::path idx{};
-    std::string regex = "-";
-    std::string query;
+    std::string input_regex = "-";
+    std::string tetrex_query;
 };
 
 inline void initialise_query_parser(sharg::parser &parser, query_arguments &args)
@@ -64,7 +64,7 @@ inline void initialise_query_parser(sharg::parser &parser, query_arguments &args
     parser.add_flag(args.conjunction, sharg::config{'c', "conj", "Search multiple queries delimited with ':'"});
     parser.add_flag(args.augment, sharg::config{'a', "augment", "Skip over high complexity regions of RegEx"});
     parser.add_positional_option(args.idx, sharg::config{.description="Path to IBF acid index"});
-    parser.add_positional_option(args.regex, sharg::config{.description="Input Regex"});
+    parser.add_positional_option(args.input_regex, sharg::config{.description="Input Regex"});
 }
 
 inline void initialise_model_parser(sharg::parser &parser, query_arguments &args)
@@ -74,7 +74,7 @@ inline void initialise_model_parser(sharg::parser &parser, query_arguments &args
     parser.add_option(args.t, sharg::config{'t', "threads", "Number of threads"});
     parser.add_option(args.text_length, sharg::config{'l', "length", "Length of text"});
     parser.add_positional_option(args.idx, sharg::config{.description="Path to IBF acid index"});
-    parser.add_positional_option(args.regex, sharg::config{.description="Input Regex"});
+    parser.add_positional_option(args.input_regex, sharg::config{.description="Input Regex"});
 }
 
 struct inspection_arguments

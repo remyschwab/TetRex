@@ -33,6 +33,8 @@ void query_hibf_aa(query_arguments &cmd_args, const bool &model);
 
 void drive_query(query_arguments &cmd_args, const bool &model);
 
+void trimRegEx(std::string& rx_query);
+
 void reduce_query_alphabet(std::string &regex, const std::array<char, 256> &reduction_map);
 
 std::vector<std::string> read_regex_from_file(const std::string &file_path);
@@ -55,17 +57,19 @@ std::vector<size_t> compute_set_bins(const bitvector &hits, const std::vector<st
 
 using alphamap = std::array<char, 256>;
 
+
 template<index_structure::is_valid flavor, molecules::is_molecule mol_type>
-void preprocess_query(std::string &rx_query, std::string &postfix_query, const TetrexIndex<flavor, mol_type> &ibf)
+void preprocess_query(std::string rx_query, std::string &postfix_query, const TetrexIndex<flavor, mol_type> &ibf)
 {
     if(ibf.reduction_ > 0) reduce_query_alphabet(rx_query, ibf.decomposer_.decomposer_.redmap_);
+    trimRegEx(rx_query);
     // DBG(rx_query);
     postfix_query = translate(rx_query);
 }
 
 
 template<index_structure::is_valid flavor, molecules::is_dna mol_type>
-void preprocess_query(std::string &rx_query, std::string &postfix_query, const TetrexIndex<flavor, mol_type> &ibf)
+void preprocess_query(std::string rx_query, std::string &postfix_query, const TetrexIndex<flavor, mol_type> &ibf)
 {
     postfix_query = translate(rx_query);
 }
@@ -185,7 +189,7 @@ template<index_structure::is_valid flavor, molecules::is_molecule mol_t>
 void run_collection(query_arguments &cmd_args, const bool &model, TetrexIndex<flavor, mol_t> &ibf)
 {
     double t1, t2;
-    std::string &rx = cmd_args.regex;
+    std::string &rx = cmd_args.input_regex;
     t1 = omp_get_wtime();
     bitvector hit_vector(ibf.getBinCount(), true);
     if(ibf.getBinCount() > 1u) // If someone forgot to split up their DB into bins then there's no point in the TetRex algorithm
@@ -258,7 +262,7 @@ void run_multiple_queries(query_arguments &cmd_args, const std::vector<std::stri
     }
     for(auto query: queries)
     {
-        cmd_args.regex = query;
+        cmd_args.input_regex = query;
         seqan3::debug_stream << "\n" << query << std::endl;
         seqan3::debug_stream << query;
         run_collection(cmd_args, model, ibf);

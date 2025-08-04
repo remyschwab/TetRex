@@ -74,6 +74,23 @@ std::vector<size_t> compute_set_bins(const bitvector &hits, const std::vector<st
     return hit_vector;
 }
 
+void trimRegEx(std::string& rx_query) // Remove anchors and/or leading and/or trailing wildcards
+{
+    std::string starting_char = rx_query.substr(0,1);
+    if(starting_char == "^") rx_query = rx_query.substr(1, rx_query.size()-2); // Remove N terminus anchor
+    starting_char = rx_query.substr(0,1);
+    if(starting_char == ".") // Trim leading wildcards
+    {
+        size_t end_quant = 1;
+        if(rx_query.substr(1,1) == "{")
+        {
+            end_quant = rx_query.find('}')+1;
+        }
+        rx_query = rx_query.substr(end_quant, rx_query.size()-1);
+    }
+    if(rx_query.substr(rx_query.size()-1, 1) == "$") rx_query = rx_query.substr(0, rx_query.size()-1);
+}
+
 
 void reduce_query_alphabet(std::string &regex, const std::array<char, 256> &reduction_map)
 {
@@ -241,13 +258,13 @@ void query_ibf_dna(query_arguments &cmd_args, const bool &model)
     ibf.spawn_agent();
     if(cmd_args.read_file)
     {
-        std::vector<std::string> queries = read_regex_from_file(cmd_args.regex);
+        std::vector<std::string> queries = read_regex_from_file(cmd_args.input_regex);
         run_multiple_queries(cmd_args, queries, model, ibf);
         return;
     }
     else if(cmd_args.conjunction)
     {
-        std::vector<std::string> queries = split_string(cmd_args.regex, ':');
+        std::vector<std::string> queries = split_string(cmd_args.input_regex, ':');
         if(queries.size() == 1)
         {
             seqan3::debug_stream << "Did you use the correct delimiter (:)?" << std::endl;
@@ -267,13 +284,13 @@ void query_ibf_aa(query_arguments &cmd_args, const bool &model)
     ibf.spawn_agent();
     if(cmd_args.read_file)
     {
-        std::vector<std::string> queries = read_regex_from_file(cmd_args.regex);
+        std::vector<std::string> queries = read_regex_from_file(cmd_args.input_regex);
         run_multiple_queries(cmd_args, queries, model, ibf);
         return;
     }
     else if(cmd_args.conjunction)
     {
-        std::vector<std::string> queries = split_string(cmd_args.regex, ':');
+        std::vector<std::string> queries = split_string(cmd_args.input_regex, ':');
         if(queries.size() == 1)
         {
             seqan3::debug_stream << "Did you use the correct delimiter (:)?" << std::endl;
@@ -292,13 +309,13 @@ void query_hibf_dna(query_arguments &cmd_args, const bool &model)
     load_ibf(ibf, cmd_args.idx);
     if(cmd_args.read_file)
     {
-        std::vector<std::string> queries = read_regex_from_file(cmd_args.regex);
+        std::vector<std::string> queries = read_regex_from_file(cmd_args.input_regex);
         run_multiple_queries(cmd_args, queries, model, ibf);
         return;
     }
     else if(cmd_args.conjunction)
     {
-        std::vector<std::string> queries = split_string(cmd_args.regex, ':');
+        std::vector<std::string> queries = split_string(cmd_args.input_regex, ':');
         if(queries.size() == 1)
         {
             seqan3::debug_stream << "Did you use the correct delimiter (:)?" << std::endl;
@@ -317,13 +334,13 @@ void query_hibf_aa(query_arguments &cmd_args, const bool &model)
     load_ibf(ibf, cmd_args.idx);
     if(cmd_args.read_file)
     {
-        std::vector<std::string> queries = read_regex_from_file(cmd_args.regex);
+        std::vector<std::string> queries = read_regex_from_file(cmd_args.input_regex);
         run_multiple_queries(cmd_args, queries, model, ibf);
         return;
     }
     else if(cmd_args.conjunction)
     {
-        std::vector<std::string> queries = split_string(cmd_args.regex, ':');
+        std::vector<std::string> queries = split_string(cmd_args.input_regex, ':');
         if(queries.size() == 1)
         {
             seqan3::debug_stream << "Did you use the correct delimiter (:)?" << std::endl;
@@ -337,7 +354,7 @@ void query_hibf_aa(query_arguments &cmd_args, const bool &model)
 
 void drive_query(query_arguments &cmd_args, const bool &model)
 {
-    if(cmd_args.regex == "-") std::cin >> cmd_args.regex;
+    if(cmd_args.input_regex == "-") std::cin >> cmd_args.input_regex;
     index_params params;
     load_params(params, cmd_args.idx);
     if(!params.is_hibf_ && params.molecule_ == "na")
