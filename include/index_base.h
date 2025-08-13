@@ -91,9 +91,9 @@ class TetrexIndex
             return ibf_.getHashCount();
         }
 
-        void populate_index()
+        void populate_index(const uint8_t& threadcount)
         {
-            ibf_.populate_index(k_, decomposer_, *this);
+            ibf_.populate_index(k_, decomposer_, *this, threadcount);
         }
 
         void emplace(uint64_t const val, size_t const idx)

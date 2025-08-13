@@ -98,7 +98,7 @@ public:
         }
     }
 
-    void populate_index(uint8_t const ksize, auto &decomposer, auto &base_ref)
+    void populate_index(uint8_t const ksize, auto &decomposer, auto &base_ref, const uint8_t& threadcount = 1)
     {
         gzFile handle{};
         kseq_t *record{};

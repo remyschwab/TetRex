@@ -83,7 +83,7 @@ public:
         user_bin_data_[idx].push_back(val);
     }
 
-    void populate_index(uint8_t const ksize, auto &decomposer, auto &base_ref)
+    void populate_index(uint8_t const ksize, auto &decomposer, auto &base_ref, const uint8_t& thread_count)
     {
         gzFile handle{};
         kseq_t *record{};
@@ -124,7 +124,8 @@ public:
         seqan::hibf::config config{.input_fn = get_user_bin_data,
                                    .number_of_user_bins = bin_count_,
                                    .number_of_hash_functions = hash_count_,
-                                   .maximum_fpr = fpr_,};
+                                   .maximum_fpr = fpr_,
+                                .threads=thread_count};
         hibf_ = seqan::hibf::hierarchical_interleaved_bloom_filter{config};
     }
 
