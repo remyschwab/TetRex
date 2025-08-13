@@ -206,7 +206,7 @@ void run_collection(query_arguments &cmd_args, const bool &model, TetrexIndex<fl
     {
         try
         {
-            // iter_disk_search(hit_vector, rx, ibf);
+            iter_disk_search(hit_vector, rx, ibf);
         }
         catch(const std::exception& e)
         {
@@ -264,7 +264,6 @@ void run_multiple_queries(query_arguments &cmd_args, const std::vector<std::stri
     {
         cmd_args.input_regex = query;
         seqan3::debug_stream << "\n" << query << std::endl;
-        seqan3::debug_stream << query;
         run_collection(cmd_args, model, ibf);
     }
 }
