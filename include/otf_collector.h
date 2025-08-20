@@ -7,6 +7,7 @@
 #include "construct_nfa.h"
 #include "lemon/core.h"
 #include "lemon/list_graph.h"
+#include "dGramIndex.h"
 
 
 namespace CollectionUtils
@@ -22,6 +23,7 @@ namespace CollectionUtils
         uint8_t shift_count_;
         kmer_t kmer_;
         path_t path_;
+        bool gapped_{false};
     };
     using comp_table_t = std::vector<robin_hood::unordered_map<uint64_t, CollectorsItem>>;
     using cmplx_t = std::vector<std::vector<int>>;
@@ -41,6 +43,8 @@ class OTFCollector
         uint64_t submask_{};
         CollectionUtils::cache_t kmer_cache_{};
         std::unique_ptr<gmap_t> gap_map_{};
+        bool has_dibf_{};
+        DGramIndex dibf_{};
         CollectionUtils::cmplx_t cmplx_mtrx_{};
         std::vector<size_t> rank_to_id_{};
     
@@ -50,7 +54,9 @@ class OTFCollector
         explicit OTFCollector(std::unique_ptr<nfa_t> nfa,
                             std::unique_ptr<lmap_t> nfa_map,
                             TetrexIndex<flavor, mol_t> &ibf,
-                            amap_t const &&arc_map, std::unique_ptr<gmap_t>gap_map) :
+                            amap_t const &&arc_map, std::unique_ptr<gmap_t>gap_map,
+                            const bool& has_dibf,
+                            DGramIndex& dibf) :
                     NFA_(std::move(nfa)),
                     nfa_map_(std::move(nfa_map)),
                     node_count_{NFA_->nodeNum()},
@@ -61,12 +67,15 @@ class OTFCollector
                     submask_{},
                     kmer_cache_{},
                     gap_map_{std::move(gap_map)},
+                    has_dibf_{has_dibf},
+                    dibf_{dibf},
                     cmplx_mtrx_{}
         {
             create_selection_bitmask();
             comp_table_.resize(node_count_);
             determine_top_sort();
             ibf_->spawn_agent(); // Not done by the IBFIndex constructor during deserialization
+            if(has_dibf_) dibf_.spawn_agent();
         }
 
     std::string kmer2string(uint64_t kmer, uint8_t ksize)
@@ -118,23 +127,24 @@ class OTFCollector
                 case Ghost:
                     down_idx = rank_map_[NFA_->id(arc_map_.at(rank_to_id_[i]).first)];
                     update_downstream_counts(ksize, counts_matrix[i], counts_matrix[down_idx]);
-                    seqan3::debug_stream << "•:" << counts_matrix[i] << std::endl;
+                    // seqan3::debug_stream << "•:" << counts_matrix[i] << std::endl;
                     break;
                 case Split:
                     down_idx = rank_map_[NFA_->id(arc_map_.at(rank_to_id_[i]).first)];
                     update_downstream_counts(ksize, counts_matrix[i], counts_matrix[down_idx]);
                     down_idx = rank_map_[NFA_->id(arc_map_.at(rank_to_id_[i]).second)];
                     update_downstream_counts(ksize, counts_matrix[i], counts_matrix[down_idx]);
-                    seqan3::debug_stream << "Ø:" << counts_matrix[i] << std::endl;
+                    // seqan3::debug_stream << "Ø:" << counts_matrix[i] << std::endl;
                     break;
                 default:
                     update_local_counts(counts_matrix[i], ksize, total_complexity);
                     down_idx = rank_map_[NFA_->id(arc_map_.at(rank_to_id_[i]).first)];
                     update_downstream_counts(ksize, counts_matrix[i], counts_matrix[down_idx]);
-                    seqan3::debug_stream << static_cast<char>(symbol) << ":" << counts_matrix[i] << std::endl;
+                    // seqan3::debug_stream << static_cast<char>(symbol) << ":" << counts_matrix[i] << std::endl;
                     break;
             }
         }
+        // DBG(total_complexity);
         // DBG(counts_matrix);
         return counts_matrix;
     }
@@ -197,6 +207,13 @@ class OTFCollector
     {
         bitvector hits;
         CollectionUtils::kmer_t canonical_kmer = 0;
+        if(current_state.gapped_)
+        {
+            uint64_t dgram = current_state.kmer_;
+            dgram += static_cast<uint64_t>(DGramTools::aa_to_num(symbol));
+            // DBG(dgram);
+            current_state.gapped_ = false;
+        }
         if(current_state.shift_count_ < (ibf_->k_-1)) // Corresponds to a new kmer < threshold size (--A)
         {
             ibf_->update_kmer(symbol, current_state.kmer_);
@@ -234,6 +251,18 @@ class OTFCollector
         node_t n2 = arc_map_.at(id).second;
         CollectionUtils::CollectorsItem item2 = {n2, NFA_->id(n2), top.shift_count_, top.kmer_, top.path_};
         push(item2);
+    }
+
+    void gap_procedure(const int& id, const CollectionUtils::CollectorsItem& top)
+    {
+        uint8_t code_a = ibf_->forward_store_ | 31u;
+        size_t gap = (*gap_map_)[NFA_->nodeFromId(id)];
+        uint64_t dgram = 0;
+        dgram = static_cast<uint64_t>(gap) * 400ULL + static_cast<uint64_t>(code_a) * 20ULL;
+        ibf_->set_stores(0u, 0u); // Not sure I need to do this
+        node_t next = arc_map_.at(id).first;
+        CollectionUtils::CollectorsItem item = {next, NFA_->id(next), 0, dgram, top.path_, true};
+        push(item);
     }
 
     static int sumBitVector(bitvector const &bits)
@@ -303,10 +332,7 @@ class OTFCollector
                         split_procedure(id, top);
                         break;
                     case Gap:
-                        ibf_->set_stores(0u, 0u); // Not sure I need to do this
-                        next = arc_map_.at(id).first;
-                        item = {next, NFA_->id(next), 0, kmer_init, top.path_};
-                        push(item);
+                        gap_procedure(id, top);
                         break;
                     default:
                         update_path(top, symbol);
@@ -316,6 +342,7 @@ class OTFCollector
                         push(item);
                         break;
                 }
+                DBG(top.kmer_);
             }
         }
         return path_matrix;
@@ -348,7 +375,7 @@ class OTFCollector
     {
         comp_table_.resize(node_count_);
         determine_top_sort();
-        // cmplx_mtrx_ = compute_complexity(ibf_->k_);
+        cmplx_mtrx_ = compute_complexity(ibf_->k_);
         return;
     }
 
@@ -377,17 +404,17 @@ class OTFCollector
 
         for (int i = 0; i < cats.size(); i++)
         {
-            size_t currentStart = rank_map_[cats[i].cleavage_start_id_];
-            size_t currentEnd = rank_map_[cats[i].cleavage_end_id_];
-            if (merged.empty() || (currentStart-1 != rank_map_[merged.back().cleavage_end_id_])) // Weird off by one thing here
-            {
-                merged.push_back(cats[i]);
-                continue;
-            }
-            merged.back().cleavage_end_ = cats[i].cleavage_end_;
-            merged.back().cleavage_end_id_ = cats[i].cleavage_end_id_;
-            merged.back().gaps_ = sumGaps(merged.back(), cats[i]);
-            done = true;
+            // size_t currentStart = rank_map_[cats[i].cleavage_start_id_];
+            // size_t currentEnd = rank_map_[cats[i].cleavage_end_id_];
+            // if (merged.empty() || (currentStart-1 != rank_map_[merged.back().cleavage_end_id_])) // Weird off by one thing here
+            // {
+            //     merged.push_back(cats[i]);
+            //     continue;
+            // }
+            // merged.back().cleavage_end_ = cats[i].cleavage_end_;
+            // merged.back().cleavage_end_id_ = cats[i].cleavage_end_id_;
+            // merged.back().gaps_ = sumGaps(merged.back(), cats[i]);
+            // done = true;
         }
         if(done) cats = merged;
     }

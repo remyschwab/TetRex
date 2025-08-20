@@ -16,6 +16,41 @@ namespace DGramTools {
         unsigned char a, b;
         size_t gap;
     };
+
+    constexpr std::array<int, 26> make_amino_acid_map()
+    {
+        std::array<int, 26> arr{};
+
+        arr['A' - 'A'] = 1;  // Alanine
+        arr['R' - 'A'] = 2;  // Arginine
+        arr['N' - 'A'] = 3;  // Asparagine
+        arr['D' - 'A'] = 4;  // Aspartic acid
+        arr['C' - 'A'] = 5;  // Cysteine
+        arr['Q' - 'A'] = 6;  // Glutamine
+        arr['E' - 'A'] = 7;  // Glutamic acid
+        arr['G' - 'A'] = 8;  // Glycine
+        arr['H' - 'A'] = 9;  // Histidine
+        arr['I' - 'A'] = 10; // Isoleucine
+        arr['L' - 'A'] = 11; // Leucine
+        arr['K' - 'A'] = 12; // Lysine
+        arr['M' - 'A'] = 13; // Methionine
+        arr['F' - 'A'] = 14; // Phenylalanine
+        arr['P' - 'A'] = 15; // Proline
+        arr['S' - 'A'] = 16; // Serine
+        arr['T' - 'A'] = 17; // Threonine
+        arr['W' - 'A'] = 18; // Tryptophan
+        arr['Y' - 'A'] = 19; // Tyrosine
+        arr['V' - 'A'] = 20; // Valine
+
+        return arr;
+    }
+
+    constexpr auto amino_acid_map = make_amino_acid_map();
+
+    constexpr int aa_to_num(char aa)
+    {
+        return (aa >= 'A' && aa <= 'Z') ? amino_acid_map[aa - 'A'] : 0;
+    }
 }; // End DGramTools
 
 class DGramIndex 
@@ -30,9 +65,9 @@ class DGramIndex
         seqan::hibf::interleaved_bloom_filter dibf_{};
         size_t bc_;
         std::unordered_map<char, uint8_t> alpha_map_{};
-        // std::vector<std::pair<std::string, uint64_t>> dgram_buffer_;
         std::vector<std::vector<uint64_t>> dgram_buffer_;
-        // seqan::hibf::interleaved_bloom_filter::membership_agent_type agent_{};
+        bitvector hits_{};
+        seqan::hibf::interleaved_bloom_filter::containment_agent_type agent_{};
 
     public:
 
@@ -146,6 +181,17 @@ class DGramIndex
             }
             kseq_destroy(seq);
             gzclose(fp);
+        }
+
+        void spawn_agent()
+        {
+            agent_ = dibf_.containment_agent();
+        }
+
+        bitvector & query(uint64_t const kmer)
+        {
+            hits_ = agent_.bulk_contains(kmer);
+            return hits_;
         }
 
         template<class Archive>

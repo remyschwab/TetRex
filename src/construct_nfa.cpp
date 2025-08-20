@@ -25,7 +25,7 @@ void concat_procedure(nfa_t &nfa, lmap_t &node_map, nfa_stack_t &stack, amap_t &
         catsite.addIDs(nfa); // These need to be added now so they can be merged first
         catsite.gaps_ = subgraph2.lengths;
         cats.push_back(catsite);
-        subgraph.paths = (subgraph.paths/subgraph2.paths)*subgraph2.lengths.size();
+        // subgraph.paths = (subgraph.paths/subgraph2.paths)*subgraph2.lengths.size();
     }
     else if(subgraph.paths >= 19906560u)
     {
@@ -33,7 +33,7 @@ void concat_procedure(nfa_t &nfa, lmap_t &node_map, nfa_stack_t &stack, amap_t &
         catsite.addIDs(nfa); // These need to be added now so they can be merged first
         catsite.gaps_ = subgraph2.lengths;
         cats.push_back(catsite);
-        subgraph.paths = (subgraph.paths/subgraph2.paths)*subgraph2.lengths.size();
+        // subgraph.paths = (subgraph.paths/subgraph2.paths)*subgraph2.lengths.size();
     }
     // subgraph.dumpInfo();
     stack.push(subgraph);

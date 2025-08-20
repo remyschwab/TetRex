@@ -16,6 +16,7 @@
 #include "construct_nfa.h"
 #include "construct_reduced_nfa.h"
 #include "construction_tools.h"
+#include "dGramIndex.h"
 
 double compute_k_probability(const uint8_t &k);
 
@@ -163,7 +164,7 @@ void iter_disk_search_set(const bitvector &hits, const std::vector<std::string> 
 }
 
 template<index_structure::is_valid flavor, molecules::is_molecule mol_t>
-bitvector process_query(std::string &regex, TetrexIndex<flavor, mol_t> &ibf, const bool draw, const bool augment, const bool verbose)
+bitvector process_query(std::string &regex, TetrexIndex<flavor, mol_t> &ibf, const bool draw, const bool augment, const bool verbose, const bool has_dibf, DGramIndex& dibf)
 {
     std::string query;
     preprocess_query(regex, query, ibf);
@@ -173,10 +174,12 @@ bitvector process_query(std::string &regex, TetrexIndex<flavor, mol_t> &ibf, con
     std::unique_ptr<lmap_t> nfa_map =  std::make_unique<lmap_t>(*NFA);
     amap_t arc_map;
     catsites_t catsites;
+    // Construct kgraph
     if(ibf.reduction_ == Base) catsites = construct_kgraph(query, *NFA, *nfa_map, arc_map, ibf.k_, verbose);
     else catsites = construct_reduced_kgraph(query, *NFA, *nfa_map, arc_map, ibf.k_);
+    
     std::unique_ptr<gmap_t> gap_map = std::make_unique<gmap_t>(*NFA);
-    OTFCollector<flavor, mol_t> collector(std::move(NFA), std::move(nfa_map), ibf, std::move(arc_map), std::move(gap_map));
+    OTFCollector<flavor, mol_t> collector(std::move(NFA), std::move(nfa_map), ibf, std::move(arc_map), std::move(gap_map), has_dibf, dibf);
     collector.analyze_complexity();
     if(augment && catsites.size() > 0) collector.augment(catsites);
     if(draw) collector.draw_graph(catsites, augment);
@@ -192,9 +195,11 @@ void run_collection(query_arguments &cmd_args, const bool &model, TetrexIndex<fl
     std::string &rx = cmd_args.input_regex;
     t1 = omp_get_wtime();
     bitvector hit_vector(ibf.getBinCount(), true);
+    DGramIndex dibf{};
+    if(cmd_args.has_dibf) load_dindex(dibf, cmd_args.dibf);
     if(ibf.getBinCount() > 1u) // If someone forgot to split up their DB into bins then there's no point in the TetRex algorithm
     {
-        hit_vector &= process_query(rx, ibf, cmd_args.draw, cmd_args.augment, cmd_args.verbose);
+        hit_vector &= process_query(rx, ibf, cmd_args.draw, cmd_args.augment, cmd_args.verbose, cmd_args.has_dibf, dibf);
     }
     else
     {
@@ -214,7 +219,7 @@ void run_collection(query_arguments &cmd_args, const bool &model, TetrexIndex<fl
         }
     }
     t2 = omp_get_wtime();
-    seqan3::debug_stream << "Query Time: " << (t2-t1) << std::endl;
+    if(cmd_args.verbose) seqan3::debug_stream << "Query Time: " << (t2-t1) << std::endl;
 }
 
 
@@ -225,9 +230,11 @@ void run_conjunction(query_arguments &cmd_args, const std::vector<std::string> &
     std::string rx;
     t1 = omp_get_wtime();
     bitvector hit_vector(ibf.getBinCount(), true);
+    DGramIndex dibf{};
+    if(cmd_args.has_dibf) load_dindex(dibf, cmd_args.dibf);
     if(ibf.getBinCount() > 1u) // If someone forgot to split up their DB into bins then there's no point in the TetRex algorithm
     {
-        for(auto rx: queries) hit_vector &= process_query(rx, ibf,cmd_args.draw, cmd_args.augment, cmd_args.verbose);
+        for(auto rx: queries) hit_vector &= process_query(rx, ibf,cmd_args.draw, cmd_args.augment, cmd_args.verbose, cmd_args.has_dibf, dibf);
     }
     else
     {
@@ -248,7 +255,7 @@ void run_conjunction(query_arguments &cmd_args, const std::vector<std::string> &
         }
     }
     t2 = omp_get_wtime();
-    seqan3::debug_stream << "Query Time: " << (t2-t1) << std::endl;
+    if(cmd_args.verbose) seqan3::debug_stream << "Query Time: " << (t2-t1) << std::endl;
 }
 
 

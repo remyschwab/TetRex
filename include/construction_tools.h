@@ -151,6 +151,7 @@ struct Catsite
   size_t cleavage_start_id_;
   size_t cleavage_end_id_;
   size_t downstream_id_;
+  size_t paths_;
   robin_hood::unordered_set<size_t> gaps_;
 
   void addIDs(const nfa_t& nfa)
