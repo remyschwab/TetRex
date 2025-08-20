@@ -47,6 +47,7 @@ struct query_arguments
     bool augment{false};
     int text_length;
     size_t complexity = 10;
+    std::filesystem::path dibf{};
     std::filesystem::path idx{};
     std::string input_regex = "-";
     std::string tetrex_query;
@@ -63,6 +64,7 @@ inline void initialise_query_parser(sharg::parser &parser, query_arguments &args
     parser.add_flag(args.read_file, sharg::config{'f', "file", "Interpret last argument as a file containing RegEx"});
     parser.add_flag(args.conjunction, sharg::config{'c', "conj", "Search multiple queries delimited with ':'"});
     parser.add_flag(args.augment, sharg::config{'a', "augment", "Skip over high complexity regions of RegEx"});
+    parser.add_positional_option(args.dibf, sharg::config{'d', "dibf", "Gapped kmer index"});
     parser.add_positional_option(args.idx, sharg::config{.description="Path to IBF acid index"});
     parser.add_positional_option(args.input_regex, sharg::config{.description="Input Regex"});
 }
@@ -100,9 +102,9 @@ struct dindex_arguments
     uint8_t hash_count = 3;
     float fpr = 0.05;
     bool idx{false};
-    std::string ibf = idx ? "ibf" : "hibf";
+    std::string ibf = idx ? "hibf" : "ibf"; // don't forget this is dumb
     std::string ofile;
-    std::vector<std::filesystem::path> acid_libs{};
+    std::vector<std::string> acid_libs{};
 };
 
 inline void initialize_dgram_parser(sharg::parser &parser, dindex_arguments &args)

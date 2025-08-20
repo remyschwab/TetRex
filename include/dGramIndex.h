@@ -6,17 +6,35 @@
 #include "utils.h"
 #include "arg_parse.h"
 #include "hibf/interleaved_bloom_filter.hpp"
+#include <cereal/types/vector.hpp>
+#include "cereal/types/string.hpp"
 
 
+namespace DGramTools {
+    struct Dgram
+    {
+        unsigned char a, b;
+        size_t gap;
+    };
+}; // End DGramTools
 
 class DGramIndex 
 {
+    private:
+        size_t min_gap_{};
+        size_t max_gap_{};
+        size_t pad_{};
+        uint8_t hc_{};
+        float fpr_{};
+        std::vector<std::string> bins_{};
+        seqan::hibf::interleaved_bloom_filter dibf_{};
+        size_t bc_;
+        std::unordered_map<char, uint8_t> alpha_map_{};
+        // std::vector<std::pair<std::string, uint64_t>> dgram_buffer_;
+        std::vector<std::vector<uint64_t>> dgram_buffer_;
+        // seqan::hibf::interleaved_bloom_filter::membership_agent_type agent_{};
+
     public:
-        struct Dgram
-        {
-            unsigned char a, b;
-            size_t gap;
-        };
 
         // Rule of 5
         DGramIndex() = default;
@@ -26,7 +44,7 @@ class DGramIndex
         DGramIndex & operator=(DGramIndex &&) noexcept = default;
         ~DGramIndex() = default;
 
-        explicit DGramIndex(size_t min_gap, size_t max_gap, size_t pad, size_t hc, float fpr, std::vector<std::filesystem::path> bins)
+        explicit DGramIndex(size_t min_gap, size_t max_gap, size_t pad, size_t hc, float fpr, std::vector<std::string> bins)
             : min_gap_(min_gap), max_gap_(max_gap), pad_(pad), hc_(hc), fpr_(fpr), bins_(bins)
         {
             init_alphabet();
@@ -40,6 +58,7 @@ class DGramIndex
             {
                 add_fasta(i);
             }
+            init_ibf();
         }
 
         // Optional accessor for testing
@@ -47,19 +66,6 @@ class DGramIndex
         {
             return dgram_buffer_;
         }
-
-    private:
-        size_t min_gap_, max_gap_, pad_, hc_;
-        float fpr_;
-        std::vector<std::filesystem::path> bins_;
-        std::unordered_map<char, uint8_t> alpha_map_;
-        // std::vector<std::pair<std::string, uint64_t>> dgram_buffer_;
-        size_t bc_;
-        std::vector<std::vector<uint64_t>> dgram_buffer_;
-        seqan::hibf::interleaved_bloom_filter dibf_{};
-        seqan::hibf::interleaved_bloom_filter::membership_agent_type agent_{};
-
-
 
         void init_alphabet()
         {
@@ -145,22 +151,24 @@ class DGramIndex
         template<class Archive>
         void serialize(Archive &archive)
         {
-            archive(min_gap_, max_gap_, pad_, hc_, fpr_, bins_);
+            archive(min_gap_, max_gap_, pad_, hc_, fpr_, bins_, dibf_, bc_);
         }
-    };
+}; // DGramIndex
 
-    // void store_dindex(const DGramIndex& dindex, const std::filesystem::path& opath)
-    // {
-    //     std::ofstream os{opath, std::ios::binary};
-    //     cereal::BinaryOutputArchive oarchive{os};
-    //     oarchive(dindex);
-    // }
+template <class DGramIndex>
+void save_dindex(const DGramIndex& dindex, const std::filesystem::path& opath)
+{
+    std::ofstream os{opath, std::ios::binary};
+    cereal::BinaryOutputArchive oarchive{os};
+    oarchive(dindex);
+}
 
-    // void load_dindex(const DGramIndex& dindex, const std::filesystem::path& ipath)
-    // {
-    //     std::ifstream is{ipath, std::ios::binary};
-    //     cereal::BinaryInputArchive iarchive{is};
-    //     iarchive(dindex);
-    // }
+template <class DGramIndex>
+void load_dindex(DGramIndex& dindex, const std::filesystem::path& ipath)
+{
+    std::ifstream is{ipath, std::ios::binary};
+    cereal::BinaryInputArchive iarchive{is};
+    iarchive(dindex);
+}
 
 void drive_dindex(const dindex_arguments &cmd_args);
