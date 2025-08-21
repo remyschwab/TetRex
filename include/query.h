@@ -196,7 +196,8 @@ void run_collection(query_arguments &cmd_args, const bool &model, TetrexIndex<fl
     t1 = omp_get_wtime();
     bitvector hit_vector(ibf.getBinCount(), true);
     DGramIndex dibf{};
-    if(cmd_args.has_dibf) load_dindex(dibf, cmd_args.dibf);
+    if(cmd_args.dibf != "") load_dindex(dibf, cmd_args.dibf);
+    // dibf.dump_info();
     if(ibf.getBinCount() > 1u) // If someone forgot to split up their DB into bins then there's no point in the TetRex algorithm
     {
         hit_vector &= process_query(rx, ibf, cmd_args.draw, cmd_args.augment, cmd_args.verbose, cmd_args.has_dibf, dibf);

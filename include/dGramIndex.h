@@ -17,39 +17,43 @@ namespace DGramTools {
         size_t gap;
     };
 
-    constexpr std::array<int, 26> make_amino_acid_map()
+    constexpr std::array<unsigned char, UCHAR_MAX+1> make_amino_acid_map()
     {
-        std::array<int, 26> arr{};
-
-        arr['A' - 'A'] = 1;  // Alanine
-        arr['R' - 'A'] = 2;  // Arginine
-        arr['N' - 'A'] = 3;  // Asparagine
-        arr['D' - 'A'] = 4;  // Aspartic acid
-        arr['C' - 'A'] = 5;  // Cysteine
-        arr['Q' - 'A'] = 6;  // Glutamine
-        arr['E' - 'A'] = 7;  // Glutamic acid
-        arr['G' - 'A'] = 8;  // Glycine
-        arr['H' - 'A'] = 9;  // Histidine
-        arr['I' - 'A'] = 10; // Isoleucine
-        arr['L' - 'A'] = 11; // Leucine
-        arr['K' - 'A'] = 12; // Lysine
-        arr['M' - 'A'] = 13; // Methionine
-        arr['F' - 'A'] = 14; // Phenylalanine
-        arr['P' - 'A'] = 15; // Proline
-        arr['S' - 'A'] = 16; // Serine
-        arr['T' - 'A'] = 17; // Threonine
-        arr['W' - 'A'] = 18; // Tryptophan
-        arr['Y' - 'A'] = 19; // Tyrosine
-        arr['V' - 'A'] = 20; // Valine
-
-        return arr;
+        std::array<unsigned char, UCHAR_MAX+1> aamap_{};
+        aamap_['A'] = 0u;
+        aamap_['C'] = 1u;
+        aamap_['D'] = 2u;
+        aamap_['E'] = 3u;
+        aamap_['F'] = 4u;
+        aamap_['G'] = 5u;
+        aamap_['H'] = 6u;
+        aamap_['I'] = 7u;
+        aamap_['K'] = 8u;
+        aamap_['L'] = 9u;
+        aamap_['M'] = 10u;
+        aamap_['N'] = 11u;
+        aamap_['P'] = 12u;
+        aamap_['Q'] = 13u;
+        aamap_['R'] = 14u;
+        aamap_['S'] = 15u;
+        aamap_['T'] = 16u;
+        aamap_['V'] = 17u;
+        aamap_['W'] = 18u;
+        aamap_['Y'] = 19u;
+        aamap_['X'] = 20u;
+        aamap_['B'] = aamap_['D'];
+        aamap_['J'] = aamap_['L'];
+        aamap_['O'] = aamap_['X'];
+        aamap_['U'] = aamap_['X'];
+        aamap_['Z'] = aamap_['E'];
+        return aamap_;
     }
 
     constexpr auto amino_acid_map = make_amino_acid_map();
 
     constexpr int aa_to_num(char aa)
     {
-        return (aa >= 'A' && aa <= 'Z') ? amino_acid_map[aa - 'A'] : 0;
+        return (aa >= 'A' && aa <= 'Z') ? amino_acid_map[aa] : 0;
     }
 }; // End DGramTools
 
@@ -63,13 +67,13 @@ class DGramIndex
         float fpr_{};
         std::vector<std::string> bins_{};
         seqan::hibf::interleaved_bloom_filter dibf_{};
-        size_t bc_;
+        size_t bc_{1u};
         std::unordered_map<char, uint8_t> alpha_map_{};
         std::vector<std::vector<uint64_t>> dgram_buffer_;
-        bitvector hits_{};
-        seqan::hibf::interleaved_bloom_filter::containment_agent_type agent_{};
 
     public:
+        bitvector hits_{};
+        seqan::hibf::interleaved_bloom_filter::containment_agent_type agent_{};
 
         // Rule of 5
         DGramIndex() = default;
@@ -79,11 +83,17 @@ class DGramIndex
         DGramIndex & operator=(DGramIndex &&) noexcept = default;
         ~DGramIndex() = default;
 
-        explicit DGramIndex(size_t min_gap, size_t max_gap, size_t pad, size_t hc, float fpr, std::vector<std::string> bins)
-            : min_gap_(min_gap), max_gap_(max_gap), pad_(pad), hc_(hc), fpr_(fpr), bins_(bins)
+        explicit DGramIndex(size_t min_gap, size_t max_gap, size_t pad, size_t hc, float fpr, std::vector<std::string> bins) :
+                min_gap_(min_gap),
+                max_gap_(max_gap),
+                pad_(pad),
+                hc_(hc),
+                fpr_(fpr),
+                bins_(bins),
+                bc_(bins_.size()),
+                hits_(bc_, true)
         {
             init_alphabet();
-            bc_ = bins_.size();
         }
 
         void populate()
@@ -156,6 +166,7 @@ class DGramIndex
 
                     uint8_t code_a = alpha_map_[a];
                     uint8_t code_b = alpha_map_[b];
+                    // seqan3::debug_stream << "A: " << code_a << ", B: " << code_b << ", GAP: " << gap << std::endl;
                     uint64_t code = static_cast<uint64_t>(gap) * 400ULL
                                 + static_cast<uint64_t>(code_a) * 20ULL
                                 + static_cast<uint64_t>(code_b);
@@ -188,16 +199,26 @@ class DGramIndex
             agent_ = dibf_.containment_agent();
         }
 
-        bitvector & query(uint64_t const kmer)
+        bitvector & query(uint64_t const dgram)
         {
-            hits_ = agent_.bulk_contains(kmer);
+            hits_ = agent_.bulk_contains(dgram);
             return hits_;
+        }
+
+        void dump_info() const
+        {
+            DBG(min_gap_);
+            DBG(max_gap_);
+            DBG(pad_);
+            DBG(hc_);
+            DBG(fpr_);
+            DBG(bc_);
         }
 
         template<class Archive>
         void serialize(Archive &archive)
         {
-            archive(min_gap_, max_gap_, pad_, hc_, fpr_, bins_, dibf_, bc_);
+            archive(min_gap_, max_gap_, pad_, hc_, fpr_, bins_, dibf_, bc_, hits_);
         }
 }; // DGramIndex
 

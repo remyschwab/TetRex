@@ -44,7 +44,7 @@ class OTFCollector
         CollectionUtils::cache_t kmer_cache_{};
         std::unique_ptr<gmap_t> gap_map_{};
         bool has_dibf_{};
-        DGramIndex dibf_{};
+        DGramIndex *dibf_{};
         CollectionUtils::cmplx_t cmplx_mtrx_{};
         std::vector<size_t> rank_to_id_{};
     
@@ -68,14 +68,14 @@ class OTFCollector
                     kmer_cache_{},
                     gap_map_{std::move(gap_map)},
                     has_dibf_{has_dibf},
-                    dibf_{dibf},
+                    dibf_{&dibf},
                     cmplx_mtrx_{}
         {
             create_selection_bitmask();
             comp_table_.resize(node_count_);
             determine_top_sort();
             ibf_->spawn_agent(); // Not done by the IBFIndex constructor during deserialization
-            if(has_dibf_) dibf_.spawn_agent();
+            dibf_->spawn_agent();
         }
 
     std::string kmer2string(uint64_t kmer, uint8_t ksize)
@@ -203,7 +203,7 @@ class OTFCollector
         comp_table_[topid].erase(it);
     }
 
-    void update_path(auto &current_state, int &symbol)
+    void update_path(auto &current_state, const int &symbol)
     {
         bitvector hits;
         CollectionUtils::kmer_t canonical_kmer = 0;
@@ -211,7 +211,9 @@ class OTFCollector
         {
             uint64_t dgram = current_state.kmer_;
             dgram += static_cast<uint64_t>(DGramTools::aa_to_num(symbol));
-            // DBG(dgram);
+            hits = dibf_->query(dgram);
+            current_state.path_ &= hits;
+            current_state.kmer_ = 0u;
             current_state.gapped_ = false;
         }
         if(current_state.shift_count_ < (ibf_->k_-1)) // Corresponds to a new kmer < threshold size (--A)
@@ -255,8 +257,9 @@ class OTFCollector
 
     void gap_procedure(const int& id, const CollectionUtils::CollectorsItem& top)
     {
-        uint8_t code_a = ibf_->forward_store_ | 31u;
+        uint8_t code_a = ibf_->forward_store_ & 0b11111;
         size_t gap = (*gap_map_)[NFA_->nodeFromId(id)];
+        // DBG(gap);
         uint64_t dgram = 0;
         dgram = static_cast<uint64_t>(gap) * 400ULL + static_cast<uint64_t>(code_a) * 20ULL;
         ibf_->set_stores(0u, 0u); // Not sure I need to do this
@@ -340,9 +343,9 @@ class OTFCollector
                         next = arc_map_.at(id).first;
                         item = {next, NFA_->id(next), top.shift_count_, top.kmer_, top.path_};
                         push(item);
+                        // DBG(top.kmer_);
                         break;
                 }
-                DBG(top.kmer_);
             }
         }
         return path_matrix;
