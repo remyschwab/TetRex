@@ -75,7 +75,7 @@ class OTFCollector
             comp_table_.resize(node_count_);
             determine_top_sort();
             ibf_->spawn_agent(); // Not done by the IBFIndex constructor during deserialization
-            dibf_->spawn_agent();
+            if(has_dibf_) dibf_->spawn_agent();
         }
 
     std::string kmer2string(uint64_t kmer, uint8_t ksize)
@@ -209,10 +209,13 @@ class OTFCollector
         CollectionUtils::kmer_t canonical_kmer = 0;
         if(current_state.gapped_)
         {
-            uint64_t dgram = current_state.kmer_;
-            dgram += static_cast<uint64_t>(DGramTools::aa_to_num(symbol));
-            hits = dibf_->query(dgram);
-            current_state.path_ &= hits;
+            if(has_dibf_)
+            {
+                uint64_t dgram = current_state.kmer_;
+                dgram += static_cast<uint64_t>(DGramTools::aa_to_num(symbol));
+                hits = dibf_->query(dgram);
+                current_state.path_ &= hits;
+            }
             current_state.kmer_ = 0u;
             current_state.gapped_ = false;
         }
@@ -407,17 +410,17 @@ class OTFCollector
 
         for (int i = 0; i < cats.size(); i++)
         {
-            // size_t currentStart = rank_map_[cats[i].cleavage_start_id_];
-            // size_t currentEnd = rank_map_[cats[i].cleavage_end_id_];
-            // if (merged.empty() || (currentStart-1 != rank_map_[merged.back().cleavage_end_id_])) // Weird off by one thing here
-            // {
-            //     merged.push_back(cats[i]);
-            //     continue;
-            // }
-            // merged.back().cleavage_end_ = cats[i].cleavage_end_;
-            // merged.back().cleavage_end_id_ = cats[i].cleavage_end_id_;
-            // merged.back().gaps_ = sumGaps(merged.back(), cats[i]);
-            // done = true;
+            size_t currentStart = rank_map_[cats[i].cleavage_start_id_];
+            size_t currentEnd = rank_map_[cats[i].cleavage_end_id_];
+            if (merged.empty() || (currentStart-1 != rank_map_[merged.back().cleavage_end_id_])) // Weird off by one thing here
+            {
+                merged.push_back(cats[i]);
+                continue;
+            }
+            merged.back().cleavage_end_ = cats[i].cleavage_end_;
+            merged.back().cleavage_end_id_ = cats[i].cleavage_end_id_;
+            merged.back().gaps_ = sumGaps(merged.back(), cats[i]);
+            done = true;
         }
         if(done) cats = merged;
     }
