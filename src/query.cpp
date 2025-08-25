@@ -76,19 +76,10 @@ std::vector<size_t> compute_set_bins(const bitvector &hits, const std::vector<st
 
 void trimRegEx(std::string& rx_query) // Remove anchors and/or leading and/or trailing wildcards
 {
-    std::string starting_char = rx_query.substr(0,1);
-    if(starting_char == "^") rx_query = rx_query.substr(1, rx_query.size()-2); // Remove N terminus anchor
-    starting_char = rx_query.substr(0,1);
-    if(starting_char == ".") // Trim leading wildcards
-    {
-        size_t end_quant = 1;
-        if(rx_query.substr(1,1) == "{")
-        {
-            end_quant = rx_query.find('}')+1;
-        }
-        rx_query = rx_query.substr(end_quant, rx_query.size()-1);
-    }
-    if(rx_query.substr(rx_query.size()-1, 1) == "$") rx_query = rx_query.substr(0, rx_query.size()-1);
+    if (rx_query.empty()) return;
+    size_t start = rx_query.find_first_not_of("^.");
+    size_t end = rx_query.find_last_not_of(".$"); // This could be an issue
+    rx_query = rx_query.substr(start, end - start + 1);
 }
 
 
