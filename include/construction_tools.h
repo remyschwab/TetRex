@@ -66,6 +66,11 @@ using lmap_t = nfa_t::NodeMap<int>;
 using gmap_t = nfa_t::NodeMap<size_t>;
 using amap_t = robin_hood::unordered_map<int, std::pair<node_t, node_t>>;
 
+struct Decision
+{
+
+};
+
 struct Subgraph
 {
   node_t start;
@@ -169,7 +174,7 @@ struct Catsite
 
   void dumpInfo(const std::vector<int>& ranks) const
   {
-    seqan3::debug_stream << "FUSE: " << ranks[cleavage_site_id_] << " CLEAVE START: " << ranks[cleavage_start_id_]<< " CLEAVE END: " << ranks[cleavage_end_id_] << " FUSE END: " << ranks[downstream_id_] << std::endl; 
+    seqan3::debug_stream << "FUSE: " << ranks[cleavage_site_id_] << " CLEAVE START: " << ranks[cleavage_start_id_]<< " CLEAVE END: " << ranks[cleavage_end_id_] << " FUSE END: " << ranks[downstream_id_] << " GAP LENGTHS: " << gaps_ << std::endl; 
   }
 
 };

@@ -10,6 +10,28 @@ void default_procedure(nfa_t &nfa, nfa_stack_t &stack, lmap_t &node_map, const i
 }
 
 
+void detect_bad_graphs(const Subgraph& sg1, const Subgraph& sg2, const Subgraph& sg_new, const nfa_t& nfa, const arc_t& carc, catsites_t& cats)
+{
+    if(sg2.paths >= 15)
+    {
+        Catsite catsite{sg1.end, sg2.start, sg2.end, carc};
+        catsite.addIDs(nfa); // These need to be added now so they can be merged first
+        catsite.gaps_ = sg2.lengths;
+        cats.push_back(catsite);
+        // subgraph.paths = (subgraph.paths/subgraph2.paths)*subgraph2.lengths.size();
+    }
+    else if(sg_new.paths >= 19906560u && sg2.start != sg2.end)
+    {
+        Catsite catsite{sg1.end, sg2.start, sg2.end, carc};
+        catsite.addIDs(nfa); // These need to be added now so they can be merged first
+        catsite.gaps_ = sg2.lengths;
+        cats.push_back(catsite);
+        // subgraph.paths = (subgraph.paths/subgraph2.paths)*subgraph2.lengths.size();
+    }
+    // subgraph.dumpInfo();
+}
+
+
 void concat_procedure(nfa_t &nfa, lmap_t &node_map, nfa_stack_t &stack, amap_t &arc_map, catsites_t& cats)
 {
     Subgraph subgraph2 = stack.top();
@@ -19,23 +41,7 @@ void concat_procedure(nfa_t &nfa, lmap_t &node_map, nfa_stack_t &stack, amap_t &
     arc_t cat_arc = update_arc_map(nfa, node_map, arc_map, subgraph1.end, subgraph2.start);
     Subgraph subgraph{subgraph1.start, subgraph2.end};
     subgraph.concatInfo(subgraph1, subgraph2);
-    if(subgraph2.paths >= 15)
-    {
-        Catsite catsite{subgraph1.end, subgraph2.start, subgraph2.end, cat_arc};
-        catsite.addIDs(nfa); // These need to be added now so they can be merged first
-        catsite.gaps_ = subgraph2.lengths;
-        cats.push_back(catsite);
-        // subgraph.paths = (subgraph.paths/subgraph2.paths)*subgraph2.lengths.size();
-    }
-    else if(subgraph.paths >= 19906560u)
-    {
-        Catsite catsite{subgraph1.end, subgraph2.start, subgraph2.end, cat_arc};
-        catsite.addIDs(nfa); // These need to be added now so they can be merged first
-        catsite.gaps_ = subgraph2.lengths;
-        cats.push_back(catsite);
-        // subgraph.paths = (subgraph.paths/subgraph2.paths)*subgraph2.lengths.size();
-    }
-    // subgraph.dumpInfo();
+    detect_bad_graphs(subgraph1, subgraph2, subgraph, nfa, cat_arc, cats);
     stack.push(subgraph);
 }
 

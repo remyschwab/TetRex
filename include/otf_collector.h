@@ -433,13 +433,14 @@ class OTFCollector
         // Lemon algos like DFS are only being called within subgraphs (I think)
         // for(auto &cat: catsites) cat.dumpInfo(rank_map_);
         merge_catsites(catsites);
-        // for(auto &cat: catsites) cat.dumpInfo(rank_map_);
+        // DBG("\n");
         // seqan3::debug_stream << "[AUGMENTING " << catsites.size() << " EDGE(S)]" << std::endl;
         for(auto &&cat: catsites)
         {
             robin_hood::unordered_set<size_t> gaps = cat.gaps_;
             // DBG(gaps);
             cat.complete(*NFA_, arc_map_);
+            // cat.dumpInfo(rank_map_);
             if(gaps.size() == 1) add_gap(cat, *gaps.begin());
             else
             {

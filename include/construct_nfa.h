@@ -5,6 +5,8 @@
 
 void default_procedure(nfa_t &nfa, nfa_stack_t &stack, lmap_t &node_map, const int &symbol);
 
+void detect_bad_graphs(const Subgraph& sg1, const Subgraph& sg2, const Subgraph& sg_new, const nfa_t& nfa, const arc_t& carc, catsites_t& cats);
+
 void concat_procedure(nfa_t &nfa, lmap_t &node_map, nfa_stack_t &stack, amap_t &arc_map, catsites_t& cats);
 
 void union_procedure(nfa_t &nfa, nfa_stack_t &stack, lmap_t &node_map, amap_t &arc_map);
