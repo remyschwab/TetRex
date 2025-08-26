@@ -132,7 +132,7 @@ void reverse_verify_fasta_hit(const gzFile &fasta_handle, const re2::RE2 &crx, s
 }
 
 
-void verify_fasta_hit(const gzFile &fasta_handle, const re2::RE2 &crx, std::string const &binid)
+void verify_fasta_hit(const gzFile &fasta_handle, const re2::RE2 &crx, std::string const &binid, std::ostream& destination)
 {
     int status;
     re2::StringPiece match;
@@ -145,7 +145,7 @@ void verify_fasta_hit(const gzFile &fasta_handle, const re2::RE2 &crx, std::stri
         {
             ptrdiff_t start = match.data() - seq_start;
             ptrdiff_t end   = start + match.size();
-            std::osyncstream(std::cout) << binid << "\t>" << record->name.s << "\t" << match << "\t" << start << "," << end << std::endl;
+            destination << binid << "\t>" << record->name.s << "\t" << match << "\t" << start << "," << end << std::endl;
         }
     }
     kseq_destroy(record);

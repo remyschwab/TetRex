@@ -47,9 +47,9 @@ struct query_arguments
     bool augment{false};
     bool has_dibf{false};
     int text_length;
-    size_t complexity = 10;
     std::filesystem::path dibf{""};
     std::filesystem::path idx{};
+    std::string destination{"-"};
     std::string input_regex = "-";
     std::string tetrex_query;
 };
@@ -58,13 +58,13 @@ inline void initialise_query_parser(sharg::parser &parser, query_arguments &args
 {
     parser.info.author = "Remy Schwab";
     parser.info.version = "1.0.0";
-    parser.add_option(args.t, sharg::config{'t', "threads", "Number of threads"});
-    parser.add_option(args.complexity, sharg::config{'n', "threshold", "Node count to trigger augmentation"});
     parser.add_flag(args.draw, sharg::config{'d', "draw", "Write Graph Viz file to disk"});
     parser.add_flag(args.verbose, sharg::config{'v', "verbose", "Log verbose output"});
     parser.add_flag(args.read_file, sharg::config{'f', "file", "Interpret last argument as a file containing RegEx"});
     parser.add_flag(args.conjunction, sharg::config{'c', "conj", "Search multiple queries delimited with ':'"});
     parser.add_flag(args.augment, sharg::config{'a', "augment", "Skip over high complexity regions of RegEx"});
+    parser.add_option(args.t, sharg::config{'t', "threads", "Number of threads"});
+    parser.add_option(args.destination, sharg::config{'o', "output", "Where to direct matches (File or stdout if not specified)"});
     parser.add_option(args.dibf, sharg::config{'g', "gibf", "Gapped kmer index"});
     parser.add_positional_option(args.idx, sharg::config{.description="Path to IBF acid index"});
     parser.add_positional_option(args.input_regex, sharg::config{.description="Input Regex"});

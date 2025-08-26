@@ -77,13 +77,30 @@ void preprocess_query(std::string rx_query, std::string &postfix_query, const Te
 
 
 template<index_structure::is_valid flavor, molecules::is_dna mol_type>
-void iter_disk_search(const bitvector &hits, std::string &query, const TetrexIndex<flavor, mol_type> &ibf)
+void iter_disk_search(const bitvector &hits, std::string &query, const TetrexIndex<flavor, mol_type> &ibf, const std::string& dest)
 {
     std::vector<size_t> bins = compute_set_bins(hits, ibf.acid_libs_);
     std::string forward_and_reverse = query;
     forward_and_reverse = "(" + forward_and_reverse + ")"; // Capture entire RegEx
     re2::RE2 compiled_regex(forward_and_reverse);
     assert(compiled_regex.ok());
+    
+    // Set up output
+    std::unique_ptr<std::ostream> output_ptr;
+
+    if (dest == "-")
+    {
+        // std::osyncstream needs to wrap a reference, so store it separately
+        static std::osyncstream sync_out(std::cout);
+        output_ptr = std::make_unique<std::ostream>(sync_out.rdbuf());
+    } 
+    else
+    {
+        output_ptr = std::make_unique<std::ofstream>(dest);
+    }
+
+    std::ostream& output_stream = *output_ptr;
+    
     #pragma omp parallel for
     for(size_t hit: bins)
     {
@@ -92,7 +109,7 @@ void iter_disk_search(const bitvector &hits, std::string &query, const TetrexInd
         {
             throw std::runtime_error("File not found. Did you move/rename an indexed file?");
         }
-        verify_fasta_hit(lib_path, compiled_regex, ibf.acid_libs_[hit]);
+        verify_fasta_hit(lib_path, compiled_regex, ibf.acid_libs_[hit], output_stream);
 	    lib_path = gzopen(ibf.acid_libs_[hit].c_str(), "r");
         reverse_verify_fasta_hit(lib_path, compiled_regex, ibf.acid_libs_[hit]);
         gzclose(lib_path);
@@ -101,12 +118,29 @@ void iter_disk_search(const bitvector &hits, std::string &query, const TetrexInd
 
 
 template<index_structure::is_valid flavor, molecules::is_peptide mol_type>
-void iter_disk_search(const bitvector &hits, std::string &query, const TetrexIndex<flavor, mol_type> &ibf)
+void iter_disk_search(const bitvector &hits, std::string &query, const TetrexIndex<flavor, mol_type> &ibf, const std::string& dest)
 {
     std::vector<size_t> bins = compute_set_bins(hits, ibf.acid_libs_);
     query = "(" + query + ")"; // Capture entire RegEx
     re2::RE2 compiled_regex(query, re2::RE2::POSIX);
     assert(compiled_regex.ok());
+    
+    // Set up output
+    std::unique_ptr<std::ostream> output_ptr;
+
+    if (dest == "-")
+    {
+        // std::osyncstream needs to wrap a reference, so store it separately
+        static std::osyncstream sync_out(std::cout);
+        output_ptr = std::make_unique<std::ostream>(sync_out.rdbuf());
+    } 
+    else
+    {
+        output_ptr = std::make_unique<std::ofstream>(dest);
+    }
+
+    std::ostream& output_stream = *output_ptr;
+    
     #pragma omp parallel for
     for(size_t hit: bins)
     {
@@ -122,7 +156,7 @@ void iter_disk_search(const bitvector &hits, std::string &query, const TetrexInd
             gzclose(lib_path);
             continue;
         }
-        verify_fasta_hit(lib_path, compiled_regex, ibf.acid_libs_[hit]);
+        verify_fasta_hit(lib_path, compiled_regex, ibf.acid_libs_[hit], output_stream);
         gzclose(lib_path);
     }
 }
@@ -216,7 +250,7 @@ void run_collection(query_arguments &cmd_args, const bool &model, TetrexIndex<fl
     {
         try
         {
-            iter_disk_search(hit_vector, rx, ibf);
+            iter_disk_search(hit_vector, rx, ibf, cmd_args.destination);
         }
         catch(const std::exception& e)
         {
