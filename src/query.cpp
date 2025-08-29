@@ -295,24 +295,27 @@ void verify_fasta_set(const gzFile &fasta_handle, const RE2::Set &reg_set, std::
 }
 
 
-std::vector<std::string> read_regex_from_file(const std::string &file_path)
+std::vector<motif_id_t> read_regex_from_file(const std::string &file_path)
 {
-    std::vector<std::string> queries;
-    std::ifstream handle{file_path};
+    std::vector<motif_id_t> motifs;
+    std::ifstream infile(file_path);
+    if (!infile.is_open())
+        throw std::runtime_error("Could not open file: " + file_path);
+
     std::string line;
-    if (handle.is_open())
+    while (std::getline(infile, line))
     {
-        while (getline(handle, line))
+        if (line.empty()) continue; // skip empty lines
+
+        std::istringstream iss(line);
+        motif_id_t entry;
+        if (std::getline(iss, entry.id, '\t') &&
+            std::getline(iss, entry.motif, '\t'))
         {
-            queries.push_back(line);
+            motifs.push_back(std::move(entry));
         }
-        handle.close();
     }
-    else
-    {
-        std::cerr << "Filepath not valid" << std::endl;
-    }
-    return queries;
+    return motifs;
 }
 
 std::vector<std::string> split_string(const std::string& str, char delimiter)
@@ -320,11 +323,7 @@ std::vector<std::string> split_string(const std::string& str, char delimiter)
     std::vector<std::string> result;
     std::stringstream ss(str);
     std::string token;
-
-    while (std::getline(ss, token, delimiter)) {
-        result.push_back(token);
-    }
-    
+    while (std::getline(ss, token, delimiter)) result.push_back(token);
     return result;
 }
 
@@ -337,21 +336,21 @@ void query_ibf_dna(query_arguments &cmd_args, const bool &model)
     ibf.spawn_agent();
     if(cmd_args.read_file)
     {
-        std::vector<std::string> queries = read_regex_from_file(cmd_args.input_regex);
+        std::vector<motif_id_t> queries = read_regex_from_file(cmd_args.input_regex);
         run_multiple_queries(cmd_args, queries, model, ibf);
         return;
     }
-    else if(cmd_args.conjunction)
-    {
-        std::vector<std::string> queries = split_string(cmd_args.input_regex, ':');
-        if(queries.size() == 1)
-        {
-            seqan3::debug_stream << "Did you use the correct delimiter (:)?" << std::endl;
-            return;
-        }
-        run_multiple_queries(cmd_args, queries, model, ibf);
-        return;
-    }
+    // else if(cmd_args.conjunction)
+    // {
+    //     std::vector<std::string> queries = split_string(cmd_args.input_regex, ':');
+    //     if(queries.size() == 1)
+    //     {
+    //         seqan3::debug_stream << "Did you use the correct delimiter (:)?" << std::endl;
+    //         return;
+    //     }
+    //     run_multiple_queries(cmd_args, queries, model, ibf);
+    //     return;
+    // }
     run_collection(cmd_args, model, ibf);
 }
 
@@ -363,21 +362,21 @@ void query_ibf_aa(query_arguments &cmd_args, const bool &model)
     ibf.spawn_agent();
     if(cmd_args.read_file)
     {
-        std::vector<std::string> queries = read_regex_from_file(cmd_args.input_regex);
+        std::vector<motif_id_t> queries = read_regex_from_file(cmd_args.input_regex);
         run_multiple_queries(cmd_args, queries, model, ibf);
         return;
     }
-    else if(cmd_args.conjunction)
-    {
-        std::vector<std::string> queries = split_string(cmd_args.input_regex, ':');
-        if(queries.size() == 1)
-        {
-            seqan3::debug_stream << "Did you use the correct delimiter (:)?" << std::endl;
-            return;
-        }
-        run_multiple_queries(cmd_args, queries, model, ibf);
-        return;
-    }
+    // else if(cmd_args.conjunction)
+    // {
+    //     std::vector<std::string> queries = split_string(cmd_args.input_regex, ':');
+    //     if(queries.size() == 1)
+    //     {
+    //         seqan3::debug_stream << "Did you use the correct delimiter (:)?" << std::endl;
+    //         return;
+    //     }
+    //     run_multiple_queries(cmd_args, queries, model, ibf);
+    //     return;
+    // }
     run_collection(cmd_args, model, ibf);
 }
 
@@ -388,21 +387,21 @@ void query_hibf_dna(query_arguments &cmd_args, const bool &model)
     load_ibf(ibf, cmd_args.idx);
     if(cmd_args.read_file)
     {
-        std::vector<std::string> queries = read_regex_from_file(cmd_args.input_regex);
+        std::vector<motif_id_t> queries = read_regex_from_file(cmd_args.input_regex);
         run_multiple_queries(cmd_args, queries, model, ibf);
         return;
     }
-    else if(cmd_args.conjunction)
-    {
-        std::vector<std::string> queries = split_string(cmd_args.input_regex, ':');
-        if(queries.size() == 1)
-        {
-            seqan3::debug_stream << "Did you use the correct delimiter (:)?" << std::endl;
-            return;
-        }
-        run_multiple_queries(cmd_args, queries, model, ibf);
-        return;
-    }
+    // else if(cmd_args.conjunction)
+    // {
+    //     std::vector<std::string> queries = split_string(cmd_args.input_regex, ':');
+    //     if(queries.size() == 1)
+    //     {
+    //         seqan3::debug_stream << "Did you use the correct delimiter (:)?" << std::endl;
+    //         return;
+    //     }
+    //     run_multiple_queries(cmd_args, queries, model, ibf);
+    //     return;
+    // }
     run_collection(cmd_args, model, ibf);
 }
 
@@ -413,21 +412,21 @@ void query_hibf_aa(query_arguments &cmd_args, const bool &model)
     load_ibf(ibf, cmd_args.idx);
     if(cmd_args.read_file)
     {
-        std::vector<std::string> queries = read_regex_from_file(cmd_args.input_regex);
+        std::vector<motif_id_t> queries = read_regex_from_file(cmd_args.input_regex);
         run_multiple_queries(cmd_args, queries, model, ibf);
         return;
     }
-    else if(cmd_args.conjunction)
-    {
-        std::vector<std::string> queries = split_string(cmd_args.input_regex, ':');
-        if(queries.size() == 1)
-        {
-            seqan3::debug_stream << "Did you use the correct delimiter (:)?" << std::endl;
-            return;
-        }
-        run_multiple_queries(cmd_args, queries, model, ibf);
-        return;
-    }
+    // else if(cmd_args.conjunction)
+    // {
+    //     std::vector<std::string> queries = split_string(cmd_args.input_regex, ':');
+    //     if(queries.size() == 1)
+    //     {
+    //         seqan3::debug_stream << "Did you use the correct delimiter (:)?" << std::endl;
+    //         return;
+    //     }
+    //     run_multiple_queries(cmd_args, queries, model, ibf);
+    //     return;
+    // }
     run_collection(cmd_args, model, ibf);
 }
 

@@ -18,6 +18,12 @@
 #include "construction_tools.h"
 #include "dGramIndex.h"
 
+struct motif_id_t
+{
+    std::string id{};
+    std::string motif{};
+};
+
 double compute_k_probability(const uint8_t &k);
 
 std::vector<std::string> split_string(const std::string& str, char delimiter);
@@ -38,7 +44,7 @@ void trimRegEx(std::string& rx_query);
 
 void reduce_query_alphabet(std::string &regex, const std::array<char, 256> &reduction_map);
 
-std::vector<std::string> read_regex_from_file(const std::string &file_path);
+std::vector<motif_id_t> read_regex_from_file(const std::string &file_path);
 
 std::string compute_reverse_complement(std::string &regex);
 
@@ -305,17 +311,18 @@ void run_conjunction(query_arguments &cmd_args, const std::vector<std::string> &
 
 
 template<index_structure::is_valid flavor, molecules::is_molecule mol_t>
-void run_multiple_queries(query_arguments &cmd_args, const std::vector<std::string> &queries, const bool &model, TetrexIndex<flavor, mol_t> &ibf)
+void run_multiple_queries(query_arguments &cmd_args, const std::vector<motif_id_t> &queries, const bool &model, TetrexIndex<flavor, mol_t> &ibf)
 {
-    if(cmd_args.conjunction)
+    // if(cmd_args.conjunction)
+    // {
+    //     run_conjunction(cmd_args, queries, model, ibf);
+    //     return;
+    // }
+    for(auto query_id_pair: queries)
     {
-        run_conjunction(cmd_args, queries, model, ibf);
-        return;
-    }
-    for(auto query: queries)
-    {
-        cmd_args.input_regex = query;
-        seqan3::debug_stream << "\n" << query << std::endl;
+        cmd_args.input_regex = query_id_pair.motif;
+        cmd_args.destination = query_id_pair.id + ".tsv";
+        seqan3::debug_stream << query_id_pair.id << "\n";
         run_collection(cmd_args, model, ibf);
     }
 }
