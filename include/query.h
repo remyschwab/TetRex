@@ -48,7 +48,7 @@ bool validate_regex(const std::string &regex, uint8_t ksize);
 
 void reverse_verify_fasta_hit(const gzFile &fasta_handle, const re2::RE2 &crx, std::string const &binid);
 
-void verify_fasta_hit(const gzFile &fasta_handle, const re2::RE2 &crx, std::string const &binid);
+void verify_fasta_hit(const gzFile &fasta_handle, const re2::RE2 &crx, std::string const &binid, std::ostream& destination, const bool to_stdout);
 
 void verify_aa_fasta_hit(const gzFile &fasta_handle, const re2::RE2 &crx, std::string const &binid, const uint8_t &reduction, const std::array<char, 256> &residue_map);
 
@@ -85,21 +85,25 @@ void iter_disk_search(const bitvector &hits, std::string &query, const TetrexInd
     re2::RE2 compiled_regex(forward_and_reverse);
     assert(compiled_regex.ok());
     
-    // Set up output
-    std::unique_ptr<std::ostream> output_ptr;
+    // Stream setup
+    std::ofstream file_out;
+    std::ostream* output_stream = nullptr;
+    bool to_stdout = false;
 
     if (dest == "-")
     {
-        // std::osyncstream needs to wrap a reference, so store it separately
-        static std::osyncstream sync_out(std::cout);
-        output_ptr = std::make_unique<std::ostream>(sync_out.rdbuf());
-    } 
+        output_stream = &std::cout;
+        to_stdout = true;
+    }
     else
     {
-        output_ptr = std::make_unique<std::ofstream>(dest);
+        file_out.open(dest);
+        if (!file_out)
+        {
+            throw std::runtime_error("Failed to open output file: " + dest);
+        }
+        output_stream = &file_out;
     }
-
-    std::ostream& output_stream = *output_ptr;
     
     #pragma omp parallel for
     for(size_t hit: bins)
@@ -109,7 +113,7 @@ void iter_disk_search(const bitvector &hits, std::string &query, const TetrexInd
         {
             throw std::runtime_error("File not found. Did you move/rename an indexed file?");
         }
-        verify_fasta_hit(lib_path, compiled_regex, ibf.acid_libs_[hit], output_stream);
+        verify_fasta_hit(lib_path, compiled_regex, ibf.acid_libs_[hit], *output_stream, to_stdout);
 	    lib_path = gzopen(ibf.acid_libs_[hit].c_str(), "r");
         reverse_verify_fasta_hit(lib_path, compiled_regex, ibf.acid_libs_[hit]);
         gzclose(lib_path);
@@ -125,21 +129,23 @@ void iter_disk_search(const bitvector &hits, std::string &query, const TetrexInd
     re2::RE2 compiled_regex(query, re2::RE2::POSIX);
     assert(compiled_regex.ok());
     
-    // Set up output
-    std::unique_ptr<std::ostream> output_ptr;
+    // Stream setup
+    std::ofstream file_out;
+    std::ostream* output_stream = nullptr;
+    bool to_stdout = false;
 
-    if (dest == "-")
-    {
-        // std::osyncstream needs to wrap a reference, so store it separately
-        static std::osyncstream sync_out(std::cout);
-        output_ptr = std::make_unique<std::ostream>(sync_out.rdbuf());
-    } 
+    if (dest == "-") {
+        output_stream = &std::cout;
+        to_stdout = true;
+    }
     else
     {
-        output_ptr = std::make_unique<std::ofstream>(dest);
+        file_out.open(dest);
+        if (!file_out) {
+            throw std::runtime_error("Failed to open output file: " + dest);
+        }
+        output_stream = &file_out;
     }
-
-    std::ostream& output_stream = *output_ptr;
     
     #pragma omp parallel for
     for(size_t hit: bins)
@@ -156,7 +162,7 @@ void iter_disk_search(const bitvector &hits, std::string &query, const TetrexInd
             gzclose(lib_path);
             continue;
         }
-        verify_fasta_hit(lib_path, compiled_regex, ibf.acid_libs_[hit], output_stream);
+        verify_fasta_hit(lib_path, compiled_regex, ibf.acid_libs_[hit], *output_stream, to_stdout);
         gzclose(lib_path);
     }
 }

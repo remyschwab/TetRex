@@ -74,13 +74,72 @@ std::vector<size_t> compute_set_bins(const bitvector &hits, const std::vector<st
     return hit_vector;
 }
 
-void trimRegEx(std::string& rx_query) // Remove anchors and/or leading and/or trailing wildcards
+
+size_t matchUninformative(const std::string& s, size_t pos, bool fromFront)
 {
-    if (rx_query.empty()) return;
-    size_t start = rx_query.find_first_not_of("^.");
-    size_t end = rx_query.find_last_not_of(".$"); // This could be an issue
-    rx_query = rx_query.substr(start, end - start + 1);
+    // Detect if a token starting at pos is "uninformative"
+    // and return its length if so, otherwise 0
+    // 1. Anchors
+    if (s[pos] == '^' || s[pos] == '$')
+        return 1;
+
+    // 2. Single wildcard .
+    if (s[pos] == '.')
+    {
+        // Could be ".*", ".+", ".{m,n}"
+        if (pos + 1 < s.size() && (s[pos+1] == '*' || s[pos+1] == '+'))
+            return 2;
+
+        if (pos + 1 < s.size() && s[pos+1] == '{') {
+            // find closing }
+            size_t end = s.find('}', pos+2);
+            if (end != std::string::npos)
+                return end - pos + 1;
+        }
+
+        return 1;
+    }
+
+    // 3. Character class: [ ... ]
+    if (s[pos] == '[') {
+        size_t end = s.find(']', pos+1);
+        if (end != std::string::npos) {
+            std::string inside = s.substr(pos+1, end-pos-1);
+
+            // Negative class or broad class = uninformative
+            if (!inside.empty() && (inside[0] == '^' || inside == "."))
+                return end - pos + 1;
+
+            // Broad ranges like [A-Z] or [0-9]
+            if (inside.find('-') != std::string::npos)
+                return end - pos + 1;
+        }
+    }
+
+    return 0; // not uninformative
 }
+
+void trimRegEx(std::string& rx_query)
+{
+    size_t start = 0, end = rx_query.size();
+
+    // Trim front
+    while (start < end) {
+        size_t len = matchUninformative(rx_query, start, true);
+        if (len == 0) break;
+        start += len;
+    }
+
+    // Trim back
+    while (end > start) {
+        size_t len = matchUninformative(rx_query, end-1, false);
+        if (len == 0) break;
+        end -= len;
+    }
+
+    rx_query = rx_query.substr(start, end - start);
+}
+
 
 
 void reduce_query_alphabet(std::string &regex, const std::array<char, 256> &reduction_map)
@@ -132,20 +191,46 @@ void reverse_verify_fasta_hit(const gzFile &fasta_handle, const re2::RE2 &crx, s
 }
 
 
-void verify_fasta_hit(const gzFile &fasta_handle, const re2::RE2 &crx, std::string const &binid, std::ostream& destination)
+void verify_fasta_hit(const gzFile &fasta_handle, const re2::RE2 &crx, std::string const &binid, std::ostream& destination, const bool to_stdout)
 {
     int status;
     re2::StringPiece match;
     kseq_t* record = kseq_init(fasta_handle);
-    while((status = kseq_read(record)) >= 0)
+    while ((status = kseq_read(record)) >= 0)
     {
         re2::StringPiece bin_content(record->seq.s, record->seq.l);
         const char* seq_start = bin_content.data();
-        while (RE2::FindAndConsume(&bin_content, crx, &match))
+
+        if (to_stdout) {
+            // buffer all matches for this record atomically
+            std::osyncstream sync_out(destination);
+            while (RE2::FindAndConsume(&bin_content, crx, &match))
+            {
+                ptrdiff_t start = match.data() - seq_start;
+                ptrdiff_t end   = start + match.size();
+
+                sync_out << binid << "\t>"
+                         << record->name.s << "\t"
+                         << match << "\t"
+                         << start << "," << end
+                         << '\n';
+            }
+            // destructor of sync_out flushes all matches for this record
+        }
+        else
         {
-            ptrdiff_t start = match.data() - seq_start;
-            ptrdiff_t end   = start + match.size();
-            destination << binid << "\t>" << record->name.s << "\t" << match << "\t" << start << "," << end << std::endl;
+            // file output — write directly
+            while (RE2::FindAndConsume(&bin_content, crx, &match))
+            {
+                ptrdiff_t start = match.data() - seq_start;
+                ptrdiff_t end   = start + match.size();
+
+                destination << binid << "\t>"
+                            << record->name.s << "\t"
+                            << match << "\t"
+                            << start << "," << end
+                            << '\n';
+            }
         }
     }
     kseq_destroy(record);
