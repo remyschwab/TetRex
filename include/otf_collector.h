@@ -329,6 +329,11 @@ class OTFCollector
                     case Match:
                         path_matrix |= top.path_;
                         break;
+                    case 36:
+                        next = arc_map_.at(id).first;
+                        item = {next, NFA_->id(next), top.shift_count_, top.kmer_, top.path_};
+                        push(item);
+                        break;
                     case Ghost:
                         next = arc_map_.at(id).first;
                         item = {next, NFA_->id(next), top.shift_count_, top.kmer_, top.path_};
