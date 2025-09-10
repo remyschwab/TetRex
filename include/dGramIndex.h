@@ -215,6 +215,16 @@ class DGramIndex
             DBG(bc_);
         }
 
+        size_t getMinGap()
+        {
+            return min_gap_;
+        }
+
+        size_t getMaxGap()
+        {
+            return max_gap_;
+        }
+
         template<class Archive>
         void serialize(Archive &archive)
         {

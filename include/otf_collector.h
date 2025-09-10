@@ -213,7 +213,6 @@ class OTFCollector
             {
                 uint64_t dgram = current_state.kmer_;
                 dgram += static_cast<uint64_t>(DGramTools::aa_to_num(symbol));
-                // DBG(dgram);
                 hits = dibf_->query(dgram);
                 current_state.path_ &= hits;
             }
@@ -262,12 +261,9 @@ class OTFCollector
     void gap_procedure(const int& id, const CollectionUtils::CollectorsItem& top)
     {
         uint8_t code_a = top.kmer_ & 0b11111;
-        // DBG(code_a);
         size_t gap = (*gap_map_)[NFA_->nodeFromId(id)];
-        // DBG(gap);
         uint64_t dgram = 0;
         dgram = static_cast<uint64_t>(gap) * 400ULL + static_cast<uint64_t>(code_a) * 20ULL;
-        // DBG(dgram);
         ibf_->set_stores(0u, 0u); // Not sure I need to do this
         node_t next = arc_map_.at(id).first;
         CollectionUtils::CollectorsItem item = {next, NFA_->id(next), 0, dgram, top.path_, true};
