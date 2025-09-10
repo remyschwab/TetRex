@@ -24,6 +24,14 @@ namespace CollectionUtils
         kmer_t kmer_;
         path_t path_;
         bool gapped_{false};
+
+        void dumpInfo()
+        {
+            DBG(id_);
+            DBG(shift_count_);
+            DBG(kmer_);
+            DBG(gapped_);
+        }
     };
     using comp_table_t = std::vector<robin_hood::unordered_map<uint64_t, CollectorsItem>>;
     using cmplx_t = std::vector<std::vector<int>>;
@@ -211,14 +219,23 @@ class OTFCollector
         {
             if(has_dibf_)
             {
-                uint64_t dgram = current_state.kmer_;
-                dgram += static_cast<uint64_t>(DGramTools::aa_to_num(symbol));
-                // DBG(dgram);
-                hits = dibf_->query(dgram);
-                current_state.path_ &= hits;
+                if(current_state.shift_count_ == 0)
+                {
+                    current_state.kmer_ += 20ULL*static_cast<uint64_t>(DGramTools::aa_to_num(symbol));
+                }
+                else if(current_state.shift_count_ == 1)
+                {
+                    uint64_t dgram = current_state.kmer_;
+                    dgram += static_cast<uint64_t>(DGramTools::aa_to_num(symbol));
+                    DBG(dgram);
+                    hits = dibf_->query(dgram);
+                    current_state.path_ &= hits;
+                    current_state.kmer_ = 0u;
+                    current_state.gapped_ = false;
+                }
+                current_state.shift_count_++;
+                return;
             }
-            current_state.kmer_ = 0u;
-            current_state.gapped_ = false;
         }
         if(current_state.shift_count_ < (ibf_->k_-1)) // Corresponds to a new kmer < threshold size (--A)
         {
@@ -261,13 +278,11 @@ class OTFCollector
 
     void gap_procedure(const int& id, const CollectionUtils::CollectorsItem& top)
     {
-        uint8_t code_a = top.kmer_ & 0b11111;
-        // DBG(code_a);
+        uint8_t code_a1 = (top.kmer_ & 0b1111100000)>>5;
+        uint8_t code_a2 = top.kmer_ & 0b11111;
         size_t gap = (*gap_map_)[NFA_->nodeFromId(id)];
-        // DBG(gap);
-        uint64_t dgram = 0;
-        dgram = static_cast<uint64_t>(gap) * 400ULL + static_cast<uint64_t>(code_a) * 20ULL;
-        // DBG(dgram);
+        uint64_t dgram = static_cast<uint64_t>(gap);
+        dgram = dgram * 160000ULL + static_cast<uint64_t>(code_a1) * 8000ULL + static_cast<uint64_t>(code_a2) * 400ULL;
         ibf_->set_stores(0u, 0u); // Not sure I need to do this
         node_t next = arc_map_.at(id).first;
         CollectionUtils::CollectorsItem item = {next, NFA_->id(next), 0, dgram, top.path_, true};
@@ -352,7 +367,7 @@ class OTFCollector
                         update_path(top, symbol);
                         if(top.path_.none()) break; // Immediately get rid of deadend paths
                         next = arc_map_.at(id).first;
-                        item = {next, NFA_->id(next), top.shift_count_, top.kmer_, top.path_};
+                        item = {next, NFA_->id(next), top.shift_count_, top.kmer_, top.path_, top.gapped_};
                         push(item);
                         // DBG(top.kmer_);
                         break;

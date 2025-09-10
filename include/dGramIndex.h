@@ -149,32 +149,46 @@ class DGramIndex
             }
         }
 
-        void process_sequence(const std::string& seq, const size_t bin_id)
+void process_sequence(const std::string& seq, const size_t bin_id)
+{
+    // Need at least 2 residues on each side
+    if (seq.size() < min_gap_ + 5) return;
+
+    for (size_t i = 1; i + min_gap_ + 2 < seq.size(); ++i)
+    {
+        char a1 = seq[i - 1];
+        char a2 = seq[i];
+        if (alpha_map_.find(a1) == alpha_map_.end()) continue;
+        if (alpha_map_.find(a2) == alpha_map_.end()) continue;
+
+        for (size_t gap = min_gap_; gap <= max_gap_; ++gap)
         {
-            for (size_t i = 0; i + min_gap_ + 1 < seq.size(); ++i)
-            {
-                char a = seq[i];
-                if (alpha_map_.find(a) == alpha_map_.end()) continue;
+            size_t j = i + gap + 1;
+            if (j + 1 >= seq.size()) break;
 
-                for (size_t gap = min_gap_; gap <= max_gap_; ++gap)
-                {
-                    size_t j = i + gap + 1;
-                    if (j >= seq.size()) break;
+            char b1 = seq[j];
+            char b2 = seq[j + 1];
+            if (alpha_map_.find(b1) == alpha_map_.end()) continue;
+            if (alpha_map_.find(b2) == alpha_map_.end()) continue;
 
-                    char b = seq[j];
-                    if (alpha_map_.find(b) == alpha_map_.end()) continue;
+            uint8_t code_a1 = alpha_map_[a1];
+            uint8_t code_a2 = alpha_map_[a2];
+            uint8_t code_b1 = alpha_map_[b1];
+            uint8_t code_b2 = alpha_map_[b2];
 
-                    uint8_t code_a = alpha_map_[a];
-                    uint8_t code_b = alpha_map_[b];
-                    // seqan3::debug_stream << "A: " << code_a << ", B: " << code_b << ", GAP: " << gap << std::endl;
-                    uint64_t code = static_cast<uint64_t>(gap) * 400ULL
-                                + static_cast<uint64_t>(code_a) * 20ULL
-                                + static_cast<uint64_t>(code_b);
+            // You’ll need to decide how you want to encode 4 residues + gap.
+            // Here’s one scheme: treat it as base-20 digits with gap as top-level.
+            uint64_t code = static_cast<uint64_t>(gap);
+            code = code * 160000ULL + static_cast<uint64_t>(code_a1) * 8000ULL
+                               + static_cast<uint64_t>(code_a2) * 400ULL
+                               + static_cast<uint64_t>(code_b1) * 20ULL
+                               + static_cast<uint64_t>(code_b2);
 
-                    dgram_buffer_[bin_id].emplace_back(code);
-                }
-            }
+            dgram_buffer_[bin_id].emplace_back(code);
         }
+    }
+}
+
 
         void add_fasta(size_t bin_id)
         {
