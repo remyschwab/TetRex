@@ -273,10 +273,7 @@ class OTFCollector
     static int sumBitVector(bitvector const &bits)
     {
         int sum = 0;
-        for(bool bit : bits)
-        {
-            sum += bit ? 1 : 0;
-        }
+        for(bool bit : bits) sum += bit ? 1 : 0;
         return sum;
     }
 
