@@ -24,7 +24,8 @@ namespace CollectionUtils
         kmer_t kmer_;
         path_t path_;
         bool gapped_{false};
-        int res_cache_{};
+        int res_cache_1{};
+        int res_cache_2{};
 
         void dumpInfo()
         {
@@ -214,25 +215,32 @@ class OTFCollector
 
     void update_gapped(auto &current_state, const int &symbol)
     {
-        bitvector hits;
         if(current_state.shift_count_ == 0)
         {
-            current_state.kmer_ += 20ULL*static_cast<uint64_t>(DGramTools::aa_to_num(symbol));
-            current_state.res_cache_ = symbol;
+            current_state.kmer_ += 400ULL*static_cast<uint64_t>(DGramTools::aa_to_num(symbol));
+            current_state.res_cache_1 = symbol;
             current_state.shift_count_++;
         }
         else if(current_state.shift_count_ == 1)
+        {
+            current_state.kmer_ += 20ULL*static_cast<uint64_t>(DGramTools::aa_to_num(symbol));
+            current_state.res_cache_2 = symbol;
+            current_state.shift_count_++;
+        }
+        else if(current_state.shift_count_ == 2)
         {
             uint64_t dgram = current_state.kmer_;
             dgram += static_cast<uint64_t>(DGramTools::aa_to_num(symbol));
             // DBG(dgram);
             if(has_dibf_) current_state.path_ &= dibf_->query(dgram);
             current_state.kmer_ = 0u;
-            ibf_->update_kmer(current_state.res_cache_, current_state.kmer_);
+            ibf_->update_kmer(current_state.res_cache_1, current_state.kmer_);
+            ibf_->update_kmer(current_state.res_cache_2, current_state.kmer_);
             ibf_->update_kmer(symbol, current_state.kmer_);
             current_state.shift_count_++;
             current_state.gapped_ = false;
-            current_state.res_cache_ = 0;
+            current_state.res_cache_1 = 0;
+            current_state.res_cache_2 = 0;
         }
     }
 
@@ -272,17 +280,17 @@ class OTFCollector
     void split_procedure(int &id, auto &top)
     {
         node_t n1 = arc_map_.at(id).first;
-        CollectionUtils::CollectorsItem item1 = {n1, NFA_->id(n1), top.shift_count_, top.kmer_, top.path_, top.gapped_, top.res_cache_};
+        CollectionUtils::CollectorsItem item1 = {n1, NFA_->id(n1), top.shift_count_, top.kmer_, top.path_, top.gapped_, top.res_cache_1, top.res_cache_2};
         push(item1);
         node_t n2 = arc_map_.at(id).second;
-        CollectionUtils::CollectorsItem item2 = {n2, NFA_->id(n2), top.shift_count_, top.kmer_, top.path_, top.gapped_, top.res_cache_};
+        CollectionUtils::CollectorsItem item2 = {n2, NFA_->id(n2), top.shift_count_, top.kmer_, top.path_, top.gapped_, top.res_cache_1, top.res_cache_2};
         push(item2);
     }
 
     void gap_procedure(const int& id, const CollectionUtils::CollectorsItem& top)
     {
         size_t gap = (*gap_map_)[NFA_->nodeFromId(id)];
-        if(top.shift_count_ < 2 || gap < dibf_->getMinGap() || gap > dibf_->getMaxGap()) // It needs to be at least 2 to extract residues
+        if(top.shift_count_ < 3 || gap < dibf_->getMinGap() || gap > dibf_->getMaxGap()) // It needs to be at least 2 to extract residues
         {
             ibf_->set_stores(0u, 0u); // Not sure I need to do this
             node_t next = arc_map_.at(id).first;
@@ -290,11 +298,13 @@ class OTFCollector
             push(item);
             return;
         }
-        uint8_t code_a1 = (top.kmer_ & 0b1111100000)>>5;
-        uint8_t code_a2 = top.kmer_ & 0b11111;
+        uint16_t code_a1 = (top.kmer_ & 0b111110000000000)>>10;
+        uint16_t code_a2 = (top.kmer_ & 0b1111100000)>>5;
+        uint16_t code_a3 = top.kmer_ & 0b11111;
         // seqan3::debug_stream << "Gap Size: " << gap << std::endl;
-        uint64_t dgram = gap;
-        dgram = gap * 160000ULL + static_cast<uint64_t>(code_a1) * 8000ULL + static_cast<uint64_t>(code_a2) * 400ULL;
+        uint64_t dgram = 0ULL;
+        // dgram = gap * 160000ULL + static_cast<uint64_t>(code_a1) * 8000ULL + static_cast<uint64_t>(code_a2) * 400ULL;
+        dgram = gap * 64000000ULL + static_cast<uint64_t>(code_a1) * 3200000ULL + static_cast<uint64_t>(code_a2) * 160000ULL + static_cast<uint64_t>(code_a3) * 8000ULL;
         ibf_->set_stores(0u, 0u); // Not sure I need to do this
         node_t next = arc_map_.at(id).first;
         CollectionUtils::CollectorsItem item = {next, NFA_->id(next), 0, dgram, top.path_, true};
@@ -356,12 +366,12 @@ class OTFCollector
                         break;
                     case 36: // $
                         next = arc_map_.at(id).first;
-                        item = {next, NFA_->id(next), top.shift_count_, top.kmer_, top.path_, top.gapped_, top.res_cache_};
+                        item = {next, NFA_->id(next), top.shift_count_, top.kmer_, top.path_, top.gapped_, top.res_cache_1, top.res_cache_2};
                         push(item);
                         break;
                     case Ghost:
                         next = arc_map_.at(id).first;
-                        item = {next, NFA_->id(next), top.shift_count_, top.kmer_, top.path_, top.gapped_, top.res_cache_};
+                        item = {next, NFA_->id(next), top.shift_count_, top.kmer_, top.path_, top.gapped_, top.res_cache_1, top.res_cache_2};
                         push(item);
                         break;
                     case Split:
@@ -375,7 +385,7 @@ class OTFCollector
                         else update_path(top, symbol);
                         if(top.path_.none()) break; // Immediately get rid of deadend paths
                         next = arc_map_.at(id).first;
-                        item = {next, NFA_->id(next), top.shift_count_, top.kmer_, top.path_, top.gapped_, top.res_cache_};
+                        item = {next, NFA_->id(next), top.shift_count_, top.kmer_, top.path_, top.gapped_, top.res_cache_1, top.res_cache_2};
                         push(item);
                         // DBG(top.kmer_);
                         break;
