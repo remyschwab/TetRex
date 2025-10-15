@@ -274,7 +274,7 @@ catsites_t construct_kgraph(const std::string &postfix, nfa_t &nfa, lmap_t &node
     // node_t tail_node = stack.top().second;
     node_t tail_node = stack.top().end;
     update_arc_map(nfa, node_map, arc_map, tail_node, match_node);
-    if(verbose) stack.top().dumpInfo();
+    // if(verbose) stack.top().dumpInfo();
     stack.pop();
 
     // Last but not least...

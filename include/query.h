@@ -257,7 +257,8 @@ void run_collection(query_arguments &cmd_args, const bool &model, TetrexIndex<fl
         seqan3::debug_stream << "[WARNING] Index contains only 1 bin. Unable to accelerate search using the TetRex algorithm. Performing Linear Scan" << std::endl;
     }
 
-    if(cmd_args.verbose) seqan3::debug_stream << "Narrowed Search to " << OTFCollector<flavor, mol_t>::sumBitVector(hit_vector) << " possible bins" << std::endl;
+    // if(cmd_args.verbose) seqan3::debug_stream << "Narrowed Search to " << OTFCollector<flavor, mol_t>::sumBitVector(hit_vector) << " possible bins" << std::endl;
+    if(cmd_args.verbose) seqan3::debug_stream << OTFCollector<flavor, mol_t>::sumBitVector(hit_vector) << std::endl;
     if(!hit_vector.none())
     {
         try
@@ -270,7 +271,7 @@ void run_collection(query_arguments &cmd_args, const bool &model, TetrexIndex<fl
         }
     }
     t2 = omp_get_wtime();
-    if(cmd_args.verbose) seqan3::debug_stream << "Query Time: " << (t2-t1) << std::endl;
+    // if(cmd_args.verbose) seqan3::debug_stream << "Query Time: " << (t2-t1) << std::endl;
 }
 
 
@@ -322,7 +323,7 @@ void run_multiple_queries(query_arguments &cmd_args, const std::vector<motif_id_
     {
         cmd_args.input_regex = query_id_pair.motif;
         cmd_args.destination = query_id_pair.id + ".tsv";
-        seqan3::debug_stream << query_id_pair.id << "\n";
+        seqan3::debug_stream << query_id_pair.id << "\t";
         run_collection(cmd_args, model, ibf);
     }
 }

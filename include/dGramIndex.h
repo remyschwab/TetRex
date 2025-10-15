@@ -149,31 +149,104 @@ class DGramIndex
             }
         }
 
+        // void process_sequence(const std::string& seq, const size_t bin_id)
+        // {
+        //     // Need at least 2 residues on each side
+        //     if (seq.size() < min_gap_ + 5) return;
+
+        //     for (size_t i = 1; i + min_gap_ + 2 < seq.size(); ++i)
+        //     {
+        //         char a1 = seq[i - 1];
+        //         char a2 = seq[i];
+        //         if (alpha_map_.find(a1) == alpha_map_.end()) continue;
+        //         if (alpha_map_.find(a2) == alpha_map_.end()) continue;
+
+        //         for (size_t gap = min_gap_; gap <= max_gap_; ++gap)
+        //         {
+        //             size_t j = i + gap + 1;
+        //             if (j + 1 >= seq.size()) break;
+
+        //             char b1 = seq[j];
+        //             char b2 = seq[j + 1];
+        //             if (alpha_map_.find(b1) == alpha_map_.end()) continue;
+        //             if (alpha_map_.find(b2) == alpha_map_.end()) continue;
+
+        //             uint8_t code_a1 = alpha_map_[a1];
+        //             uint8_t code_a2 = alpha_map_[a2];
+        //             uint8_t code_b1 = alpha_map_[b1];
+        //             uint8_t code_b2 = alpha_map_[b2];
+
+        //             uint64_t code = static_cast<uint64_t>(gap);
+        //             code = code * 160000ULL + static_cast<uint64_t>(code_a1) * 8000ULL
+        //                             + static_cast<uint64_t>(code_a2) * 400ULL
+        //                             + static_cast<uint64_t>(code_b1) * 20ULL
+        //                             + static_cast<uint64_t>(code_b2);
+
+        //             dgram_buffer_[bin_id].emplace_back(code);
+        //         }
+        //     }
+        // }
+
         void process_sequence(const std::string& seq, const size_t bin_id)
         {
-            for (size_t i = 0; i + min_gap_ + 1 < seq.size(); ++i)
+            // Need at least 3 residues on each side of the gap
+            if (seq.size() < min_gap_ + 7) return;
+
+            for (size_t i = 2; i + min_gap_ + 3 < seq.size(); ++i)
             {
-                char a = seq[i];
-                if (alpha_map_.find(a) == alpha_map_.end()) continue;
+                char a1 = seq[i - 2];
+                char a2 = seq[i - 1];
+                char a3 = seq[i];
+
+                // Skip if any left-side residues are invalid
+                if (alpha_map_.find(a1) == alpha_map_.end()) continue;
+                if (alpha_map_.find(a2) == alpha_map_.end()) continue;
+                if (alpha_map_.find(a3) == alpha_map_.end()) continue;
 
                 for (size_t gap = min_gap_; gap <= max_gap_; ++gap)
                 {
                     size_t j = i + gap + 1;
-                    if (j >= seq.size()) break;
+                    if (j + 2 >= seq.size()) break; // Need 3 residues on right
 
-                    char b = seq[j];
-                    if (alpha_map_.find(b) == alpha_map_.end()) continue;
+                    char b1 = seq[j];
+                    char b2 = seq[j + 1];
+                    char b3 = seq[j + 2];
 
-                    uint8_t code_a = alpha_map_[a];
-                    uint8_t code_b = alpha_map_[b];
-                    // seqan3::debug_stream << "A: " << code_a << ", B: " << code_b << ", GAP: " << gap << std::endl;
-                    uint64_t code = static_cast<uint64_t>(gap) * 400ULL
-                                + static_cast<uint64_t>(code_a) * 20ULL
-                                + static_cast<uint64_t>(code_b);
+                    // Skip if any right-side residues are invalid
+                    if (alpha_map_.find(b1) == alpha_map_.end()) continue;
+                    if (alpha_map_.find(b2) == alpha_map_.end()) continue;
+                    if (alpha_map_.find(b3) == alpha_map_.end()) continue;
+
+                    uint8_t code_a1 = alpha_map_[a1];
+                    uint8_t code_a2 = alpha_map_[a2];
+                    uint8_t code_a3 = alpha_map_[a3];
+                    uint8_t code_b1 = alpha_map_[b1];
+                    uint8_t code_b2 = alpha_map_[b2];
+                    uint8_t code_b3 = alpha_map_[b3];
+
+                    uint64_t code = static_cast<uint64_t>(gap);
+                    code = code * 64000000ULL  // 20^6
+                        + static_cast<uint64_t>(code_a1) * 3200000ULL // 20^5
+                        + static_cast<uint64_t>(code_a2) * 160000ULL  // 20^4
+                        + static_cast<uint64_t>(code_a3) * 8000ULL    // 20^3
+                        + static_cast<uint64_t>(code_b1) * 400ULL     // 20^2
+                        + static_cast<uint64_t>(code_b2) * 20ULL      // 20^1
+                        + static_cast<uint64_t>(code_b3);            // 20^0
 
                     dgram_buffer_[bin_id].emplace_back(code);
                 }
             }
+        }
+
+
+        size_t getMinGap() const
+        {
+            return min_gap_;
+        }
+
+        size_t getMaxGap() const
+        {
+            return max_gap_;
         }
 
         void add_fasta(size_t bin_id)
