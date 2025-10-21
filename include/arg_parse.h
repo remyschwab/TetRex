@@ -105,7 +105,7 @@ struct dindex_arguments
     bool idx{false};
     std::string ibf = idx ? "hibf" : "ibf"; // don't forget this is dumb
     std::string ofile;
-    std::vector<std::string> acid_libs{};
+    std::vector<std::filesystem::path> acid_libs{};
 };
 
 inline void initialize_dgram_parser(sharg::parser &parser, dindex_arguments &args)

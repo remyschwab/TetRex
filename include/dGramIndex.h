@@ -17,6 +17,8 @@ namespace DGramTools {
         size_t gap;
     };
 
+    std::vector<std::string> read_input_file_list(const std::filesystem::path &input_file);
+
     constexpr std::array<unsigned char, UCHAR_MAX+1> make_amino_acid_map()
     {
         std::array<unsigned char, UCHAR_MAX+1> aamap_{};
@@ -55,6 +57,8 @@ namespace DGramTools {
     {
         return (aa >= 'A' && aa <= 'Z') ? amino_acid_map[aa] : 0;
     }
+
+
 }; // End DGramTools
 
 class DGramIndex 
@@ -203,7 +207,7 @@ class DGramIndex
                 if (alpha_map_.find(a2) == alpha_map_.end()) continue;
                 if (alpha_map_.find(a3) == alpha_map_.end()) continue;
 
-                for (size_t gap = min_gap_; gap <= max_gap_; ++gap)
+                for(size_t gap = min_gap_; gap <= max_gap_; ++gap)
                 {
                     size_t j = i + gap + 1;
                     if (j + 2 >= seq.size()) break; // Need 3 residues on right
