@@ -281,12 +281,14 @@ namespace molecules
             void decompose_record(std::string_view const record_seq, T const tech_bin_id, auto &base_ref)
             {
                 uint64_t initial_encoding = encode_peptide(record_seq.substr(0, ksize_));
+                DBG(initial_encoding);
                 base_ref.forward_store_ = initial_encoding;
                 base_ref.emplace(initial_encoding, tech_bin_id);
                 for(size_t i = ksize_; i < record_seq.length(); ++i)
                 {
                     auto symbol = record_seq[i];
                     rollover_peptide_hash(symbol, tech_bin_id, base_ref);
+                    DBG(base_ref.forward_store_);
                 }
             }
 

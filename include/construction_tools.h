@@ -184,6 +184,9 @@ using catsites_t = std::vector<Catsite>;
 
 using buffer_t = std::stack<int>;
 
+
+
+
 void print_graph(nfa_t &NFA, lmap_t &nmap, const catsites_t& cats, const bool& augment);
 
 std::string generate_kmer_seq(uint64_t &kmer, uint8_t &k);
@@ -197,5 +200,7 @@ void print_kgraph_arcs(const nfa_t &NFA);
 void print_node_ids(nfa_t &NFA, lmap_t &nmap);
 
 std::pair<size_t, size_t> parse_quant(const std::string& postfix, size_t quant_start);
+
+void detect_bad_graphs(const Subgraph& sg1, const Subgraph& sg2, const Subgraph& sg_new, const nfa_t& nfa, const arc_t& carc, catsites_t& cats);
 
 void copy_subgraph(const Subgraph &subgraph, nfa_t &NFA, lmap_t &node_map, Subgraph &subgraph_copy, amap_t &arc_map);

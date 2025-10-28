@@ -237,34 +237,78 @@ void verify_fasta_hit(const gzFile &fasta_handle, const re2::RE2 &crx, std::stri
 }
 
 
-void verify_reduced_fasta_hit(const gzFile &fasta_handle, const re2::RE2 &crx, std::string const &binid, const uint8_t &reduction, const std::array<char, 256> &residue_map)
+void verify_reduced_fasta_hit(const gzFile &fasta_handle, const re2::RE2 &crx, std::string const &binid, const uint8_t &reduction, const std::array<char, 256> &residue_map, std::ostream& destination, const bool to_stdout)
 {
+    // int status;
+    // size_t startpos;
+    // size_t endpos;
+    // re2::StringPiece match;
+    // std::string seq_copy;
+    // kseq_t* record = kseq_init(fasta_handle);
+    // while((status = kseq_read(record)) >= 0)
+    // {
+    //     startpos = 0;
+    //     endpos = record->seq.l;
+    //     seq_copy = record->seq.s;
+    //     for(size_t i = 0; i < record->seq.l; ++i)
+    //     {
+    //         char residue = record->seq.s[i];
+    //         record->seq.s[i] = residue_map[residue];
+    //     }
+    //     re2::StringPiece bin_content(record->seq.s);
+    //     while(startpos < endpos)
+    //     {
+    //         if(crx.Match(bin_content, startpos, bin_content.size(), RE2::UNANCHORED, &match, 1))
+    //         {
+    //             std::osyncstream(std::cout) << binid << "\t>" << record->name.s << "\t" << seq_copy.substr(startpos, match.size()) << std::endl;
+    //             startpos++;
+    //             continue;
+    //         }
+    //         startpos++;
+    //     }
+    // }
+    // kseq_destroy(record);
     int status;
-    size_t startpos;
-    size_t endpos;
     re2::StringPiece match;
     std::string seq_copy;
     kseq_t* record = kseq_init(fasta_handle);
-    while((status = kseq_read(record)) >= 0)
+    while ((status = kseq_read(record)) >= 0)
     {
-        startpos = 0;
-        endpos = record->seq.l;
         seq_copy = record->seq.s;
-        for(size_t i = 0; i < record->seq.l; ++i)
-        {
-            char residue = record->seq.s[i];
-            record->seq.s[i] = residue_map[residue];
-        }
-        re2::StringPiece bin_content(record->seq.s);
-        while(startpos < endpos)
-        {
-            if(crx.Match(bin_content, startpos, bin_content.size(), RE2::UNANCHORED, &match, 1))
+        for(size_t i = 0; i < record->seq.l; ++i) record->seq.s[i] = residue_map[record->seq.s[i]];
+        re2::StringPiece bin_content(record->seq.s, record->seq.l);
+        const char* seq_start = bin_content.data();
+
+        if (to_stdout) {
+            // buffer all matches for this record atomically
+            std::osyncstream sync_out(destination);
+            while (RE2::FindAndConsume(&bin_content, crx, &match))
             {
-                std::osyncstream(std::cout) << binid << "\t>" << record->name.s << "\t" << seq_copy.substr(startpos, match.size()) << std::endl;
-                startpos++;
-                continue;
+                ptrdiff_t start = match.data() - seq_start;
+                ptrdiff_t end   = start + match.size();
+
+                sync_out << binid << "\t>"
+                         << record->name.s << "\t"
+                         << match << "\t"
+                         << start << "," << end
+                         << '\n';
             }
-            startpos++;
+            // destructor of sync_out flushes all matches for this record
+        }
+        else
+        {
+            // file output — write directly
+            while (RE2::FindAndConsume(&bin_content, crx, &match))
+            {
+                ptrdiff_t start = match.data() - seq_start;
+                ptrdiff_t end   = start + match.size();
+
+                destination << binid << "\t>"
+                            << record->name.s << "\t"
+                            << match << "\t"
+                            << start << "," << end
+                            << '\n';
+            }
         }
     }
     kseq_destroy(record);

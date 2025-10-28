@@ -3,6 +3,7 @@
 
 bool redundancy_test(buffer_t &buffer)
 {
+    if(buffer.size() == 1) return false;
     int sym2 = buffer.top();
     buffer.pop();
     int sym1 = buffer.top();
@@ -12,7 +13,7 @@ bool redundancy_test(buffer_t &buffer)
 }
 
 
-bool twin_test(Subgraph &node_pair)
+bool twin_test(const Subgraph &node_pair)
 {
     return node_pair.start == node_pair.end;
 }
@@ -22,7 +23,7 @@ Subgraph add_node(nfa_t &nfa, lmap_t &node_map, const int &symbol)
 {
     node_t node = nfa.addNode();
     node_map[node] = symbol;
-    Subgraph twins{node, node}; // Source and target are the same node
+    Subgraph twins{node, node, 0u, 1u, {1u}, Default}; // Source and target are the same node
     return twins;
 }
 
@@ -39,7 +40,7 @@ void default_procedure(buffer_t &buffer, const int symbol, nfa_stack_t &stack)
 {
     buffer.push(symbol);
     node_t node;
-    Subgraph twins = {node, node}; // Source and target are the same node
+    Subgraph twins = {node, node, 0u, 1u, {1u}, Default}; // Source and target are the same node
     stack.push(twins); // Basically just push a pair of dummy twins onto the stack
 }
 
@@ -50,17 +51,13 @@ void concat_procedure(nfa_t &nfa, lmap_t &node_map, nfa_stack_t &stack, amap_t &
     stack.pop();
     Subgraph subgraph1 = stack.top();
     stack.pop();
-    if(twin_test(subgraph1)) twin_procedure(subgraph1, buffer, nfa, stack, node_map);
     if(twin_test(subgraph2)) twin_procedure(subgraph2, buffer, nfa, stack, node_map);
+    if(twin_test(subgraph1)) twin_procedure(subgraph1, buffer, nfa, stack, node_map);
     arc_t cat_arc = update_arc_map(nfa, node_map, arc_map, subgraph1.end, subgraph2.start);
-    if(subgraph2.split_run_count >= 20)
-    {
-        Catsite catsite{subgraph1.end, subgraph2.start, subgraph2.end, cat_arc};
-        catsite.addIDs(nfa); // These need to be added now so they can be merged first
-        cats.push_back(catsite);
-    }
-    Subgraph node_pair{subgraph1.start, subgraph2.end};
-    stack.push(node_pair);
+    Subgraph subgraph{subgraph1.start, subgraph2.end};
+    subgraph.concatInfo(subgraph1, subgraph2);
+    detect_bad_graphs(subgraph1, subgraph2, subgraph, nfa, cat_arc, cats);
+    stack.push(subgraph);
 }
 
 
@@ -70,9 +67,6 @@ void union_procedure(nfa_t &nfa, nfa_stack_t &stack, lmap_t &node_map, amap_t &a
     stack.pop();
     Subgraph subgraph1 = stack.top();
     stack.pop();
-    size_t split_run_count = subgraph1.split_run_count + subgraph2.split_run_count;
-    if(split_run_count == 0) ++split_run_count;
-
     bool redundant = redundancy_test(buffer);
     if(twin_test(subgraph2) && twin_test(subgraph1) && redundant) // Check for redundant twins [in reduced space]
     {
@@ -85,6 +79,7 @@ void union_procedure(nfa_t &nfa, nfa_stack_t &stack, lmap_t &node_map, amap_t &a
     if(twin_test(subgraph1)) twin_procedure(subgraph1, buffer, nfa, stack, node_map);
     if(twin_test(subgraph2)) twin_procedure(subgraph2, buffer, nfa, stack, node_map);
 
+
     node_t split_node = nfa.addNode();
     node_map[split_node] = Split;
     update_arc_map(nfa, node_map, arc_map, split_node, subgraph1.start);
@@ -95,28 +90,30 @@ void union_procedure(nfa_t &nfa, nfa_stack_t &stack, lmap_t &node_map, amap_t &a
     update_arc_map(nfa, node_map, arc_map, subgraph1.end, ghost_node);
     update_arc_map(nfa, node_map, arc_map, subgraph2.end, ghost_node);
 
-    Subgraph node_pair{split_node, ghost_node, split_run_count};
-    stack.push(node_pair);
+    Subgraph new_subgraph{split_node, ghost_node};
+    new_subgraph.unionInfo(subgraph1, subgraph2);
+    stack.push(new_subgraph);
 }
 
 
 void optional_procedure(nfa_t &nfa, nfa_stack_t &stack, lmap_t &node_map, amap_t &arc_map, buffer_t &buffer)
 {
-    Subgraph node = stack.top();
+    Subgraph subgraph = stack.top();
     stack.pop();
-    if(twin_test(node)) twin_procedure(node, buffer, nfa, stack, node_map);
+    if(twin_test(subgraph)) twin_procedure(subgraph, buffer, nfa, stack, node_map);
 
     node_t split_node = nfa.addNode();
     node_map[split_node] = Split;
-    update_arc_map(nfa, node_map, arc_map, split_node, node.start);
+    update_arc_map(nfa, node_map, arc_map, split_node, subgraph.start);
 
     node_t ghost_node = nfa.addNode();
     node_map[ghost_node] = Ghost;
     update_arc_map(nfa, node_map, arc_map, split_node, ghost_node);
-    update_arc_map(nfa, node_map, arc_map, node.end, ghost_node);
+    update_arc_map(nfa, node_map, arc_map, subgraph.end, ghost_node);
 
-    Subgraph node_pair{split_node, ghost_node};
-    stack.push(node_pair);
+    Subgraph new_subgraph{split_node, ghost_node};
+    new_subgraph.optionInfo(subgraph);
+    stack.push(new_subgraph);
 }
 
 
@@ -158,8 +155,9 @@ void kleene_procedure(nfa_t &nfa, nfa_stack_t &stack, lmap_t &node_map, const ui
         }
         back_node = new_subgraph.end;
     }
-    Subgraph node_pair{split_node, ghost_node};
-    stack.push(node_pair);
+    Subgraph stack_subgraph{split_node, ghost_node};
+    stack_subgraph.kleeneInfo(subgraph, k);
+    stack.push(stack_subgraph);
 }
 
 
@@ -189,27 +187,36 @@ void plus_procedure(nfa_t &nfa, nfa_stack_t &stack, lmap_t &node_map, const uint
         }
         back_node = new_subgraph.end;
     }
-    Subgraph node_pair{subgraph.start, ghost_node};
-    stack.push(node_pair);
+    Subgraph stack_subgraph{subgraph.start, ghost_node};
+    stack.push(stack_subgraph);
 }
 
 
-void quant_procedure(nfa_t &nfa, nfa_stack_t &stack, lmap_t &node_map, const uint8_t &k, amap_t &arc_map, const size_t min, const size_t max, catsites_t& cats, buffer_t& buffer)
+bool quant_procedure(nfa_t &nfa, nfa_stack_t &stack, lmap_t &node_map, const uint8_t &k, amap_t &arc_map, const size_t min, const size_t max, catsites_t& cats, buffer_t &buffer)
 {
-    if(min == 0)
+    bool skip = false;
+    if(min == 0) // Quants like {0,4}
     {
         kleene_procedure(nfa, stack, node_map, (max+1), arc_map, buffer);
-        return;
+        if(stack.size() != 1)
+        {
+            concat_procedure(nfa, node_map, stack, arc_map, buffer, cats);
+            skip = true;
+        } 
+        return skip;
     }
     Subgraph subgraph = stack.top();
-    concat_procedure(nfa, node_map, stack, arc_map, buffer, cats);
+    if(stack.size() != 1) // If there's one item on the stack then the subgraph being copied is the first subgraph in the regex
+    {
+        concat_procedure(nfa, node_map, stack, arc_map, buffer, cats);
+        skip = true; // If it's not first then skip the next concat operator
+    }
     size_t extra = (max == 0) ? 0 : (max-min);
     for(size_t i = 1; i < min; ++i)
     {
         Subgraph new_subgraph;
         copy_subgraph(subgraph, nfa, node_map, new_subgraph, arc_map);
         stack.push(new_subgraph);
-        if(i == (min-1) && max == 0) break; // Postfix will already have a concat operator
         concat_procedure(nfa, node_map, stack, arc_map, buffer, cats);
     }
     for(size_t i = 0; i < extra; ++i)
@@ -218,9 +225,9 @@ void quant_procedure(nfa_t &nfa, nfa_stack_t &stack, lmap_t &node_map, const uin
         copy_subgraph(subgraph, nfa, node_map, new_subgraph, arc_map);
         stack.push(new_subgraph);
         optional_procedure(nfa, stack, node_map, arc_map, buffer);
-        if(i == (extra-1)) break; // Postfix will already have a concat operator
         concat_procedure(nfa, node_map, stack, arc_map, buffer, cats);
     }
+    return skip;
 }
 
 
@@ -235,6 +242,7 @@ catsites_t construct_reduced_kgraph(const std::string &postfix, nfa_t &nfa, lmap
     for(size_t i = 0; i < postfix.size(); i++)
     {
         int symbol = postfix[i];
+        // DBG(static_cast<char>(symbol));
         switch(symbol)
         {
             default: // Character
@@ -283,6 +291,7 @@ catsites_t construct_reduced_kgraph(const std::string &postfix, nfa_t &nfa, lmap
     stack.pop();
     
     // Last but not least...
-    stack.pop();
+    // stack.pop();
+    assert(stack.size() == 0);
     return catsites;
 }

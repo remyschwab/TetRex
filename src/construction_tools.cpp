@@ -239,3 +239,25 @@ arc_t update_arc_map(nfa_t &NFA, lmap_t &node_map, amap_t &arc_map, const node_t
     }
     return new_arc;
 }
+
+
+void detect_bad_graphs(const Subgraph& sg1, const Subgraph& sg2, const Subgraph& sg_new, const nfa_t& nfa, const arc_t& carc, catsites_t& cats)
+{
+    if(sg2.paths >= 15)
+    {
+        Catsite catsite{sg1.end, sg2.start, sg2.end, carc};
+        catsite.addIDs(nfa); // These need to be added now so they can be merged first
+        catsite.gaps_ = sg2.lengths;
+        cats.push_back(catsite);
+        // subgraph.paths = (subgraph.paths/subgraph2.paths)*subgraph2.lengths.size();
+    }
+    else if(sg_new.paths >= 690000u && sg2.start != sg2.end)
+    {
+        Catsite catsite{sg1.end, sg2.start, sg2.end, carc};
+        catsite.addIDs(nfa); // These need to be added now so they can be merged first
+        catsite.gaps_ = sg2.lengths;
+        cats.push_back(catsite);
+        // subgraph.paths = (subgraph.paths/subgraph2.paths)*subgraph2.lengths.size();
+    }
+    // subgraph.dumpInfo();
+}

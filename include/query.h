@@ -56,7 +56,7 @@ void reverse_verify_fasta_hit(const gzFile &fasta_handle, const re2::RE2 &crx, s
 
 void verify_fasta_hit(const gzFile &fasta_handle, const re2::RE2 &crx, std::string const &binid, std::ostream& destination, const bool to_stdout);
 
-void verify_aa_fasta_hit(const gzFile &fasta_handle, const re2::RE2 &crx, std::string const &binid, const uint8_t &reduction, const std::array<char, 256> &residue_map);
+void verify_reduced_fasta_hit(const gzFile &fasta_handle, const re2::RE2 &crx, std::string const &binid, const uint8_t &reduction, const std::array<char, 256> &residue_map, std::ostream& destination, const bool to_stdout);
 
 void verify_fasta_set(const gzFile &fasta_handle, const RE2::Set &reg_set, std::string const &binid, const std::vector<std::string> &queries);
 
@@ -131,6 +131,7 @@ template<index_structure::is_valid flavor, molecules::is_peptide mol_type>
 void iter_disk_search(const bitvector &hits, std::string &query, const TetrexIndex<flavor, mol_type> &ibf, const std::string& dest)
 {
     std::vector<size_t> bins = compute_set_bins(hits, ibf.acid_libs_);
+    if(ibf.reduction_ > 0) reduce_query_alphabet(query, ibf.decomposer_.decomposer_.redmap_);
     query = "(" + query + ")"; // Capture entire RegEx
     re2::RE2 compiled_regex(query, re2::RE2::POSIX);
     assert(compiled_regex.ok());
@@ -156,6 +157,7 @@ void iter_disk_search(const bitvector &hits, std::string &query, const TetrexInd
     #pragma omp parallel for
     for(size_t hit: bins)
     {
+        // DBG(ibf.acid_libs_[hit].c_str());
         gzFile lib_path = gzopen(ibf.acid_libs_[hit].c_str(), "r");
         if(!lib_path)
         {
@@ -164,7 +166,7 @@ void iter_disk_search(const bitvector &hits, std::string &query, const TetrexInd
         }
         if(ibf.reduction_ > Base)
         {
-            verify_reduced_fasta_hit(lib_path, compiled_regex, ibf.acid_libs_[hit], ibf.reduction_, ibf.decomposer_.decomposer_.redmap_);
+            verify_reduced_fasta_hit(lib_path, compiled_regex, ibf.acid_libs_[hit], ibf.reduction_, ibf.decomposer_.decomposer_.redmap_, *output_stream, to_stdout);
             gzclose(lib_path);
             continue;
         }
@@ -223,7 +225,6 @@ bitvector process_query(std::string &regex, TetrexIndex<flavor, mol_t> &ibf, con
     // Construct kgraph
     if(ibf.reduction_ == Base) catsites = construct_kgraph(query, *NFA, *nfa_map, arc_map, ibf.k_, verbose);
     else catsites = construct_reduced_kgraph(query, *NFA, *nfa_map, arc_map, ibf.k_);
-    
     std::unique_ptr<gmap_t> gap_map = std::make_unique<gmap_t>(*NFA);
     OTFCollector<flavor, mol_t> collector(std::move(NFA), std::move(nfa_map), ibf, std::move(arc_map), std::move(gap_map), has_dibf, dibf);
     collector.analyze_complexity();
