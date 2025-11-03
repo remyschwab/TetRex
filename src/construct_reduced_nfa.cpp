@@ -1,6 +1,81 @@
 #include "construct_reduced_nfa.h"
 
 
+void copy_subgraph(const Subgraph& subgraph, nfa_t& NFA, lmap_t& node_map, Subgraph& subgraph_copy, amap_t& arc_map, buffer_t& buffer)
+{
+    using namespace lemon;
+    using Digraph = SmartDigraph;
+
+    if(subgraph.start == subgraph.end) // Copying is very simple if the subgraph is just a single node
+    {
+        node_t new_twin = NFA.addNode();
+        node_map[new_twin] = buffer.top();
+        subgraph_copy.start = new_twin;
+        subgraph_copy.end = new_twin;
+        subgraph_copy.copyMeta(subgraph);
+        return;
+    }
+
+    // --- Keep snapshots of the original nodes/arcs (ids are dense & stable in SmartDigraph)
+    std::vector<Digraph::Node> origNodes;
+    for (Digraph::NodeIt n(NFA); n != INVALID; ++n) origNodes.push_back(n);
+
+    std::vector<Digraph::Arc> origArcs;
+    for (Digraph::ArcIt a(NFA); a != INVALID; ++a) origArcs.push_back(a);
+
+    const int maxN = NFA.maxNodeId() + 1;
+    const int maxA = NFA.maxArcId() + 1;
+
+    node_t s = subgraph.start;
+    node_t t = subgraph.end;
+
+    // --- Reachability from s
+    Dfs<Digraph> dfs_f(NFA);
+    dfs_f.run(s);
+
+    // --- Reachability to t via reverse graph
+    ReverseDigraph<const Digraph> RG(NFA);
+    Dfs<ReverseDigraph<const Digraph>> dfs_b(RG);
+    dfs_b.run(t);
+
+    // --- Mark nodes on any s->t path
+    Digraph::NodeMap<bool> on_path(NFA, false);
+    for (auto n : origNodes) {
+        if (dfs_f.reached(n) && dfs_b.reached(n)) on_path[n] = true;
+    }
+
+    InplaceDuplicateResult res;
+    res.old2newNode.assign(maxN, Digraph::Node(INVALID));
+    res.old2newArc.assign(maxA,  Digraph::Arc(INVALID));
+
+    // --- Duplicate nodes
+    for (auto n : origNodes) {
+        if (!on_path[n]) continue;
+        auto nn = NFA.addNode();
+        res.old2newNode[NFA.id(n)] = nn;
+        node_map[nn] = node_map[n];
+    }
+
+    res.s_copy = res.old2newNode[NFA.id(s)];
+    res.t_copy = res.old2newNode[NFA.id(t)];
+
+    // --- Duplicate arcs whose endpoints are both on_path
+    for (auto a : origArcs) {
+        auto u = NFA.source(a);
+        auto v = NFA.target(a);
+        if (!on_path[u] || !on_path[v]) continue;
+
+        auto uu = res.old2newNode[NFA.id(u)];
+        auto vv = res.old2newNode[NFA.id(v)];
+        arc_t aa = update_arc_map(NFA, node_map, arc_map, uu, vv);
+        res.old2newArc[NFA.id(a)] = aa;
+    }
+    subgraph_copy.start = res.s_copy;
+    subgraph_copy.end = res.t_copy;
+    subgraph_copy.copyMeta(subgraph);
+}
+
+
 bool redundancy_test(buffer_t &buffer)
 {
     if(buffer.size() == 1) return false;
@@ -142,7 +217,7 @@ void kleene_procedure(nfa_t &nfa, nfa_stack_t &stack, lmap_t &node_map, const ui
         update_arc_map(nfa, node_map, arc_map, inner_split, ghost_node);
 
         Subgraph new_subgraph;
-        copy_subgraph(subgraph, nfa, node_map, new_subgraph, arc_map);
+        copy_subgraph(subgraph, nfa, node_map, new_subgraph, arc_map, buffer);
         // Copy the subgraph before connecting it to anything downstream
         // so that the DFS in the copy routine doesn't go beyond the subgraph
         update_arc_map(nfa, node_map, arc_map, back_node, inner_split);
@@ -176,7 +251,7 @@ void plus_procedure(nfa_t &nfa, nfa_stack_t &stack, lmap_t &node_map, const uint
         Subgraph new_subgraph;
         node_t inner_split = nfa.addNode();
         node_map[inner_split] = Split;
-        copy_subgraph(subgraph, nfa, node_map, new_subgraph, arc_map);
+        copy_subgraph(subgraph, nfa, node_map, new_subgraph, arc_map, buffer);
         update_arc_map(nfa, node_map, arc_map, back_node, inner_split);
         update_arc_map(nfa, node_map, arc_map, inner_split, ghost_node);
         update_arc_map(nfa, node_map, arc_map, inner_split, new_subgraph.start);
@@ -206,23 +281,27 @@ bool quant_procedure(nfa_t &nfa, nfa_stack_t &stack, lmap_t &node_map, const uin
         return skip;
     }
     Subgraph subgraph = stack.top();
+    int sym = buffer.top();
+    bool twins = twin_test(subgraph);
     if(stack.size() != 1) // If there's one item on the stack then the subgraph being copied is the first subgraph in the regex
     {
         concat_procedure(nfa, node_map, stack, arc_map, buffer, cats);
+        if(twin_test(subgraph)) default_procedure(buffer, sym, stack);
         skip = true; // If it's not first then skip the next concat operator
     }
     size_t extra = (max == 0) ? 0 : (max-min);
     for(size_t i = 1; i < min; ++i)
     {
         Subgraph new_subgraph;
-        copy_subgraph(subgraph, nfa, node_map, new_subgraph, arc_map);
-        stack.push(new_subgraph);
+        new_subgraph.copyMeta(subgraph);
+        // copy_subgraph(subgraph, nfa, node_map, new_subgraph, arc_map, buffer);
+        // stack.push(new_subgraph);
         concat_procedure(nfa, node_map, stack, arc_map, buffer, cats);
     }
     for(size_t i = 0; i < extra; ++i)
     {
         Subgraph new_subgraph;
-        copy_subgraph(subgraph, nfa, node_map, new_subgraph, arc_map);
+        copy_subgraph(subgraph, nfa, node_map, new_subgraph, arc_map, buffer);
         stack.push(new_subgraph);
         optional_procedure(nfa, stack, node_map, arc_map, buffer);
         concat_procedure(nfa, node_map, stack, arc_map, buffer, cats);
@@ -239,9 +318,11 @@ catsites_t construct_reduced_kgraph(const std::string &postfix, nfa_t &nfa, lmap
     node_map[start_node] = Ghost;
     std::pair<size_t, size_t> min_max;
     catsites_t catsites;
+    bool skip = false;
     for(size_t i = 0; i < postfix.size(); i++)
     {
         int symbol = postfix[i];
+        if(std::isdigit(symbol)) continue;
         // DBG(static_cast<char>(symbol));
         switch(symbol)
         {
@@ -250,6 +331,11 @@ catsites_t construct_reduced_kgraph(const std::string &postfix, nfa_t &nfa, lmap
                 default_procedure(buffer, symbol, stack);
                 break;
             case '-': // Concat
+                if(skip)
+                {
+                    skip = false;
+                    continue;
+                }
                 concat_procedure(nfa, node_map, stack, arc_map, buffer, catsites);
                 break;
             case '|': // Or
@@ -271,7 +357,7 @@ catsites_t construct_reduced_kgraph(const std::string &postfix, nfa_t &nfa, lmap
                     optional_procedure(nfa, stack, node_map, arc_map, buffer);
                     break;
                 }
-                quant_procedure(nfa, stack, node_map, k, arc_map, min_max.first, min_max.second, catsites, buffer);
+                skip = quant_procedure(nfa, stack, node_map, k, arc_map, min_max.first, min_max.second, catsites, buffer);
                 break;
             case '}': // End of Quantifier
             case ',':

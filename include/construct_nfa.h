@@ -18,3 +18,5 @@ void plus_procedure(nfa_t &nfa, nfa_stack_t &stack, lmap_t &node_map, const uint
 bool quant_procedure(nfa_t &nfa, nfa_stack_t &stack, lmap_t &node_map, const uint8_t &k, amap_t &arc_map, const size_t min, const size_t max, catsites_t& cats);
 
 catsites_t construct_kgraph(const std::string &postfix, nfa_t &nfa, lmap_t &node_map, amap_t &arc_map, const uint8_t &k, const bool& verbose);
+
+void copy_subgraph(const Subgraph& subgraph, nfa_t& NFA, lmap_t& node_map, Subgraph& subgraph_copy, amap_t& arc_map);

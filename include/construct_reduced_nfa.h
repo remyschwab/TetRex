@@ -13,6 +13,8 @@ Subgraph add_node(nfa_t &nfa, lmap_t &node_map, const int &symbol);
 
 void default_procedure(buffer_t &buffer, const int symbol, nfa_stack_t &stack);
 
+void copy_subgraph(const Subgraph& subgraph, nfa_t& NFA, lmap_t& node_map, Subgraph& subgraph_copy, amap_t& arc_map, buffer_t& buffer);
+
 void concat_procedure(nfa_t &nfa, lmap_t &node_map, nfa_stack_t &stack, amap_t &arc_map, buffer_t &buffer, catsites_t& cats);
 
 void union_procedure(nfa_t &nfa, nfa_stack_t &stack, lmap_t &node_map, amap_t &arc_map, buffer_t &buffer);

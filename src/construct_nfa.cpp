@@ -1,6 +1,80 @@
 #include "construct_nfa.h"
 
 
+void copy_subgraph(const Subgraph& subgraph, nfa_t& NFA, lmap_t& node_map, Subgraph& subgraph_copy, amap_t& arc_map)
+{
+    using namespace lemon;
+    using Digraph = SmartDigraph;
+
+    if(subgraph.start == subgraph.end) // Copying is very simple if the subgraph is just a single node
+    {
+        node_t new_twin = NFA.addNode();
+        node_map[new_twin] = node_map[subgraph.start];
+        subgraph_copy.start = new_twin;
+        subgraph_copy.end = new_twin;
+        subgraph_copy.copyMeta(subgraph);
+        return;
+    }
+
+    // --- Keep snapshots of the original nodes/arcs (ids are dense & stable in SmartDigraph)
+    std::vector<Digraph::Node> origNodes;
+    for (Digraph::NodeIt n(NFA); n != INVALID; ++n) origNodes.push_back(n);
+
+    std::vector<Digraph::Arc> origArcs;
+    for (Digraph::ArcIt a(NFA); a != INVALID; ++a) origArcs.push_back(a);
+
+    const int maxN = NFA.maxNodeId() + 1;
+    const int maxA = NFA.maxArcId() + 1;
+
+    node_t s = subgraph.start;
+    node_t t = subgraph.end;
+
+    // --- Reachability from s
+    Dfs<Digraph> dfs_f(NFA);
+    dfs_f.run(s);
+
+    // --- Reachability to t via reverse graph
+    ReverseDigraph<const Digraph> RG(NFA);
+    Dfs<ReverseDigraph<const Digraph>> dfs_b(RG);
+    dfs_b.run(t);
+
+    // --- Mark nodes on any s->t path
+    Digraph::NodeMap<bool> on_path(NFA, false);
+    for (auto n : origNodes) {
+        if (dfs_f.reached(n) && dfs_b.reached(n)) on_path[n] = true;
+    }
+
+    InplaceDuplicateResult res;
+    res.old2newNode.assign(maxN, Digraph::Node(INVALID));
+    res.old2newArc.assign(maxA,  Digraph::Arc(INVALID));
+
+    // --- Duplicate nodes
+    for (auto n : origNodes) {
+        if (!on_path[n]) continue;
+        auto nn = NFA.addNode();
+        res.old2newNode[NFA.id(n)] = nn;
+        node_map[nn] = node_map[n];
+    }
+
+    res.s_copy = res.old2newNode[NFA.id(s)];
+    res.t_copy = res.old2newNode[NFA.id(t)];
+
+    // --- Duplicate arcs whose endpoints are both on_path
+    for (auto a : origArcs) {
+        auto u = NFA.source(a);
+        auto v = NFA.target(a);
+        if (!on_path[u] || !on_path[v]) continue;
+
+        auto uu = res.old2newNode[NFA.id(u)];
+        auto vv = res.old2newNode[NFA.id(v)];
+        arc_t aa = update_arc_map(NFA, node_map, arc_map, uu, vv);
+        res.old2newArc[NFA.id(a)] = aa;
+    }
+    subgraph_copy.start = res.s_copy;
+    subgraph_copy.end = res.t_copy;
+    subgraph_copy.copyMeta(subgraph);
+}
+
 void default_procedure(nfa_t &nfa, nfa_stack_t &stack, lmap_t &node_map, const int &symbol)
 {
     node_t node = nfa.addNode();

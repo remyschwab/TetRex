@@ -184,7 +184,13 @@ using catsites_t = std::vector<Catsite>;
 
 using buffer_t = std::stack<int>;
 
-
+struct InplaceDuplicateResult
+{
+    std::vector<lemon::SmartDigraph::Node> old2newNode; // size = old maxNodeId+1
+    std::vector<lemon::SmartDigraph::Arc>  old2newArc;  // size = old maxArcId+1
+    lemon::SmartDigraph::Node s_copy{lemon::INVALID};
+    lemon::SmartDigraph::Node t_copy{lemon::INVALID};
+};
 
 
 void print_graph(nfa_t &NFA, lmap_t &nmap, const catsites_t& cats, const bool& augment);
@@ -202,5 +208,3 @@ void print_node_ids(nfa_t &NFA, lmap_t &nmap);
 std::pair<size_t, size_t> parse_quant(const std::string& postfix, size_t quant_start);
 
 void detect_bad_graphs(const Subgraph& sg1, const Subgraph& sg2, const Subgraph& sg_new, const nfa_t& nfa, const arc_t& carc, catsites_t& cats);
-
-void copy_subgraph(const Subgraph &subgraph, nfa_t &NFA, lmap_t &node_map, Subgraph &subgraph_copy, amap_t &arc_map);

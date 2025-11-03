@@ -419,7 +419,7 @@ class OTFCollector
     {
         comp_table_.resize(node_count_);
         determine_top_sort();
-        cmplx_mtrx_ = compute_complexity(ibf_->k_);
+        // cmplx_mtrx_ = compute_complexity(ibf_->k_);
         return;
     }
 
