@@ -18,11 +18,23 @@
 #include "construction_tools.h"
 #include "dGramIndex.h"
 
-struct motif_id_t
+namespace query_types
 {
-    std::string id{};
-    std::string motif{};
-};
+    struct motif_id_t
+    {
+        std::string id{};
+        std::string motif{};
+    };
+
+    template <typename query_t>
+    concept is_motif_pair = std::same_as<query_t, motif_id_t>;
+
+    template <typename query_t>
+    concept is_query_string = std::same_as<query_t, std::string>;
+
+    template <typename query_t>
+    concept is_query = is_motif_pair<query_t> || is_query_string<query_t>;
+}
 
 double compute_k_probability(const uint8_t &k);
 
@@ -44,7 +56,7 @@ void trimRegEx(std::string& rx_query);
 
 void reduce_query_alphabet(std::string &regex, const std::array<char, 256> &reduction_map);
 
-std::vector<motif_id_t> read_regex_from_file(const std::string &file_path);
+std::vector<query_types::motif_id_t> read_regex_from_file(const std::string &file_path);
 
 std::string compute_reverse_complement(std::string &regex);
 
@@ -258,8 +270,8 @@ void run_collection(query_arguments &cmd_args, const bool &model, TetrexIndex<fl
         seqan3::debug_stream << "[WARNING] Index contains only 1 bin. Unable to accelerate search using the TetRex algorithm. Performing Linear Scan" << std::endl;
     }
 
-    // if(cmd_args.verbose) seqan3::debug_stream << "Narrowed Search to " << OTFCollector<flavor, mol_t>::sumBitVector(hit_vector) << " possible bins" << std::endl;
-    if(cmd_args.verbose) seqan3::debug_stream << OTFCollector<flavor, mol_t>::sumBitVector(hit_vector) << std::endl;
+    if(cmd_args.verbose) seqan3::debug_stream << "Narrowed Search to " << OTFCollector<flavor, mol_t>::sumBitVector(hit_vector) << " possible bins" << std::endl;
+    // if(cmd_args.verbose) seqan3::debug_stream << OTFCollector<flavor, mol_t>::sumBitVector(hit_vector) << std::endl;
     if(!hit_vector.none())
     {
         try
@@ -272,7 +284,7 @@ void run_collection(query_arguments &cmd_args, const bool &model, TetrexIndex<fl
         }
     }
     t2 = omp_get_wtime();
-    // if(cmd_args.verbose) seqan3::debug_stream << "Query Time: " << (t2-t1) << std::endl;
+    if(cmd_args.verbose) seqan3::debug_stream << "Query Time: " << (t2-t1) << std::endl;
 }
 
 
@@ -312,14 +324,9 @@ void run_conjunction(query_arguments &cmd_args, const std::vector<std::string> &
 }
 
 
-template<index_structure::is_valid flavor, molecules::is_molecule mol_t>
-void run_multiple_queries(query_arguments &cmd_args, const std::vector<motif_id_t> &queries, const bool &model, TetrexIndex<flavor, mol_t> &ibf)
+template<index_structure::is_valid flavor, molecules::is_molecule mol_t, query_types::is_motif_pair query_t>
+void run_multiple_queries(query_arguments &cmd_args, const std::vector<query_t> &queries, const bool &model, TetrexIndex<flavor, mol_t> &ibf)
 {
-    // if(cmd_args.conjunction)
-    // {
-    //     run_conjunction(cmd_args, queries, model, ibf);
-    //     return;
-    // }
     for(auto query_id_pair: queries)
     {
         cmd_args.input_regex = query_id_pair.motif;
@@ -328,3 +335,11 @@ void run_multiple_queries(query_arguments &cmd_args, const std::vector<motif_id_
         run_collection(cmd_args, model, ibf);
     }
 }
+
+
+template<index_structure::is_valid flavor, molecules::is_molecule mol_t, query_types::is_query_string query_t>
+void run_multiple_queries(query_arguments &cmd_args, const std::vector<query_t> &queries, const bool &model, TetrexIndex<flavor, mol_t> &ibf)
+{
+    run_conjunction(cmd_args, queries, model, ibf);
+}
+

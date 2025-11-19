@@ -339,9 +339,9 @@ void verify_fasta_set(const gzFile &fasta_handle, const RE2::Set &reg_set, std::
 }
 
 
-std::vector<motif_id_t> read_regex_from_file(const std::string &file_path)
+std::vector<query_types::motif_id_t> read_regex_from_file(const std::string &file_path)
 {
-    std::vector<motif_id_t> motifs;
+    std::vector<query_types::motif_id_t> motifs;
     std::ifstream infile(file_path);
     if (!infile.is_open())
         throw std::runtime_error("Could not open file: " + file_path);
@@ -352,7 +352,7 @@ std::vector<motif_id_t> read_regex_from_file(const std::string &file_path)
         if (line.empty()) continue; // skip empty lines
 
         std::istringstream iss(line);
-        motif_id_t entry;
+        query_types::motif_id_t entry;
         if (std::getline(iss, entry.id, '\t') &&
             std::getline(iss, entry.motif, '\t'))
         {
@@ -380,7 +380,7 @@ void query_ibf_dna(query_arguments &cmd_args, const bool &model)
     ibf.spawn_agent();
     if(cmd_args.read_file)
     {
-        std::vector<motif_id_t> queries = read_regex_from_file(cmd_args.input_regex);
+        std::vector<query_types::motif_id_t> queries = read_regex_from_file(cmd_args.input_regex);
         run_multiple_queries(cmd_args, queries, model, ibf);
         return;
     }
@@ -406,7 +406,7 @@ void query_ibf_aa(query_arguments &cmd_args, const bool &model)
     ibf.spawn_agent();
     if(cmd_args.read_file)
     {
-        std::vector<motif_id_t> queries = read_regex_from_file(cmd_args.input_regex);
+        std::vector<query_types::motif_id_t> queries = read_regex_from_file(cmd_args.input_regex);
         run_multiple_queries(cmd_args, queries, model, ibf);
         return;
     }
@@ -431,7 +431,7 @@ void query_hibf_dna(query_arguments &cmd_args, const bool &model)
     load_ibf(ibf, cmd_args.idx);
     if(cmd_args.read_file)
     {
-        std::vector<motif_id_t> queries = read_regex_from_file(cmd_args.input_regex);
+        std::vector<query_types::motif_id_t> queries = read_regex_from_file(cmd_args.input_regex);
         run_multiple_queries(cmd_args, queries, model, ibf);
         return;
     }
@@ -456,21 +456,21 @@ void query_hibf_aa(query_arguments &cmd_args, const bool &model)
     load_ibf(ibf, cmd_args.idx);
     if(cmd_args.read_file)
     {
-        std::vector<motif_id_t> queries = read_regex_from_file(cmd_args.input_regex);
+        std::vector<query_types::motif_id_t> queries = read_regex_from_file(cmd_args.input_regex);
         run_multiple_queries(cmd_args, queries, model, ibf);
         return;
     }
-    // else if(cmd_args.conjunction)
-    // {
-    //     std::vector<std::string> queries = split_string(cmd_args.input_regex, ':');
-    //     if(queries.size() == 1)
-    //     {
-    //         seqan3::debug_stream << "Did you use the correct delimiter (:)?" << std::endl;
-    //         return;
-    //     }
-    //     run_multiple_queries(cmd_args, queries, model, ibf);
-    //     return;
-    // }
+    else if(cmd_args.conjunction)
+    {
+        std::vector<std::string> queries = split_string(cmd_args.input_regex, ':');
+        if(queries.size() == 1)
+        {
+            DBG("Did you use the correct delimiter (:)?");
+            return;
+        }
+        run_multiple_queries(cmd_args, queries, model, ibf);
+        return;
+    }
     run_collection(cmd_args, model, ibf);
 }
 
