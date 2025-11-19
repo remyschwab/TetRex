@@ -251,6 +251,7 @@ template<index_structure::is_valid flavor, molecules::is_molecule mol_t>
 void run_collection(query_arguments &cmd_args, const bool &model, TetrexIndex<flavor, mol_t> &ibf)
 {
     double t1, t2;
+    if(cmd_args.verbose && cmd_args.read_file) cmd_args.verbose = false;
     std::string &rx = cmd_args.input_regex;
     t1 = omp_get_wtime();
     bitvector hit_vector(ibf.getBinCount(), true);
@@ -271,7 +272,7 @@ void run_collection(query_arguments &cmd_args, const bool &model, TetrexIndex<fl
     }
 
     if(cmd_args.verbose) seqan3::debug_stream << "Narrowed Search to " << OTFCollector<flavor, mol_t>::sumBitVector(hit_vector) << " possible bins" << std::endl;
-    // if(cmd_args.verbose) seqan3::debug_stream << OTFCollector<flavor, mol_t>::sumBitVector(hit_vector) << std::endl;
+    if(cmd_args.read_file) seqan3::debug_stream << "Bin Count: " << OTFCollector<flavor, mol_t>::sumBitVector(hit_vector) << "\t";
     if(!hit_vector.none())
     {
         try
@@ -285,6 +286,7 @@ void run_collection(query_arguments &cmd_args, const bool &model, TetrexIndex<fl
     }
     t2 = omp_get_wtime();
     if(cmd_args.verbose) seqan3::debug_stream << "Query Time: " << (t2-t1) << std::endl;
+    if(cmd_args.read_file) seqan3::debug_stream << "Query Time: " << (t2-t1) << std::endl;
 }
 
 
