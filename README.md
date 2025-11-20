@@ -34,9 +34,10 @@ Regular Expressions are given as input via the command line and support extended
 2. __*__ - Zero or more repetitions
 3. **+** - One or More repetitions
 4. **?** - Optional Character
+5. Min-(Max) Quantifiers like {4} or {2,4} (Note that we **do not** support indefinite max like {2,})
 
 ### A Small Example
-`TetRex` offers two main commands [index & query] and one utility command [inspect]:
+`TetRex` offers 3 main commands [index, query, and track] and one utility command [inspect]:
 ```shell
 ## Construct an HIBF index of nucleic acids, with kmer size = 3, 3 hash functions, & a FPR of 0.05, each input file represents a bin
 tetrex index -n -k 3 test data/dna_example_split/*.fa
@@ -107,6 +108,25 @@ tetrex query sprot_split.ibf "LMA(E|Q)GLYN"
 /Users/rschwab/Desktop/swissprot_split/swissprot_bin_0811.fa	>sp|Q26601|SMOX2_SCHMA	LMAEGLYN
 Query Time: 0.007119
 ```
+
+
+### Avoiding Catastrophic Enumeration
+The latest version of TetRex includes numerous improvements to both the graph construction and kmer collection steps. The below example shows how to use these improvements and how to reproduce the results of the manuscript
+```shell
+## Create a DIBF with min gapsize 1 and max gapsize 6
+tetrex track -l 1 -u 6 sprot_dibf sprot_bins/*.fasta
+
+## Query a Regular Expression containing a pathological subgraph
+tetrex query sprot_split.ibf "W.{2}[LIVM]D[VFY][LIVM]{3}D.PPGT[GS]D" ## Without graph refinement or dgram index
+tetrex query -a sprot_split.ibf "W.{2}[LIVM]D[VFY][LIVM]{3}D.PPGT[GS]D" ## With graph refinement
+tetrex query -a -g sprot_dibf sprot_split.ibf "W.{2}[LIVM]D[VFY][LIVM]{3}D.PPGT[GS]D" ## With graph refinement and dgram index
+
+## Reproduce Results of Averting Catastrophe with TetRex2
+tetrex query -v -f sprot_split.ibf ./data/tetrex_triples_input.tsv
+tetrex query -v -a -f sprot_split.ibf ./data/tetrex_triples_input.tsv
+tetrex query -v -a -f -g sprot_dibf sprot_split.ibf ./data/tetrex_triples_input.tsv
+```
+
 
 ### Critical Note
 The `fasta-splitter.pl` tool is available in the `utils` folder in this repository. The original tool is authored and distributed by [Kirill Kryukov](https://kirill-kryukov.com/study/tools/fasta-splitter/).
