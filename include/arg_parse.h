@@ -57,7 +57,7 @@ struct query_arguments
 inline void initialise_query_parser(sharg::parser &parser, query_arguments &args)
 {
     parser.info.author = "Remy Schwab";
-    parser.info.version = "1.0.0";
+    parser.info.version = "2.0.0";
     parser.add_flag(args.draw, sharg::config{'d', "draw", "Write Graph Viz file to disk"});
     parser.add_flag(args.verbose, sharg::config{'v', "verbose", "Log verbose output"});
     parser.add_flag(args.read_file, sharg::config{'f', "file", "Interpret last argument as a file containing RegEx"});
